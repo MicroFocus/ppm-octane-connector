@@ -1,0 +1,46 @@
+package com.ppm.integration.agilesdk.connector.octane.model;
+
+import java.util.LinkedList;
+import java.util.List;
+import net.sf.json.JSONException;
+import net.sf.json.JSONObject;
+
+/**
+ * Created by lutian on 2016/11/14.
+ */
+public class WorkItemFeature extends WorkItem {
+    public int featurePoints = 0;
+
+    public int aggStoryPoints = 0;
+
+    public int numOfStories = 0;
+
+    public int numbOfDefects = 0;
+
+    public long themeId = -1;
+
+    public String releaseId = "";
+
+    public String status;
+
+    public String lastModified;
+
+    public List<WorkItemStory> storyList = new LinkedList<WorkItemStory>();
+
+    public void ParseJsonData(JSONObject Obj) {
+        try {
+            this.id = (String)Obj.get("id");
+            this.name = (String)Obj.get("name");
+            this.subType = (String)Obj.get("subtype");
+            this.releaseId = getSubObjectItem("release", "id", Obj);
+            this.themeId = Long.parseLong(getSubObjectItem("parent", "id", Obj));
+            this.status = this.getSubObjectItem("phase", "name", Obj);
+            this.lastModified = (String)Obj.get("last_modified");
+            this.numbOfDefects = Obj.getInt("defects");
+            this.numOfStories = Obj.getInt("user_stories");
+            this.featurePoints = Obj.getInt("story_points");
+        } catch (JSONException expected) {
+            // the release is null
+        }
+    }
+}
