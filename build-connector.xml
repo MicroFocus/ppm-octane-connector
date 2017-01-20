@@ -3,13 +3,22 @@
     <property environment="env" />
     <property file="build.properties" />
     <property name="debug" value="true"/>
-    <property name="PPM_MAJOR_VERSION" value="${itg.major.version},${itg.minor.version},${itg.subminor.version}" />
+    <property name="PPM_MAJOR_VERSION" value="${ppm.major.version},${ppm.minor.version},${ppm.subminor.version}" />
+	<property name="PPM_AGGREGATED_MAJOR_VERSION" value="${ppm.major.version}${ppm.minor.version}${ppm.subminor.version}" />
+	<property name="PPM_PATCH_VERSION" value="${ppm.patch.version}"/>
+	<property name="BUNDLE_NAME" value="${connector.bundle.name}"/>
+    <property name="CONNECTOR_DIR" value="."/>
+    <property name="CONNECTOR_DESC" value="${connector.description}"/>
 
     <path id="ic.compile.libs">
-        <fileset dir="${itg.lib.dir}">
+        <fileset dir="${ppm.lib.dir}">
             <include name="**/*.jar" />
         </fileset>
     </path>
+	
+	<condition property="webcontent.exists">
+		<available file="${CONNECTOR_DIR}/webcontent" type="dir"/>
+    </condition>
 
     <target name="all" depends="clean, compile, jar-cls, jar-web, bundle"/>
 
@@ -50,37 +59,26 @@
         </jar>
     </target>
 
-<!-- deploy together with PPM
-    <target name="deploy" depends="jar-cls">
-        <copy todir="${ppm.jboss.src.dir}/server/kintana/deploy/itg.war/WEB-INF/lib/" flatten="false">
-            <fileset dir="${CONNECTOR_DIR}/bin" includes="connector-${BUNDLE_NAME}.jar" />
-        </copy>
-
-        <copy todir="${ppm.jboss.src.dir}/server/kintana/deploy/itg.war/" flatten="false">
-            <fileset dir="${CONNECTOR_DIR}/webcontent" includes="**/*"/>
-        </copy>
-    </target>
--->
-
     <target name="quick-deploy" depends="jar-cls">
-        <echo>Only for PPM Developer</echo>
-		<copy todir="${ppm.target.dir}/jboss/server/kintana/deploy/itg.war/WEB-INF/lib" flatten="false">
+        <echo>Only for Connector Developers - Now copying connector Jar to PPM Server.</echo>
+        <copy todir="${ppm.server.root}/deploy/itg.war/WEB-INF/lib" flatten="false">
             <fileset dir="${CONNECTOR_DIR}/bin" includes="connector-${BUNDLE_NAME}.jar" />
         </copy>
-<!--
-        <copy todir="${ppm.target.dir}/jboss/server/kintana/deploy/itg.war/" flatten="false">
-            <fileset dir="${CONNECTOR_DIR}/webcontent" includes="**/*"/>
-        </copy>
--->
-	</target>
+
+		<antcall target="copy-webcontent">
+			<param name="copy.webcontent.to.dir" value="${ppm.server.root}/deploy/itg.war/"/>
+		</antcall>
+        
+		<echo>Please restart PPM server.</echo>
+    </target>
 
     <target name="jar-web" depends="jar-cls">
         <mkdir dir="${CONNECTOR_DIR}/bin/fs_war" />
-		<!--
-        <copy todir="${CONNECTOR_DIR}/bin/fs_war" flatten="false">
-            <fileset dir="${CONNECTOR_DIR}/webcontent" includes="**/*"/>
-        </copy>
-		-->
+		
+		<antcall target="copy-webcontent">
+			<param name="copy.webcontent.to.dir" value="${CONNECTOR_DIR}/bin/fs_war"/>
+		</antcall>
+
         <mkdir dir="${CONNECTOR_DIR}/bin/fs_war/WEB-INF/lib" />
         <copy file="${CONNECTOR_DIR}/bin/connector-${BUNDLE_NAME}.jar" tofile="${CONNECTOR_DIR}/bin/fs_war/WEB-INF/lib/connector-${BUNDLE_NAME}.jar" overwrite="true" />
 
@@ -88,6 +86,12 @@
             <fileset dir="${CONNECTOR_DIR}/bin/fs_war" />
         </zip>
     </target>
+	
+	<target name="copy-webcontent" if="webcontent.exists">
+		<copy todir="${copy.webcontent.to.dir}" flatten="false">
+			<fileset dir="${CONNECTOR_DIR}/webcontent" includes="**/*"/>
+		</copy>
+	</target>
 
     <target name="bundle" depends="jar-web">
         <!-- BUNDLE_NAME -->
@@ -102,11 +106,11 @@
         </loadfile>
 
     
-        <mkdir dir="${CONNECTOR_DIR}/bin/bundle/deploy/${PPM_MAJOR_VERSION_I}/${BUNDLE_NAME}/phases" />
+        <mkdir dir="${CONNECTOR_DIR}/bin/bundle/deploy/${PPM_AGGREGATED_MAJOR_VERSION}/${BUNDLE_NAME}/phases" />
 
-        <copy file="${CONNECTOR_DIR}/bin/fs_war.jar" tofile="${CONNECTOR_DIR}/bin/bundle/deploy/${PPM_MAJOR_VERSION_I}/${BUNDLE_NAME}/fs_war.jar" overwrite="true" />
+        <copy file="${CONNECTOR_DIR}/bin/fs_war.jar" tofile="${CONNECTOR_DIR}/bin/bundle/deploy/${PPM_AGGREGATED_MAJOR_VERSION}/${BUNDLE_NAME}/fs_war.jar" overwrite="true" />
 
-        <loadfile property="DEPLOY_INFO" srcFile="config/deploy.info">
+        <loadfile property="DEPLOY_INFO" srcFile="deploy.info.tpl">
             <filterchain>
                 <tokenfilter>
                     <replaceregex pattern="\{CONNECTOR_DIR\}" replace="${CONNECTOR_DIR}" flags="g"/>
@@ -116,27 +120,9 @@
                 </tokenfilter>
             </filterchain>
         </loadfile>
-        <echo message="${DEPLOY_INFO}" file="${CONNECTOR_DIR}/bin/bundle/deploy/${PPM_MAJOR_VERSION_I}/${BUNDLE_NAME}/deploy.info" />
-		
-		<replaceregexp  match="&#13;&#10;" replace="&#10;" flags="g" byline="false">  
-		  <fileset dir="${CONNECTOR_DIR}/bin/bundle/deploy/${PPM_MAJOR_VERSION_I}/${BUNDLE_NAME}">  
-			<include name="deploy.info" />  
-		  </fileset>  
-		</replaceregexp> 
-	
-		
-		<mkdir dir="${CONNECTOR_DIR}/bin/bundle/deploy/${PPM_MAJOR_VERSION_I}/${BUNDLE_NAME}/db" />
-		
-		<copy todir="${CONNECTOR_DIR}/bin/bundle/deploy/${PPM_MAJOR_VERSION_I}/${BUNDLE_NAME}/db/" flatten="false">
-            <fileset dir="${CONNECTOR_DIR}/database" includes="**/*.sql"/>
-        </copy>
-		
-		<copy todir="${CONNECTOR_DIR}/bin/bundle/deploy/${PPM_MAJOR_VERSION_I}/${BUNDLE_NAME}/phases/" flatten="false">
-            <fileset dir="${CONNECTOR_DIR}/content" includes="**/*"/>
-        </copy>
-		
+        <echo message="${DEPLOY_INFO}" file="${CONNECTOR_DIR}/bin/bundle/deploy/${PPM_AGGREGATED_MAJOR_VERSION}/${BUNDLE_NAME}/deploy.info" />
 
-        <zip zipfile="${CONNECTOR_DIR}/bin/ppm-${PPM_MAJOR_VERSION_I}-${BUNDLE_NAME}.jar" compress="true">
+        <zip zipfile="${CONNECTOR_DIR}/bin/ppm-${PPM_AGGREGATED_MAJOR_VERSION}-${BUNDLE_NAME}.jar" compress="true">
             <fileset dir="${CONNECTOR_DIR}/bin/bundle" />
         </zip>
     </target>
