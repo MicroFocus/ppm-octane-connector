@@ -17,12 +17,10 @@ public class Releases extends SimpleEntityCollection<Release> {
         JSONObject object = JSONObject.fromObject(data);
         JSONArray jsonarray = (JSONArray)(object.get("data"));
         for (int i = 0, length = jsonarray.size(); i < length; i++) {
-            JSONObject tempObj = (JSONObject)jsonarray.getJSONObject(i);
-            Release tempSharedSpace = new Release();
-            tempSharedSpace.id = (String)tempObj.get("id");
-            tempSharedSpace.name = (String)tempObj.get("name");
-            tempSharedSpace.type = (String)tempObj.get("type");
-            super.add(tempSharedSpace);
+            JSONObject tempObj = jsonarray.getJSONObject(i);
+            Release release = new Release();
+            release.ParseData(tempObj.toString());
+            super.add(release);
         }
     }
 }

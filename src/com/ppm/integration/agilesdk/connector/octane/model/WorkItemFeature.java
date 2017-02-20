@@ -1,5 +1,7 @@
 package com.ppm.integration.agilesdk.connector.octane.model;
 
+import com.ppm.integration.agilesdk.connector.octane.client.Client;
+import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
 import net.sf.json.JSONException;
@@ -25,6 +27,8 @@ public class WorkItemFeature extends WorkItem {
 
     public String lastModified;
 
+    public Date lastModifiedDatetime;
+
     public List<WorkItemStory> storyList = new LinkedList<WorkItemStory>();
 
     public void ParseJsonData(JSONObject Obj) {
@@ -36,6 +40,7 @@ public class WorkItemFeature extends WorkItem {
             this.themeId = Long.parseLong(getSubObjectItem("parent", "id", Obj));
             this.status = this.getSubObjectItem("phase", "name", Obj);
             this.lastModified = (String)Obj.get("last_modified");
+            this.lastModifiedDatetime = Client.convertDateTime(lastModified);
             this.numbOfDefects = Obj.getInt("defects");
             this.numOfStories = Obj.getInt("user_stories");
             this.featurePoints = Obj.getInt("story_points");

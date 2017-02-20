@@ -31,7 +31,6 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import net.sf.json.JSONObject;
 import org.apache.log4j.Logger;
 import org.apache.wink.client.ClientRuntimeException;
 import org.json.JSONException;
@@ -162,7 +161,7 @@ public class OctaneTimeSheetIntegration extends TimeSheetIntegration {
 
         String releaseName;
 
-        long totalEffort = 0;
+        double totalEffort = 0;
 
         String errorMessage = null;
 
@@ -172,8 +171,6 @@ public class OctaneTimeSheetIntegration extends TimeSheetIntegration {
 
         Hashtable<String, Long> effortList = new Hashtable<>();
 
-        private ValueSet config;
-
         public OctaneExternalWorkItem(String workSpace, String releaseName, List<TimesheetItem> timeSheets,
                 ValueSet values, String startDate, String finishDate)
         {
@@ -181,7 +178,6 @@ public class OctaneTimeSheetIntegration extends TimeSheetIntegration {
             SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
             this.workSpace = workSpace;
             this.releaseName = releaseName;
-            this.config = values;
             try {
                 this.startDate = sdf.parse(startDate);
                 this.finishDate = sdf.parse(finishDate);
@@ -201,67 +197,61 @@ public class OctaneTimeSheetIntegration extends TimeSheetIntegration {
             return this.workSpace + SEP + this.releaseName;
         }
 
-        public double getEffort() {
+        
+        @Override
+        public Double getTotalEffort() {
             return totalEffort;
         }
 
-        public String getExternalData() {
+        @Override
+        public ExternalWorkItemEffortBreakdown getEffortBreakDown() {
 
-            JSONObject json = new JSONObject();
-
-            json.put("serverURL", this.config.get(OctaneConstants.KEY_BASE_URL));
-            json.put("username", this.config.get(OctaneConstants.KEY_USERNAME));
-            json.put("password", "********");
-
-            json.put("effort", this.getEffort());
-            json.put("errorMessage", this.getErrorMessage());
+        	ExternalWorkItemEffortBreakdown effortBreakdown = new ExternalWorkItemEffortBreakdown();
 
             int numOfWorkDays = getDaysDiffNumber(startDate, finishDate);
 
             if (numOfWorkDays > 0) {
-                ExternalWorkItemEffortBreakdown actual = new ExternalWorkItemEffortBreakdown();
                 Calendar calendar = new GregorianCalendar();
                 calendar.setTime(startDate);
 
-                for (int i = 0; i < numOfWorkDays; i++) {
+                for(int i = 0; i < numOfWorkDays; i++) {
                     Long effort = effortList.get(convertDate(calendar.getTime()));
-                    if (effort == null)
-                        effort = 0L;
-                    //actual.getEffortList().put(ExternalWorkItemEffortBreakdown.dateFormat.format(calendar.getTime()), (double)effort);
+                    if(effort == null) effort = 0L;
+                    effortBreakdown.addEffort(calendar.getTime(), effort.doubleValue());
                     // move to next day
                     calendar.add(Calendar.DAY_OF_MONTH, 1);
                 }
-                //json.put(ExternalWorkItemEffortBreakdown.JSON_KEY_FOR_ACTUAL_EFFORT, actual.toJson());
             }
 
-            return json.toString();
+            return effortBreakdown;
         }
 
-        @Override public String getErrorMessage() {
+        @Override
+        public String getErrorMessage() {
             return errorMessage;
         }
-
-        public int getDaysDiffNumber(Date startDate, Date endDate) {
-            Calendar start = new GregorianCalendar();
-            start.setTime(startDate);
-
-            Calendar end = new GregorianCalendar();
-            end.setTime(endDate);
-            //move to last millsecond
-            end.set(Calendar.HOUR_OF_DAY, 23);
-            end.set(Calendar.MINUTE, 59);
-            end.set(Calendar.SECOND, 59);
-            end.set(Calendar.MILLISECOND, 999);
-
-            Calendar dayDiff = Calendar.getInstance();
-            dayDiff.setTime(startDate);
-            int diffNumber = 0;
-            while (dayDiff.before(end)) {
-                diffNumber++;
-                dayDiff.add(Calendar.DAY_OF_MONTH, 1);
-            }
-            return diffNumber;
-        }
     }
+    
+    private int getDaysDiffNumber(Date startDate, Date endDate) {
+        Calendar start = new GregorianCalendar();
+        start.setTime(startDate);
 
+        Calendar end = new GregorianCalendar();
+        end.setTime(endDate);
+        //move to last millisecond
+        end.set(Calendar.HOUR_OF_DAY, 23);
+        end.set(Calendar.MINUTE, 59);
+        end.set(Calendar.SECOND, 59);
+        end.set(Calendar.MILLISECOND, 999);
+
+        Calendar dayDiff = Calendar.getInstance();
+        dayDiff.setTime(startDate);
+        int diffNumber = 0;
+        while (dayDiff.before(end)) {
+            diffNumber++;
+            dayDiff.add(Calendar.DAY_OF_MONTH, 1);
+        }
+        return diffNumber;
+    }
+    
 }

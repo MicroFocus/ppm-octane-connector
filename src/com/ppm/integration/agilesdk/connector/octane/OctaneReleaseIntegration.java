@@ -1,5 +1,6 @@
 package com.ppm.integration.agilesdk.connector.octane;
 
+import com.hp.ppm.integration.model.Workspace;
 import com.ppm.integration.agilesdk.ValueSet;
 import com.ppm.integration.agilesdk.connector.octane.client.ClientPublicAPI;
 import com.ppm.integration.agilesdk.connector.octane.model.Release;
@@ -38,8 +39,6 @@ public class OctaneReleaseIntegration extends ReleaseIntegration {
 
     ClientPublicAPI client = null;
 
-    String currentInstanceId = "";
-
     List<ReleaseBacklogItem> releaseBacklogItems = new LinkedList<>();
 
     List<ReleaseFeature> releaseFeatures = new LinkedList<>();
@@ -60,7 +59,6 @@ public class OctaneReleaseIntegration extends ReleaseIntegration {
         ClientPublicAPI client = OctaneFunctionIntegration.setupClientPublicAPI(paramValueSet);
         String clientId = paramValueSet.get(OctaneConstants.APP_CLIENT_ID);
         String clientSecret = paramValueSet.get(OctaneConstants.APP_CLIENT_SECRET);
-        currentInstanceId = paramValueSet.get(OctaneConstants.KEY_INSTANCE_ID);
         try {
             if (!client.getAccessTokenWithFormFormat(clientId, clientSecret)) {
                 return null;
@@ -73,7 +71,7 @@ public class OctaneReleaseIntegration extends ReleaseIntegration {
         return client;
     }
 
-    protected void SetUpSharedSpacesAndWorkSpaces(ValueSet paramValueSet) {
+    protected void SetUpSharedSpacesAndWorkSpaces(final Workspace wp, ValueSet paramValueSet) {
         try {
             client = getClient(paramValueSet);
             workSpacesWithSharedSpaceMap = new HashMap<>();
@@ -87,11 +85,11 @@ public class OctaneReleaseIntegration extends ReleaseIntegration {
                 for (int j = 0, sizej = workSpaces.size(); j < sizej; j++) {
                     String strWorkSpaceId = workSpaces.get(j).id;
                     int workSpaceId = Integer.parseInt(strWorkSpaceId);
-                    SetUpReleaseTeams(client, sharedSpaceId, workSpaceId);
-                    SetUpReleases(client, sharedSpaceId, workSpaceId);
-                    SetUpSprints(client, sharedSpaceId, workSpaceId);
-                    SetUpTeams(client, sharedSpaceId, workSpaceId);
-                    SetUpThemeFeatureBacklogItems(client, sharedSpaceId, workSpaceId);
+                    SetUpReleaseTeams(wp, client, sharedSpaceId, workSpaceId);
+                    SetUpReleases(wp, client, sharedSpaceId, workSpaceId);
+                    SetUpSprints(wp, client, sharedSpaceId, workSpaceId);
+                    SetUpTeams(wp, client, sharedSpaceId, workSpaceId);
+                    SetUpThemeFeatureBacklogItems(wp, client, sharedSpaceId, workSpaceId);
                 }
             }
         } catch (IOException e) {
@@ -99,7 +97,8 @@ public class OctaneReleaseIntegration extends ReleaseIntegration {
         }
     }
 
-    private List<ReleaseBacklogItem> pareseBacklogItem(List<WorkItemStory> tempWorkItems) {
+    //defect or us
+    private List<ReleaseBacklogItem> pareseBacklogItem(final Workspace wp, List<WorkItemStory> tempWorkItems) {
 
         List<ReleaseBacklogItem> backlogItems = new LinkedList<ReleaseBacklogItem>();
         for (int i = 0, size = tempWorkItems.size(); i < size; i++) {
@@ -107,7 +106,7 @@ public class OctaneReleaseIntegration extends ReleaseIntegration {
             ReleaseBacklogItem backlogItem = new ReleaseBacklogItem();
             backlogItem.setBacklogItemId(Integer.parseInt(tempWorkItem.id));
             if ("story".equals(tempWorkItem.subType)) {
-                backlogItem.setBacklogType(ReleaseBacklogItem.BACKLOG_TYPE.USER_STOTY);
+                backlogItem.setBacklogType(ReleaseBacklogItem.BACKLOG_TYPE.USER_STORY);
             } else {
                 backlogItem.setBacklogType(ReleaseBacklogItem.BACKLOG_TYPE.DEFECT);
             }
@@ -115,7 +114,9 @@ public class OctaneReleaseIntegration extends ReleaseIntegration {
             backlogItem.setName(tempWorkItem.name);
             backlogItem.setAssignTo(tempWorkItem.ownerName);
             backlogItem.setStoryPoints(tempWorkItem.storyPoints);
-            backlogItem.setStatus(tempWorkItem.status);
+
+            backlogItem.setStatus(ReleaseBacklogItem.BACKLOG_OR_DEFECT_STATUS.fromTypeName(tempWorkItem.status));
+
             if (!tempWorkItem.releaseId.equals("") && Integer.parseInt(tempWorkItem.releaseId) > 0) {
                 backlogItem.setReleaseId(Integer.parseInt(tempWorkItem.releaseId));
             } else {
@@ -143,23 +144,23 @@ public class OctaneReleaseIntegration extends ReleaseIntegration {
             }
 
             backlogItem.setAuthor(tempWorkItem.ownerName);
-            backlogItem.setPriority(tempWorkItem.priority);
+            backlogItem.setPriority(ReleaseBacklogItem.BACKLOG_PRIORITY.fromTypeName(tempWorkItem.priority));
             backlogItem.setLastModified(tempWorkItem.lastModifiedTime);
             backlogItem.setNumberOfTasks(0);
-            backlogItem.setDefectStatus(tempWorkItem.defectStatus);
-            backlogItem.setInstanceId(currentInstanceId);
+            backlogItem.setDefectStatus(ReleaseBacklogItem.BACKLOG_OR_DEFECT_STATUS.fromTypeName(tempWorkItem.defectStatus));
+            backlogItem.setInstanceId(wp.getId());
             backlogItems.add(backlogItem);
         }
 
         return backlogItems;
     }
 
-    protected void SetUpThemeFeatureBacklogItems(ClientPublicAPI client, int sharedSpaceId, int workSpaceId)
+    protected void SetUpThemeFeatureBacklogItems(final Workspace wp, ClientPublicAPI client, int sharedSpaceId, int workSpaceId)
             throws IOException
     {
         WorkItemRoot workItemRoot = client.getWorkItemRoot(sharedSpaceId, workSpaceId);
         List<WorkItemStory> itemBacklogs = workItemRoot.storyList;
-        releaseBacklogItems.addAll(this.pareseBacklogItem(itemBacklogs));
+        releaseBacklogItems.addAll(this.pareseBacklogItem(wp, itemBacklogs));
         Map<String, WorkItemEpic> itemEpicMap = workItemRoot.epicList;
         if (itemEpicMap != null && itemEpicMap.size() > 0) {
             Set<String> keySetT = itemEpicMap.keySet();
@@ -172,7 +173,7 @@ public class OctaneReleaseIntegration extends ReleaseIntegration {
                 theme.setPlanedStoryPoints(tempEpic.planedStoryPoints);
                 theme.setTotalStoryPoints(tempEpic.totalStoryPoints);
                 theme.setAuthor(tempEpic.author);
-                theme.setInstanceId(currentInstanceId);
+                theme.setInstanceId(wp.getId());
                 releaseThemes.add(theme);//for epic
                 Map<String, WorkItemFeature> itemFeatureMap = tempEpic.featureList;
                 if (itemFeatureMap != null && itemFeatureMap.size() > 0) {
@@ -182,7 +183,7 @@ public class OctaneReleaseIntegration extends ReleaseIntegration {
                         ReleaseFeature feature = new ReleaseFeature();
                         feature.setFeatureId(Integer.parseInt(tempFeature.id));
                         feature.setName(tempFeature.name);
-                        feature.setStatus(tempFeature.status);
+                        feature.setStatus(ReleaseFeature.STATUS.fromTypeName(tempFeature.status));
                         feature.setFeaturePoints(tempFeature.featurePoints);
                         feature.setAggStoryPoints(tempFeature.aggStoryPoints);
                         feature.setNumOfUserStories(tempFeature.numOfStories);
@@ -195,24 +196,24 @@ public class OctaneReleaseIntegration extends ReleaseIntegration {
                         }
                         feature.setLastModified(tempFeature.lastModified);
                         feature.setSolution("");
-                        feature.setInstanceId(currentInstanceId);
+                        feature.setInstanceId(wp.getId());
                         releaseFeatures.add(feature);//for feature
                         List<WorkItemStory> tempItemBacklog = tempFeature.storyList;//for story
-                        releaseBacklogItems.addAll(this.pareseBacklogItem(itemBacklogs));
+                        releaseBacklogItems.addAll(this.pareseBacklogItem(wp, tempItemBacklog));
                     }
                 }
             }
         }
     }
 
-    protected void SetUpReleaseTeams(ClientPublicAPI client, int sharedSpaceId, int workSpaceId) throws IOException {
+    protected void SetUpReleaseTeams(final Workspace wp, ClientPublicAPI client, int sharedSpaceId, int workSpaceId) throws IOException {
         List<ReleaseTeam> releaseTeams = client.getReleaseTeams(sharedSpaceId, workSpaceId);
         if (releaseTeams != null && releaseTeams.size() > 0) {
             Iterator<ReleaseTeam> iterator = releaseTeams.iterator();
             while (iterator.hasNext()) {
                 ReleaseTeam entity = (ReleaseTeam)iterator.next();
                 ReleaseReleaseTeam tempReleaseReleaseTeam = new ReleaseReleaseTeam();
-                tempReleaseReleaseTeam.setInstanceId(currentInstanceId);
+                tempReleaseReleaseTeam.setInstanceId(wp.getId());
                 tempReleaseReleaseTeam.setReleaseId(Integer.parseInt(entity.releaseId));
                 tempReleaseReleaseTeam.setTeamId(Integer.parseInt(entity.teamId));
                 tempReleaseReleaseTeam.setReleaseTeamId(entity.releaseTeamId);
@@ -221,14 +222,14 @@ public class OctaneReleaseIntegration extends ReleaseIntegration {
         }
     }
 
-    protected void SetUpReleases(ClientPublicAPI client, int sharedSpaceId, int workSpaceId) throws IOException {
+    protected void SetUpReleases(final Workspace wp, ClientPublicAPI client, int sharedSpaceId, int workSpaceId) throws IOException {
         List<Release> releases = client.getReleases(sharedSpaceId, workSpaceId);
         if (releases != null && releases.size() > 0) {
             Iterator<Release> iterator = releases.iterator();
             while (iterator.hasNext()) {
                 Release entity = (Release)iterator.next();
                 ReleaseRelease tempRelease = new ReleaseRelease();
-                tempRelease.setInstanceId(currentInstanceId);
+                tempRelease.setInstanceId(wp.getId());
                 tempRelease.setReleaseId(Integer.parseInt(entity.id));
                 tempRelease.setName(entity.name);
                 this.releaseReleases.add(tempRelease);
@@ -236,14 +237,14 @@ public class OctaneReleaseIntegration extends ReleaseIntegration {
         }
     }
 
-    protected void SetUpSprints(ClientPublicAPI client, int sharedSpaceId, int workSpaceId) throws IOException {
+    protected void SetUpSprints(final Workspace wp, ClientPublicAPI client, int sharedSpaceId, int workSpaceId) throws IOException {
         List<Sprint> releases = client.getSprints(sharedSpaceId, workSpaceId);
         if (releases != null && releases.size() > 0) {
             Iterator<Sprint> iterator = releases.iterator();
             while (iterator.hasNext()) {
                 Sprint entity = (Sprint)iterator.next();
                 ReleaseSprint tempSprint = new ReleaseSprint();
-                tempSprint.setInstanceId(currentInstanceId);
+                tempSprint.setInstanceId(wp.getId());
                 tempSprint.setSprintId(Integer.parseInt(entity.id));
                 tempSprint.setName(entity.name);
                 tempSprint.setReleaseId(Integer.parseInt(entity.releaseId));
@@ -252,7 +253,7 @@ public class OctaneReleaseIntegration extends ReleaseIntegration {
         }
     }
 
-    protected void SetUpTeams(ClientPublicAPI client, int sharedSpaceId, int workSpaceId) throws IOException {
+    protected void SetUpTeams(final Workspace wp, ClientPublicAPI client, int sharedSpaceId, int workSpaceId) throws IOException {
         List<Team> teams = client.getTeams(sharedSpaceId, workSpaceId);
         if (teams != null && teams.size() > 0) {
             Iterator<Team> iterator = teams.iterator();
@@ -266,63 +267,63 @@ public class OctaneReleaseIntegration extends ReleaseIntegration {
                 tempTeam.setMembersCapacity(entity.membersCapacity);
                 tempTeam.setNumOfMembers(entity.numOfMembers);
                 tempTeam.setEstimatedVelocity(entity.estimatedVelocity);
-                tempTeam.setInstanceId(currentInstanceId);
+                tempTeam.setInstanceId(wp.getId());
                 this.releaseTeams.add(tempTeam);
             }
         }
     }
 
-    @Override public List<ReleaseBacklogItem> getBacklogItems(ValueSet paramValueSet) {
+    @Override public List<ReleaseBacklogItem> getBacklogItems(final Workspace wp, ValueSet paramValueSet) {
         if (releaseBacklogItems.isEmpty()) {
-            SetUpSharedSpacesAndWorkSpaces(paramValueSet);
+            SetUpSharedSpacesAndWorkSpaces(wp, paramValueSet);
         }
         return releaseBacklogItems;
     }
 
-    @Override public List<ReleaseFeature> getFeatures(ValueSet paramValueSet) {
+    @Override public List<ReleaseFeature> getFeatures(final Workspace wp, ValueSet paramValueSet) {
 
         if (releaseFeatures.isEmpty()) {
-            SetUpSharedSpacesAndWorkSpaces(paramValueSet);
+            SetUpSharedSpacesAndWorkSpaces(wp, paramValueSet);
         }
         return releaseFeatures;
     }
 
-    @Override public List<ReleaseReleaseTeam> getReleaseTeams(ValueSet paramValueSet) {
+    @Override public List<ReleaseReleaseTeam> getReleaseTeams(final Workspace wp, ValueSet paramValueSet) {
 
         if (releaseReleaseTeams.isEmpty()) {
-            SetUpSharedSpacesAndWorkSpaces(paramValueSet);
+            SetUpSharedSpacesAndWorkSpaces(wp, paramValueSet);
         }
         return releaseReleaseTeams;
     }
 
-    @Override public List<ReleaseRelease> getReleases(ValueSet paramValueSet) {
+    @Override public List<ReleaseRelease> getReleases(final Workspace wp, ValueSet paramValueSet) {
 
         if (releaseReleases.isEmpty()) {
-            SetUpSharedSpacesAndWorkSpaces(paramValueSet);
+            SetUpSharedSpacesAndWorkSpaces(wp, paramValueSet);
         }
         return releaseReleases;
     }
 
-    @Override public List<ReleaseSprint> getSprints(ValueSet paramValueSet) {
+    @Override public List<ReleaseSprint> getSprints(final Workspace wp, ValueSet paramValueSet) {
 
         if (releaseSprints.isEmpty()) {
-            SetUpSharedSpacesAndWorkSpaces(paramValueSet);
+            SetUpSharedSpacesAndWorkSpaces(wp, paramValueSet);
         }
         return releaseSprints;
     }
 
-    @Override public List<com.ppm.integration.agilesdk.release.ReleaseTeam> getTeams(ValueSet paramValueSet) {
+    @Override public List<com.ppm.integration.agilesdk.release.ReleaseTeam> getTeams(final Workspace wp, ValueSet paramValueSet) {
         if (releaseTeams.isEmpty()) {
-            SetUpSharedSpacesAndWorkSpaces(paramValueSet);
+            SetUpSharedSpacesAndWorkSpaces(wp, paramValueSet);
         }
 
         return releaseTeams;
     }
 
-    @Override public List<ReleaseTheme> getThemes(ValueSet paramValueSet) {
+    @Override public List<ReleaseTheme> getThemes(final Workspace wp, ValueSet paramValueSet) {
 
         if (releaseThemes.isEmpty()) {
-            SetUpSharedSpacesAndWorkSpaces(paramValueSet);
+            SetUpSharedSpacesAndWorkSpaces(wp, paramValueSet);
         }
         return releaseThemes;
     }

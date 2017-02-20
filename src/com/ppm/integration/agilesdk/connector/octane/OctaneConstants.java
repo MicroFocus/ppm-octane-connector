@@ -13,12 +13,6 @@ public class OctaneConstants {
 
     public static final String APP_CLIENT_SECRET = "clientSecret";
 
-    public static final String KEY_SYNC_SERVICE = "syncService";
-
-    public static final String KEY_INSTANCE_ID = "instanceId";
-
-    public static final String KEY_INSTANCE_NAME = "instanceName";
-
     public static final String KEY_USERNAME = "username";
 
     public static final String KEY_PASSWORD = "password";
