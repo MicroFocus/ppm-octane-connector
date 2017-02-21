@@ -20,6 +20,8 @@ public class WorkItemRoot extends SimpleEntity {
 
     public List<WorkItemStory> storyList = new LinkedList<WorkItemStory>();
 
+    public List<WorkItemStory> workItemStories = new LinkedList<WorkItemStory>();
+
     public int length = -1;
 
     List<JSONObject> tempStoryWithoutAddToFeatureList = new LinkedList<JSONObject>();
@@ -52,8 +54,14 @@ public class WorkItemRoot extends SimpleEntity {
                     if (!isGetDefect) {
                         break;
                     }
+                    tempStoryWithoutAddToFeatureList.add(tempObj);
+                    break;
                 case OctaneConstants.SUB_TYPE_STORY:
                     tempStoryWithoutAddToFeatureList.add(tempObj);
+
+                    WorkItemStory tempStory = new WorkItemStory();
+                    tempStory.ParseJsonData(tempObj);
+                    workItemStories.add(tempStory);
                     break;
                 default:
                     break;

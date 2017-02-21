@@ -1,5 +1,6 @@
 package com.ppm.integration.agilesdk.connector.octane.model;
 
+import com.ppm.integration.agilesdk.connector.octane.client.Client;
 import java.util.List;
 import net.sf.json.JSONArray;
 import net.sf.json.JSONObject;
@@ -20,9 +21,8 @@ public class Sprints extends SimpleEntityCollection<Sprint> {
         for (int i = 0, length = jsonarray.size(); i < length; i++) {
             JSONObject tempObj = jsonarray.getJSONObject(i);
             Sprint tempSprint = new Sprint();
-            tempSprint.id = (String)tempObj.get("id");
-            tempSprint.name = (String)tempObj.get("name");
-            tempSprint.releaseId = WorkItem.getSubObjectItem("release", "id", tempObj);
+            tempSprint.ParseJsonData(tempObj);
+
             super.add(tempSprint);
         }
     }

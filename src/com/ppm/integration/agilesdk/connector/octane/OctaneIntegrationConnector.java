@@ -1,5 +1,6 @@
 package com.ppm.integration.agilesdk.connector.octane;
 
+import com.hp.ppm.integration.sdk.release.Constants;
 import com.ppm.integration.agilesdk.FunctionIntegration;
 import com.ppm.integration.agilesdk.IntegrationConnector;
 import com.ppm.integration.agilesdk.ui.CheckBox;
@@ -32,12 +33,12 @@ public class OctaneIntegrationConnector extends IntegrationConnector {
                 new CheckBox(OctaneConstants.KEY_USE_GLOBAL_PROXY, "USE_GLOBAL_PROXY", "", false), new LineBreaker(),
                 new PlainText(OctaneConstants.APP_CLIENT_ID, "CLIENT_ID", "", "", true),
                 new PasswordText(OctaneConstants.APP_CLIENT_SECRET, "CLIENT_SECRET", "", "", true), new LineBreaker(),
-                new CheckBox(OctaneConstants.KEY_SYNC_SERVICE, "SYNC SERVICE", "", true),});
+                new CheckBox(Constants.AGILE_DATA_SYNC_SERVICE, "SYNC_AGILE_DATA_TO_THIS_INSTANCE", "", false),});
     }
 
     @Override public List<FunctionIntegration> getIntegrations() {
         return Arrays
-                .asList(new FunctionIntegration[] {new OctaneWorkPlanIntegration(), new OctaneTimeSheetIntegration()});
+                .asList(new FunctionIntegration[] {new OctaneWorkPlanIntegration(), new OctaneTimeSheetIntegration(), new OctaneReleaseIntegration()});
     }
 
     @Override public String getConnectorVersion() {

@@ -1,5 +1,7 @@
 package com.ppm.integration.agilesdk.connector.octane.model;
 
+import com.ppm.integration.agilesdk.connector.octane.client.Client;
+import java.util.Date;
 import net.sf.json.JSONObject;
 
 /**
@@ -11,9 +13,22 @@ public class Release extends SimpleEntity {
 
     public String endDate = "";
 
+    public Date startDatetime = null;
+
+    public Date endDatetime = null;
+
     public void ParseData(String data) {
-        JSONObject object = JSONObject.fromObject(data);
-        this.startDate = (String)object.get("start_date");
-        this.endDate = (String)object.get("end_date");
+        JSONObject tempObj = JSONObject.fromObject(data);
+        try {
+            this.id = (String)tempObj.get("id");
+            this.name = (String)tempObj.get("name");
+            this.type = (String)tempObj.get("type");
+
+            this.startDate = (String)tempObj.get("start_date");
+            this.endDate = (String)tempObj.get("end_date");
+            this.startDatetime = Client.convertDateTime(startDate);
+            this.endDatetime = Client.convertDateTime(endDate);
+        }catch(Exception e) {}
+
     }
 }

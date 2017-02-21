@@ -5,6 +5,7 @@ import com.ppm.integration.agilesdk.ValueSet;
 import com.ppm.integration.agilesdk.connector.octane.client.ClientPublicAPI;
 import com.ppm.integration.agilesdk.connector.octane.model.Release;
 import com.ppm.integration.agilesdk.connector.octane.model.SharedSpace;
+import com.ppm.integration.agilesdk.connector.octane.model.Sprint;
 import com.ppm.integration.agilesdk.connector.octane.model.WorkItemEpic;
 import com.ppm.integration.agilesdk.connector.octane.model.WorkItemFeature;
 import com.ppm.integration.agilesdk.connector.octane.model.WorkItemRoot;
@@ -20,6 +21,8 @@ import com.ppm.integration.agilesdk.ui.LineBreaker;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
@@ -143,93 +146,66 @@ public class OctaneWorkPlanIntegration extends WorkPlanIntegration implements Fu
         return false;
     }
 
-    public OctaneIExternalTask createOctaneIExternalTaskWithAttribute(String id, String name, String type) {
-        OctaneTaskData tempData = new OctaneTaskData();
-        tempData.AddDataToFieldDict("id", id);
-        tempData.AddDataToFieldDict("name", name);
-        tempData.AddDataToFieldDict("subtype", type);
-        return new OctaneIExternalTask(tempData);
-    }
-
-    public OctaneIExternalTask createOctaneIExternalTaskWithAttributeAndReleaseData(String id, String name, String type,
-            Release releaseIdDate)
-    {
-        OctaneTaskData tempData = new OctaneTaskData();
-        tempData.AddDataToFieldDict("id", id);
-        tempData.AddDataToFieldDict("name", name);
-        tempData.AddDataToFieldDict("subtype", type);
-        tempData.AddDataToFieldDict("releaseStartDate", releaseIdDate.startDate);
-        tempData.AddDataToFieldDict("releaseEndDate", releaseIdDate.endDate);
-        return new OctaneIExternalTask(tempData);
-    }
-
-    @Override public ExternalWorkPlan getExternalWorkPlan(WorkPlanIntegrationContext context, ValueSet values) {
-
+    @Override
+    public ExternalWorkPlan getExternalWorkPlan(WorkPlanIntegrationContext context, ValueSet values) {
+        final List<ExternalTask> sprintTasks = new ArrayList<>();
         ClientPublicAPI client = getClient(values);
-        WorkItemRoot itemRoot;
-        Release releaseIdDate;
         try {
-            itemRoot = client.getWorkItemRoot(Integer.parseInt(values.get(OctaneConstants.KEY_SHAREDSPACEID)),
+            final Release release = client.getRelease(Integer.parseInt(values.get(OctaneConstants.KEY_SHAREDSPACEID)),
                     Integer.parseInt(values.get(OctaneConstants.KEY_WORKSPACEID)),
                     Integer.parseInt(values.get(OctaneConstants.KEY_RELEASEID)));
-
-            releaseIdDate = client.getRelease(Integer.parseInt(values.get(OctaneConstants.KEY_SHAREDSPACEID)),
-                    Integer.parseInt(values.get(OctaneConstants.KEY_WORKSPACEID)),
-                    Integer.parseInt(values.get(OctaneConstants.KEY_RELEASEID)));
-
-            final List<ExternalWorkPlan> rootList = new ArrayList<ExternalWorkPlan>();
-            //if US is exits in backlog, create OctaneIExternalTask backlog and add US to it
-            if (itemRoot.storyList.size() > 0) {
-                OctaneIExternalTask octaneWorkPlan =
-                        createOctaneIExternalTaskWithAttribute(itemRoot.id, itemRoot.name, itemRoot.type);
-
-                //rootList.add(getOctaneIExternalTask(octaneWorkPlan,itemRoot.storyList,releaseIdDate));
+            if (release == null || release.id == null) {
+                //release dont exist anymore
+                return null;
             }
+            List<Sprint> sprints = client.getSprints(Integer.parseInt(values.get(OctaneConstants.KEY_SHAREDSPACEID)),
+                    Integer.parseInt(values.get(OctaneConstants.KEY_WORKSPACEID)));
 
-            //get us in feature
-            Set<String> keyEpicSet = itemRoot.epicList.keySet();
-            for (String keyEpic : keyEpicSet) {
-                WorkItemEpic tempEpic = itemRoot.epicList.get(keyEpic);// one epic
-                Set<String> keyFeatureSet = tempEpic.featureList.keySet();
-                if (keyFeatureSet.size() == 0) {
-                    //null epic
-                    continue;
-                }
-                //if there is feature in epic, new an epicOctaneIExternalTask
+            WorkItemRoot workItemRoot = client.getWorkItemRoot(Integer.parseInt(values.get(OctaneConstants.KEY_SHAREDSPACEID)),
+                    Integer.parseInt(values.get(OctaneConstants.KEY_WORKSPACEID)),
+                    Integer.parseInt(values.get(OctaneConstants.KEY_RELEASEID)));
 
-                OctaneIExternalTask epicOctaneIExternalTask =
-                        createOctaneIExternalTaskWithAttribute(tempEpic.id, tempEpic.name, tempEpic.subType);
-                for (String keyFeature : keyFeatureSet) {
-                    WorkItemFeature tempFeature = tempEpic.featureList.get(keyFeature);// one feature
-
-                    OctaneIExternalTask
-                            tempFeatureTask;//=createOctaneIExternalTaskWithAttribute(tempFeature.id, tempFeature.name, tempFeature.subType);
-                    if (tempFeature.storyList.size() == 0) {
-                        //the feature has no story
-                        tempFeatureTask =
-                                createOctaneIExternalTaskWithAttributeAndReleaseData(tempFeature.id, tempFeature.name,
-                                        tempFeature.subType, releaseIdDate);
-                        epicOctaneIExternalTask.octaneIExternaltask.add(tempFeatureTask);
-                        continue;
+            if (sprints != null && sprints.size() > 0) {
+                for (Sprint spt: sprints) {
+                    if(release.id.equals(spt.releaseId)) {
+                        OctaneSprintIExternalTask octaneSprint =
+                                createOctaneIExternalTask(release, spt);
+                        //user story?
+                        if(workItemRoot != null && workItemRoot.workItemStories.size() > 0) {
+                            for(WorkItemStory us : workItemRoot.workItemStories) {
+                                if(us.sprintId == Long.parseLong(spt.id) && OctaneConstants.SUB_TYPE_STORY.equals(us.subType)) {
+                                    OctaneUSIExternalTask octaneUS =
+                                            createOctaneIExternalTask(release, us);
+                                    octaneSprint.getChildren().add(octaneUS);
+                                }
+                            }
+                            //sort User Story by Id
+                            Collections.sort(octaneSprint.getChildren(), new Comparator<ExternalTask>() {
+                                @Override public int compare(ExternalTask us1, ExternalTask us2)
+                                {
+                                    return us1.getId().compareTo(us2.getId());
+                                }
+                            });
+                        }
+                        sprintTasks.add(octaneSprint);
                     }
-                    //if exits US in feature, add all us to tempFeatureTask,
-                    //and add tempFeatureTask to epicOctaneIExternalTask' child
-                    tempFeatureTask = createOctaneIExternalTaskWithAttribute(tempFeature.id, tempFeature.name,
-                            tempFeature.subType);
-                    epicOctaneIExternalTask.octaneIExternaltask
-                            .add(getOctaneIExternalTask(tempFeatureTask, tempFeature.storyList, releaseIdDate));
                 }
-                //rootList.add(epicOctaneIExternalTask);
             }
-            //
+
+            //sort Sprint by Id
+            Collections.sort(sprintTasks, new Comparator<ExternalTask>() {
+                @Override public int compare(ExternalTask spt1, ExternalTask spt2)
+                {
+                    return spt1.getId().compareTo(spt2.getId());
+                }
+            });
 
             return new ExternalWorkPlan() {
                 @Override public List<ExternalTask> getRootTasks() {
-                    if (rootList.size() == 0) {
-                        return null;
+                    if (sprintTasks.size() == 0) {
+                        return new ArrayList<ExternalTask>();
                     }
-                    //return rootList;
-                    return null;
+                    return sprintTasks;
                 }
             };
 
@@ -244,49 +220,57 @@ public class OctaneWorkPlanIntegration extends WorkPlanIntegration implements Fu
         return false;
     }
 
-    public OctaneIExternalTask getOctaneIExternalTask(OctaneIExternalTask octaneWorkPlan, List<WorkItemStory> storyList,
-            Release releaseIdDate)
+    public OctaneSprintIExternalTask createOctaneIExternalTask(Release release, Sprint spt)
     {
-        int storySize = storyList.size();
-        if (storySize == 0) {
-            return octaneWorkPlan;
+        OctaneTaskData tempData = new OctaneTaskData();
+        tempData.AddDataToFieldDict("id", spt.id);
+        tempData.AddDataToFieldDict("name", spt.name);
+        tempData.AddDataToFieldDict("subtype", spt.type);
+        //TODO format to yyyy-MM-dd
+        tempData.AddDataToFieldDict("releaseStartDate", release.startDate);
+        tempData.AddDataToFieldDict("releaseEndDate", release.endDate);
+        tempData.AddDataToFieldDict("sprintStartDate", spt.sprintStartDate);
+        tempData.AddDataToFieldDict("sprintEndDate", spt.sprintEndDate);
+
+        return new OctaneSprintIExternalTask(tempData);
+    }
+
+    public OctaneUSIExternalTask createOctaneIExternalTask(Release release, WorkItemStory tempStory)
+    {
+        OctaneTaskData tempStoryTask = new OctaneTaskData();
+        tempStoryTask.AddDataToFieldDict("id", tempStory.id);
+        tempStoryTask.AddDataToFieldDict("name", tempStory.name);
+        tempStoryTask.AddDataToFieldDict("subType", tempStory.subType);
+        tempStoryTask.AddDataToFieldDict("ownerId", tempStory.ownerId);
+        tempStoryTask.AddDataToFieldDict("ownerName", tempStory.ownerName);
+        tempStoryTask.AddDataToFieldDict("releaseId", tempStory.releaseId);
+        //TODO format to yyyy-MM-dd
+        tempStoryTask.AddDataToFieldDict("sprintStartDate", tempStory.sprintStartDate);
+        tempStoryTask.AddDataToFieldDict("sprintEndDate", tempStory.sprintEndDate);
+        tempStoryTask.AddDataToFieldDict("releaseStartDate", release.startDate);
+        tempStoryTask.AddDataToFieldDict("releaseEndDate", release.endDate);
+        tempStoryTask.AddDataToFieldDict("creationTime", tempStory.creationTime);
+        tempStoryTask.AddDataToFieldDict("lastModifiedTime", tempStory.lastModifiedTime);
+
+        tempStoryTask.AddDataToFieldDict("investedHours", String.valueOf(tempStory.investedHours));
+        tempStoryTask.AddDataToFieldDict("remainingHours", String.valueOf(tempStory.remainingHours));
+        tempStoryTask.AddDataToFieldDict("estimatedHours", String.valueOf(tempStory.estimatedHours));
+        TaskStatus status = TaskStatus.READY;
+        switch (tempStory.status) {
+            case "New":
+                status = TaskStatus.READY;
+                break;
+            case "In Progress":
+            case "In Testing":
+                status = TaskStatus.IN_PROGRESS;
+                break;
+            case "Done":
+                status = TaskStatus.COMPLETED;
+                break;
         }
-        Iterator<WorkItemStory> iterator = storyList.iterator();
-        while (iterator.hasNext()) {
-            WorkItemStory tempStory = iterator.next();
-            OctaneTaskData tempStoryTask = new OctaneTaskData();
-            tempStoryTask.AddDataToFieldDict("id", tempStory.id);
-            tempStoryTask.AddDataToFieldDict("name", tempStory.name);
-            tempStoryTask.AddDataToFieldDict("subType", tempStory.subType);
-            tempStoryTask.AddDataToFieldDict("ownerId", tempStory.ownerId);
-            tempStoryTask.AddDataToFieldDict("ownerName", tempStory.ownerName);
-            tempStoryTask.AddDataToFieldDict("releaseId", tempStory.releaseId);
-            tempStoryTask.AddDataToFieldDict("sprintStartDate", tempStory.sprintStartDate);
-            tempStoryTask.AddDataToFieldDict("sprintEndDate", tempStory.sprintEndDate);
-            tempStoryTask.AddDataToFieldDict("releaseStartDate", releaseIdDate.startDate);
-            tempStoryTask.AddDataToFieldDict("releaseEndDate", releaseIdDate.endDate);
-            tempStoryTask.AddDataToFieldDict("creationTime", tempStory.creationTime);
-            tempStoryTask.AddDataToFieldDict("lastModifiedTime", tempStory.lastModifiedTime);
-            tempStoryTask.AddDataToFieldDict("investedHours", String.valueOf(tempStory.investedHours));
-            tempStoryTask.AddDataToFieldDict("remainingHours", String.valueOf(tempStory.remainingHours));
-            tempStoryTask.AddDataToFieldDict("estimatedHours", String.valueOf(tempStory.estimatedHours));
-            TaskStatus status = TaskStatus.READY;
-            switch (tempStory.status) {
-                case "New":
-                    status = TaskStatus.READY;
-                    break;
-                case "In Progress":
-                case "In Testing":
-                    status = TaskStatus.IN_PROGRESS;
-                    break;
-                case "Done":
-                    status = TaskStatus.COMPLETED;
-                    break;
-            }
-            OctaneIExternalTask octaneStory = new OctaneIExternalTask(tempStoryTask, status);
-            octaneWorkPlan.octaneIExternaltask.add(octaneStory);
-        }
-        return octaneWorkPlan;
+
+        OctaneUSIExternalTask octaneStory = new OctaneUSIExternalTask(tempStoryTask, status);
+        return octaneStory;
     }
 
     @Override public String getCustomDetailPage() {

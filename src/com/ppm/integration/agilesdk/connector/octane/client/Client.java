@@ -13,7 +13,10 @@ import com.ppm.integration.agilesdk.connector.octane.model.WorkItemRoot;
 import com.ppm.integration.agilesdk.connector.octane.model.WorkSpace;
 import com.ppm.integration.agilesdk.connector.octane.model.WorkSpaces;
 import java.net.URI;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -264,6 +267,18 @@ public class Client {
         } while (hasNext);
         tempWorkItemRoot.ParseDataIntoDetail(releaseId);
         return tempWorkItemRoot;
+    }
+
+    //Octane used datetime format
+    public static final String dateFormat =  "yyyy-MM-dd'T'HH:mm:ss";
+
+    public static Date convertDateTime(String dateStr) {
+        try {
+            return new SimpleDateFormat(dateFormat).parse(dateStr);
+        } catch (ParseException e) {
+            logger.error("Exception when parsing date string '" + dateStr + "', returning new date()", e);
+        }
+        return new Date();
     }
 
 }
