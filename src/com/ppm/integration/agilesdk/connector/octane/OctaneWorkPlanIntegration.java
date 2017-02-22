@@ -6,8 +6,6 @@ import com.ppm.integration.agilesdk.connector.octane.client.ClientPublicAPI;
 import com.ppm.integration.agilesdk.connector.octane.model.Release;
 import com.ppm.integration.agilesdk.connector.octane.model.SharedSpace;
 import com.ppm.integration.agilesdk.connector.octane.model.Sprint;
-import com.ppm.integration.agilesdk.connector.octane.model.WorkItemEpic;
-import com.ppm.integration.agilesdk.connector.octane.model.WorkItemFeature;
 import com.ppm.integration.agilesdk.connector.octane.model.WorkItemRoot;
 import com.ppm.integration.agilesdk.connector.octane.model.WorkItemStory;
 import com.ppm.integration.agilesdk.connector.octane.model.WorkSpace;
@@ -23,9 +21,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
-import java.util.Iterator;
 import java.util.List;
-import java.util.Set;
 import org.apache.log4j.Logger;
 import org.json.JSONException;
 
@@ -52,7 +48,7 @@ public class OctaneWorkPlanIntegration extends WorkPlanIntegration implements Fu
     @Override public List<Field> getMappingConfigurationFields(WorkPlanIntegrationContext context, ValueSet values) {
 
         return Arrays.asList(new Field[] {
-                new OctaneEntityDropdown(OctaneConstants.KEY_SHAREDSPACEID, "SHAREDSPACE", "block", true) {
+                new OctaneEntityDropdown(OctaneConstants.KEY_SHAREDSPACEID, "Shared Space", "block", true) {
                     @Override public List<String> getDependencies() {
                         return Arrays.asList(new String[] {OctaneConstants.KEY_BASE_URL, OctaneConstants.KEY_PROXY_HOST,
                                 OctaneConstants.KEY_PROXY_PORT, OctaneConstants.APP_CLIENT_ID,
@@ -78,7 +74,7 @@ public class OctaneWorkPlanIntegration extends WorkPlanIntegration implements Fu
                         }
                         return null;
                     }
-                }, new OctaneEntityDropdown(OctaneConstants.KEY_WORKSPACEID, "WORKSPACE", "block", true) {
+                }, new OctaneEntityDropdown(OctaneConstants.KEY_WORKSPACEID, "Workspace", "block", true) {
             @Override public List<String> getDependencies() {
                 return Arrays.asList(new String[] {OctaneConstants.KEY_BASE_URL, OctaneConstants.APP_CLIENT_ID,
                         OctaneConstants.APP_CLIENT_SECRET, OctaneConstants.KEY_SHAREDSPACEID});
@@ -108,7 +104,7 @@ public class OctaneWorkPlanIntegration extends WorkPlanIntegration implements Fu
             }
         },
 
-                new OctaneEntityDropdown(OctaneConstants.KEY_RELEASEID, "RELEASE", "block", true) {
+                new OctaneEntityDropdown(OctaneConstants.KEY_RELEASEID, "Release", "block", true) {
 
                     @Override public List<String> getDependencies() {
                         return Arrays.asList(new String[] {OctaneConstants.KEY_BASE_URL, OctaneConstants.APP_CLIENT_ID,
