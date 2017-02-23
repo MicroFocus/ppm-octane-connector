@@ -4,6 +4,7 @@ import com.ppm.integration.agilesdk.FunctionIntegration;
 import com.ppm.integration.agilesdk.ValueSet;
 import com.ppm.integration.agilesdk.connector.octane.client.ClientPublicAPI;
 import com.ppm.integration.agilesdk.connector.octane.model.Release;
+import com.ppm.integration.agilesdk.connector.octane.client.OctaneClientException;
 import com.ppm.integration.agilesdk.connector.octane.model.SharedSpace;
 import com.ppm.integration.agilesdk.connector.octane.model.Sprint;
 import com.ppm.integration.agilesdk.connector.octane.model.WorkItemEpic;
@@ -39,7 +40,7 @@ public class OctaneWorkPlanIntegration extends WorkPlanIntegration implements Fu
         String clientSecret = values.get(OctaneConstants.APP_CLIENT_SECRET);
         try {
             if (!client.getAccessTokenWithFormFormat(clientId, clientSecret)) {
-                return null;
+                throw new OctaneClientException("AGM_APP", "error in access token retrieve.");
             }
         } catch (IOException e) {
             logger.error(e.getMessage());

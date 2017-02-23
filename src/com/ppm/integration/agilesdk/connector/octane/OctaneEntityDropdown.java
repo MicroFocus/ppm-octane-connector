@@ -21,10 +21,10 @@ public abstract class OctaneEntityDropdown extends DynamicDropdown {
     public List<DynamicDropdown.Option> getDynamicalOptions(ValueSet values) {
         try {
             return fetchDynamicalOptions(values);
-        } catch (Throwable e) {
-            //
-        }
-        return new ArrayList(0);
+        }catch(Throwable e){
+			new OctaneConnectivityExceptionHandler().uncaughtException(Thread.currentThread(), e);
+			return new ArrayList<Option>(0);
+		}
     }
 
 }
