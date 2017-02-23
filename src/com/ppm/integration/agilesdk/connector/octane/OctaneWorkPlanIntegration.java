@@ -53,7 +53,7 @@ public class OctaneWorkPlanIntegration extends WorkPlanIntegration implements Fu
     @Override public List<Field> getMappingConfigurationFields(WorkPlanIntegrationContext context, ValueSet values) {
 
         return Arrays.asList(new Field[] {
-                new OctaneEntityDropdown(OctaneConstants.KEY_SHAREDSPACEID, "SHAREDSPACE", "block", true) {
+                new OctaneEntityDropdown(OctaneConstants.KEY_SHAREDSPACEID, "OCTANE_SHARESPACE", "block", true) {
                     @Override public List<String> getDependencies() {
                         return Arrays.asList(new String[] {OctaneConstants.KEY_BASE_URL, OctaneConstants.KEY_PROXY_HOST,
                                 OctaneConstants.KEY_PROXY_PORT, OctaneConstants.APP_CLIENT_ID,
@@ -79,7 +79,7 @@ public class OctaneWorkPlanIntegration extends WorkPlanIntegration implements Fu
                         }
                         return null;
                     }
-                }, new OctaneEntityDropdown(OctaneConstants.KEY_WORKSPACEID, "WORKSPACE", "block", true) {
+                }, new OctaneEntityDropdown(OctaneConstants.KEY_WORKSPACEID, "OCTANE_WORKSPACE", "block", true) {
             @Override public List<String> getDependencies() {
                 return Arrays.asList(new String[] {OctaneConstants.KEY_BASE_URL, OctaneConstants.APP_CLIENT_ID,
                         OctaneConstants.APP_CLIENT_SECRET, OctaneConstants.KEY_SHAREDSPACEID});
@@ -275,7 +275,7 @@ public class OctaneWorkPlanIntegration extends WorkPlanIntegration implements Fu
     }
 
     @Override public String getCustomDetailPage() {
-        return "/itg/integrationcenter/agm-connector-impl-web/agm-graphs.jsp";
+        return null;
     }
 
 }
