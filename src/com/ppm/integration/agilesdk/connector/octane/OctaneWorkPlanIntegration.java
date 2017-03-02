@@ -193,14 +193,6 @@ public class OctaneWorkPlanIntegration extends WorkPlanIntegration implements Fu
                 }
             }
 
-            //sort Sprint by Id
-            Collections.sort(sprintTasks, new Comparator<ExternalTask>() {
-                @Override public int compare(ExternalTask spt1, ExternalTask spt2)
-                {
-                    return spt1.getId().compareTo(spt2.getId());
-                }
-            });
-
             return new ExternalWorkPlan() {
                 @Override public List<ExternalTask> getRootTasks() {
                     if (sprintTasks.size() == 0) {
