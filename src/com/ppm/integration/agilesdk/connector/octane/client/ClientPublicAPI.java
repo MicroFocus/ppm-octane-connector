@@ -15,7 +15,6 @@ import com.ppm.integration.agilesdk.connector.octane.model.TimesheetItem;
 import com.ppm.integration.agilesdk.connector.octane.model.WorkItemRoot;
 import com.ppm.integration.agilesdk.connector.octane.model.WorkSpace;
 import com.ppm.integration.agilesdk.connector.octane.model.WorkSpaces;
-
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
@@ -31,10 +30,8 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-
 import javax.ws.rs.HttpMethod;
 import javax.ws.rs.core.MediaType;
-
 import org.apache.http.HttpStatus;
 import org.apache.log4j.Logger;
 import org.json.JSONArray;
@@ -111,13 +108,13 @@ public class ClientPublicAPI {
 
             int responseCode = con.getResponseCode();
             BufferedReader in;
-            if (responseCode >= 200 && responseCode < 300) {
+            if (responseCode == 200 ) {
                 in = new BufferedReader(new InputStreamReader(con.getInputStream(), "UTF-8"));
-
                 if (cookies == null) {
                     this.cookies = getCookie(con);
                 }
-
+            } else if (responseCode == 403) {
+                throw new OctaneClientException("OCTANE_API", "ERROR_AUTHENTICATION_FAILED");
             } else {
                 InputStream inputStream = con.getErrorStream();
                 if (inputStream == null) {
@@ -125,9 +122,7 @@ public class ClientPublicAPI {
                 }
                 in = new BufferedReader(new InputStreamReader(inputStream, "UTF-8"));
             }
-            if (responseCode == 403) {
-                throw new OctaneClientException("OCTANE_API", "ERROR_AUTHENTICATION_FAILED");
-            }
+            
 
             String inputLine;
             StringBuffer response = new StringBuffer();
