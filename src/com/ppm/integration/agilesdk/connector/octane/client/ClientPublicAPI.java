@@ -114,7 +114,7 @@ public class ClientPublicAPI {
                     this.cookies = getCookie(con);
                 }
             } else if (responseCode == 403) {
-                throw new OctaneClientException("OCTANE_API", "ERROR_AUTHENTICATION_FAILED");
+            	throw new OctaneClientException("OCTANE_API", "ERROR_AUTHENTICATION_FAILED");
             } else {
                 InputStream inputStream = con.getErrorStream();
                 if (inputStream == null) {
