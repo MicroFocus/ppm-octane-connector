@@ -18,6 +18,9 @@ public class Teams extends SimpleEntityCollection<Team> {
     public void SetCollection(String data) {
         JSONObject object = JSONObject.fromObject(data);
         JSONArray jsonarray = (JSONArray)(object.get("data"));
+        if(jsonarray == null){
+        	return;
+        }
         for (int i = 0, length = jsonarray.size(); i < length; i++) {
             JSONObject tempObj = (JSONObject)jsonarray.getJSONObject(i);
             Team tempTeam = new Team();

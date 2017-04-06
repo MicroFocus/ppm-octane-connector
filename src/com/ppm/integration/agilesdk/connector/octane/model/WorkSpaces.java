@@ -16,6 +16,9 @@ public class WorkSpaces extends SimpleEntityCollection<WorkSpace> {
 
         JSONObject object = JSONObject.fromObject(data);
         JSONArray jsonarray = (JSONArray)(object.get("data"));
+        if(jsonarray == null){
+        	return;
+        }
         int length = jsonarray.size();
         for (int i = 0; i < length; i++) {
             JSONObject tempObj = jsonarray.getJSONObject(i);

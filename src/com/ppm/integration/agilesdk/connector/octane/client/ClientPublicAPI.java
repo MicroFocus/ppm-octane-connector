@@ -434,6 +434,9 @@ public class ClientPublicAPI {
             RestResponse response = sendRequest(url, method, null, headers);
             //get the sum of team member'capacity
             net.sf.json.JSONObject object = net.sf.json.JSONObject.fromObject(response.getData());
+            if(object.get("data") == null){
+            	return memberCapacity;
+            }
             net.sf.json.JSONArray jsonarray = (net.sf.json.JSONArray)(object.get("data"));
             if (jsonarray.size() == limit) {
                 offset += limit;
