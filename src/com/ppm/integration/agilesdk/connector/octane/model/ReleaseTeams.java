@@ -23,6 +23,9 @@ public class ReleaseTeams extends SimpleEntityCollection<ReleaseTeam> {
 
         JSONObject object = JSONObject.fromObject(data);
         JSONArray jsonarray = (JSONArray)(object.get("data"));
+        if(jsonarray == null){
+        	return;
+        }
         for (int i = 0, length = jsonarray.size(); i < length; i++) {
             JSONObject tempObj = (JSONObject)jsonarray.getJSONObject(i);
             ReleaseTeam tempReleaseTeam = new ReleaseTeam();

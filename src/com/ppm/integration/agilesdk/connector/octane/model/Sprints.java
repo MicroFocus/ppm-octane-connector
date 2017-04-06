@@ -18,6 +18,9 @@ public class Sprints extends SimpleEntityCollection<Sprint> {
 
         JSONObject object = JSONObject.fromObject(data);
         JSONArray jsonarray = (JSONArray)(object.get("data"));
+        if(jsonarray == null){
+        	return;
+        }
         for (int i = 0, length = jsonarray.size(); i < length; i++) {
             JSONObject tempObj = jsonarray.getJSONObject(i);
             Sprint tempSprint = new Sprint();
