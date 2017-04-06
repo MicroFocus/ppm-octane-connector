@@ -17,6 +17,8 @@ import net.sf.json.JSONObject;
 public class WorkItemRoot extends SimpleEntity {
 
     public Map<String, WorkItemEpic> epicList = new HashMap<String, WorkItemEpic>();
+    
+    public Map<String, WorkItemFeature>  featureList = new HashMap<String, WorkItemFeature>();
 
     public List<WorkItemStory> storyList = new LinkedList<WorkItemStory>();
 
@@ -48,6 +50,15 @@ public class WorkItemRoot extends SimpleEntity {
                     epicList.put((String)tempObj.get("id"), tempEpic);
                     break;
                 case OctaneConstants.SUB_TYPE_FEATURE:
+                	//feature jsonobj to parent
+                    JSONObject tempFeatureParentObj = (JSONObject)tempObj.get("parent");     
+                    if (OctaneConstants.SUB_TYPE_WORK_ITEM_ROOT.equals((String)tempFeatureParentObj.get("subtype"))) {
+                        //initialization the WorkItemFeature
+                        WorkItemFeature tempFeature = new WorkItemFeature();
+                        tempFeature.ParseJsonData(tempObj);
+                    	featureList.put((String)tempObj.get("id"),tempFeature);
+                    	break;
+                    }
                     tempFeatureWithoutAddToEpicList.put((String)tempObj.get("id"), tempObj);
                     break;
                 case OctaneConstants.SUB_TYPE_DEFECT:
@@ -105,11 +116,25 @@ public class WorkItemRoot extends SimpleEntity {
                         epicList.put((String)tempFeatureParentObj.get("id"), tempEpic);
                         continue;
                     } else {
-                        //if not exits, Traversing the epicList, and use the story id find the right WorkItemFeature
-                        Set<String> keySet = epicList.keySet();
+                        //if not exits, Traversing the featureList or epicList, and use the story id find the right WorkItemFeature
+                        //if the us'parent feature belong to a 
+                    	WorkItemFeature tempFeature = null;
+                    	//featureList
+                    	Set<String> keySetFeature = featureList.keySet();
+                    	tempFeature=featureList.get((String)tempStoryParentObj.get("id"));
+                    	if (tempFeature != null) {
+                            tempStory.themeId = tempFeature.themeId;
+                            tempFeature.aggStoryPoints += tempStory.storyPoints;
+                            tempFeature.storyList.add(tempStory);
+                            featureList.put((String)tempStoryParentObj.get("id"), tempFeature);
+                            continue;
+                        }
+                        
+                    	//epicList
+                    	Set<String> keySet = epicList.keySet();
                         for (String key : keySet) {
                             WorkItemEpic tempEpic = epicList.get(key);
-                            WorkItemFeature tempFeature = tempEpic.featureList.remove(tempStoryParentObj.get("id"));
+                            tempFeature = tempEpic.featureList.remove(tempStoryParentObj.get("id"));
                             if (tempFeature != null) {
                                 tempStory.themeId = tempFeature.themeId;
                                 tempFeature.aggStoryPoints += tempStory.storyPoints;
@@ -132,12 +157,19 @@ public class WorkItemRoot extends SimpleEntity {
             JSONObject tempFeatureObj = tempFeatureWithoutAddToEpicList.get(keyFeature);
             //feature jsonobj to parent
             JSONObject tempFeatureParentObj = (JSONObject)tempFeatureObj.get("parent");
-            //find the feature in epicList use  the feature parent id
-            WorkItemEpic tempEpic = epicList.get((String)tempFeatureParentObj.get("id"));
 
             //initialization the WorkItemFeature
             WorkItemFeature tempFeature = new WorkItemFeature();
             tempFeature.ParseJsonData(tempFeatureObj);
+            
+            if (OctaneConstants.SUB_TYPE_WORK_ITEM_ROOT.equals((String)tempFeatureParentObj.get("subtype"))
+            		&& this.id.equals((String)tempFeatureParentObj.get("id"))) {
+            	featureList.put((String)tempFeatureParentObj.get("id"),tempFeature);
+                continue;
+            }
+            
+            //find the feature in epicList use  the feature parent id
+            WorkItemEpic tempEpic = epicList.get((String)tempFeatureParentObj.get("id"));
             // add the WorkItemFeature into epicList
             tempEpic.featureList.put((String)tempFeatureObj.get("id"), tempFeature);
             epicList.put((String)tempFeatureParentObj.get("id"), tempEpic);
@@ -195,11 +227,24 @@ public class WorkItemRoot extends SimpleEntity {
                         epicList.put((String)tempFeatureParentObj.get("id"), tempEpic);
                         continue;
                     } else {
-                        //if not exits, Traversing the epicList, and use the story id find the right WorkItemFeature
+                        //if not exits, Traversing the featureList or epicList, and use the story id find the right WorkItemFeature
+                        //if the us'parent feature belong to a 
+                    	WorkItemFeature tempFeature=null;
+                    	//featureList
+                    	tempFeature=featureList.get((String)tempStoryParentObj.get("id"));
+                    	if (tempFeature != null) {
+                            tempStory.themeId = tempFeature.themeId;
+                            tempFeature.aggStoryPoints += tempStory.storyPoints;
+                            tempFeature.storyList.add(tempStory);
+                            featureList.put((String)tempStoryParentObj.get("id"), tempFeature);
+                            continue;
+                        }
+                    	
+                        //epicList
                         Set<String> keySet = epicList.keySet();
                         for (String key : keySet) {
                             WorkItemEpic tempEpic = epicList.get(key);
-                            WorkItemFeature tempFeature = tempEpic.featureList.remove(tempStoryParentObj.get("id"));
+                            tempFeature = tempEpic.featureList.remove(tempStoryParentObj.get("id"));
                             if (tempFeature != null) {
                                 tempFeature.storyList.add(tempStory);
                                 tempEpic.featureList.put((String)tempStoryParentObj.get("id"), tempFeature);
@@ -226,12 +271,19 @@ public class WorkItemRoot extends SimpleEntity {
             }
             //else add the feature to the parent epic,
             JSONObject tempFeatureParentObj = (JSONObject)tempFeatureObj.get("parent");
-            //find the feature in epicList use  the feature parent id
-            WorkItemEpic tempEpic = epicList.get((String)tempFeatureParentObj.get("id"));
 
             //initialization the WorkItemFeature
             WorkItemFeature tempFeature = new WorkItemFeature();
             tempFeature.ParseJsonData(tempFeatureObj);
+            
+            if (OctaneConstants.SUB_TYPE_WORK_ITEM_ROOT.equals((String)tempFeatureParentObj.get("subtype"))
+            		&& this.id.equals((String)tempFeatureParentObj.get("id"))) {
+            	featureList.put((String)tempFeatureParentObj.get("id"),tempFeature);
+                continue;
+            }
+            
+            //find the feature in epicList use  the feature parent id
+            WorkItemEpic tempEpic = epicList.get((String)tempFeatureParentObj.get("id"));
             // add the WorkItemFeature into epicList
             tempEpic.featureList.put((String)tempFeatureObj.get("id"), tempFeature);
             epicList.put((String)tempFeatureParentObj.get("id"), tempEpic);
