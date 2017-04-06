@@ -161,6 +161,33 @@ public class OctaneReleaseIntegration extends ReleaseIntegration {
         WorkItemRoot workItemRoot = client.getWorkItemRoot(sharedSpaceId, workSpaceId);
         List<WorkItemStory> itemBacklogs = workItemRoot.storyList;
         releaseBacklogItems.addAll(this.pareseBacklogItem(wp, itemBacklogs));
+        Map<String, WorkItemFeature> itemFeatureRootMap=workItemRoot.featureList;
+        if(itemFeatureRootMap != null && itemFeatureRootMap.size() > 0) {
+        	 Set<String> keySetF = itemFeatureRootMap.keySet();
+             for (String keyF : keySetF) {
+                 WorkItemFeature tempFeature = itemFeatureRootMap.get(keyF);
+                 ReleaseFeature feature = new ReleaseFeature();
+                 feature.setFeatureId(Integer.parseInt(tempFeature.id));
+                 feature.setName(tempFeature.name);
+                 feature.setStatus(ReleaseFeature.STATUS.fromTypeName(tempFeature.status));
+                 feature.setFeaturePoints(tempFeature.featurePoints);
+                 feature.setAggStoryPoints(tempFeature.aggStoryPoints);
+                 feature.setNumOfUserStories(tempFeature.numOfStories);
+                 feature.setNumOfDefects(tempFeature.numbOfDefects);
+                 feature.setThemeId((int)tempFeature.themeId);
+                 if (!tempFeature.releaseId.equals("") && Integer.parseInt(tempFeature.releaseId) > 0) {
+                     feature.setReleaseId(Integer.parseInt(tempFeature.releaseId));
+                 } else {
+                     feature.setReleaseId(-1);
+                 }
+                 feature.setLastModified(tempFeature.lastModified);
+                 feature.setSolution("");
+                 feature.setInstanceId(wp.getId());
+                 releaseFeatures.add(feature);//for feature
+                 List<WorkItemStory> tempItemBacklog = tempFeature.storyList;//for story
+                 releaseBacklogItems.addAll(this.pareseBacklogItem(wp, tempItemBacklog));
+             }
+        }
         Map<String, WorkItemEpic> itemEpicMap = workItemRoot.epicList;
         if (itemEpicMap != null && itemEpicMap.size() > 0) {
             Set<String> keySetT = itemEpicMap.keySet();
