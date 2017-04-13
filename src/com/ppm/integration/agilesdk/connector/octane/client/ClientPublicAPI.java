@@ -108,14 +108,17 @@ public class ClientPublicAPI {
 
             int responseCode = con.getResponseCode();
             BufferedReader in;
-            if (responseCode >= 200 && responseCode < 300) {
+            if (responseCode == 200 ) {
                 in = new BufferedReader(new InputStreamReader(con.getInputStream(), "UTF-8"));
 
                 if (cookies == null) {
                     this.cookies = getCookie(con);
                 }
 
-            } else {
+            } else if (responseCode == 403) {
+            	throw new OctaneClientException("OCTANE_API", "ERROR_AUTHENTICATION_FAILED");
+            }
+            else {
                 InputStream inputStream = con.getErrorStream();
                 if (inputStream == null) {
                     inputStream = con.getInputStream();
