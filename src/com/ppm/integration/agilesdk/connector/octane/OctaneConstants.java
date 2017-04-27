@@ -42,5 +42,12 @@ public class OctaneConstants {
     public static final String SUB_TYPE_STORY = "story";
 
     public static final String SUB_TYPE_DEFECT = "defect";
+	
+	public static final String WORKSPACE_GROUP_SYCN_LABEL = "sync";
+    
+    public static final String SYNC_AGILE_DATA_FROM_WORKSPACE = "sync_agile_data_from_workspace_group";
+    
+    public static final String SYNC_EPIC_FROM_WORKSPACE_GROUP = "sync_epic_from_workspace_group";
+
 
 }

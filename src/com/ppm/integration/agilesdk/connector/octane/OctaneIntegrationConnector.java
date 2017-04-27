@@ -6,8 +6,11 @@ import com.ppm.integration.agilesdk.IntegrationConnector;
 import com.ppm.integration.agilesdk.ui.CheckBox;
 import com.ppm.integration.agilesdk.ui.Field;
 import com.ppm.integration.agilesdk.ui.LineBreaker;
+import com.ppm.integration.agilesdk.ui.LabelText;
 import com.ppm.integration.agilesdk.ui.PasswordText;
 import com.ppm.integration.agilesdk.ui.PlainText;
+import com.ppm.integration.agilesdk.ui.LineHr;
+import com.ppm.integration.agilesdk.ui.Link;
 import java.util.Arrays;
 import java.util.List;
 
@@ -33,7 +36,12 @@ public class OctaneIntegrationConnector extends IntegrationConnector {
                 new CheckBox(OctaneConstants.KEY_USE_GLOBAL_PROXY, "USE_GLOBAL_PROXY", "", false), new LineBreaker(),
                 new PlainText(OctaneConstants.APP_CLIENT_ID, "CLIENT_ID", "", "", true),
                 new PasswordText(OctaneConstants.APP_CLIENT_SECRET, "CLIENT_SECRET", "", "", true), new LineBreaker(),
-                new CheckBox(Constants.AGILE_DATA_SYNC_SERVICE, "SYNC_AGILE_DATA_TO_THIS_INSTANCE", "", false),});
+                new LineHr(), new LabelText(Constants.AGILE_DATA_SYNC_SERVICE, "LABEL_SYNC","",false),
+                //repleace the url to your own address
+                new Link(Constants.AGILE_DATA_SYNC_SERVICE, "LABEL_SYNC","","",false,"https://www.google.com/"),
+                new LineBreaker(), new CheckBox(Constants.AGILE_DATA_SYNC_SERVICE, "SYNC_AGILE_DATA_TO_THIS_INSTANCE", "", false),
+                new LineBreaker(),new CheckBox(OctaneConstants.SYNC_AGILE_DATA_FROM_WORKSPACE, "SYNC_AGILE_DATA_FROM_WORKSPACE", "", false), new LineBreaker(),
+                new CheckBox(OctaneConstants.SYNC_EPIC_FROM_WORKSPACE_GROUP, "SYNC_EPIC_FROM_WORKSPACE_GROUP", "", false), new LineBreaker()});
     }
 
     @Override public List<FunctionIntegration> getIntegrations() {
