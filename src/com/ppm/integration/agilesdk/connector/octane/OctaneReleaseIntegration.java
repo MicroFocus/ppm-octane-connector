@@ -91,7 +91,7 @@ public class OctaneReleaseIntegration extends ReleaseIntegration {
                     SetUpReleases(wp, client, sharedSpaceId, workSpaceId);
                     SetUpSprints(wp, client, sharedSpaceId, workSpaceId);
                     SetUpTeams(wp, client, sharedSpaceId, workSpaceId);
-                    SetUpThemeFeatureBacklogItems(wp, client, sharedSpaceId, workSpaceId, sharedSpaceName);
+                    SetUpThemeFeatureBacklogItems(wp, client, sharedSpaceId, workSpaceId);
                 }
             }
         } catch (IOException e) {
@@ -182,7 +182,7 @@ public class OctaneReleaseIntegration extends ReleaseIntegration {
         return backlogItems;
     }
 
-    protected void SetUpThemeFeatureBacklogItems(final Workspace wp, ClientPublicAPI client, int sharedSpaceId, int workSpaceId, String sharedSpaceName)
+    protected void SetUpThemeFeatureBacklogItems(final Workspace wp, ClientPublicAPI client, int sharedSpaceId, int workSpaceId)
             throws IOException
     {
         WorkItemRoot workItemRoot = client.getWorkItemRoot(sharedSpaceId, workSpaceId);
