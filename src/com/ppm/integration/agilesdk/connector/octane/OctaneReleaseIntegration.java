@@ -21,14 +21,16 @@ import com.ppm.integration.agilesdk.release.ReleaseReleaseTeam;
 import com.ppm.integration.agilesdk.release.ReleaseSprint;
 import com.ppm.integration.agilesdk.release.ReleaseTheme;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import org.apache.log4j.Logger;
+
 import org.json.JSONException;
+import org.apache.log4j.Logger;
 
 /**
  * Created by lutian on 2017/1/13.
@@ -89,12 +91,37 @@ public class OctaneReleaseIntegration extends ReleaseIntegration {
                     SetUpReleases(wp, client, sharedSpaceId, workSpaceId);
                     SetUpSprints(wp, client, sharedSpaceId, workSpaceId);
                     SetUpTeams(wp, client, sharedSpaceId, workSpaceId);
-                    SetUpThemeFeatureBacklogItems(wp, client, sharedSpaceId, workSpaceId);
+                    SetUpThemeFeatureBacklogItems(wp, client, sharedSpaceId, workSpaceId, sharedSpaceName);
                 }
             }
         } catch (IOException e) {
             logger.error(e.getMessage());
         }
+    }
+
+    public List<com.ppm.integration.agilesdk.release.WorkSpace> getWorkSpaces(final Workspace wp, ValueSet paramValueSet) {
+        List<com.ppm.integration.agilesdk.release.WorkSpace> workspaceList = new ArrayList();
+        try {
+            client = getClient(paramValueSet);
+            List<SharedSpace> sharedSpacesList = client.getSharedSpaces();
+            for (SharedSpace sharedSpace : sharedSpacesList) {
+                //workspace
+                int sharedSpaceId = Integer.parseInt(sharedSpace.getId());
+                String sharedSpaceName = sharedSpace.getName();
+                List<WorkSpace> workSpaces = client.getWorkSpaces(sharedSpaceId);
+                for (WorkSpace workSpace : workSpaces) {
+                    com.ppm.integration.agilesdk.release.WorkSpace ws = new com.ppm.integration.agilesdk.release.WorkSpace();
+                    ws.setId(Integer.parseInt(workSpace.getId()));
+                    ws.setName(workSpace.getName());
+                    ws.setSharedSpaceId(sharedSpaceId);
+                    ws.setSharedSpaceName(sharedSpaceName);
+                    workspaceList.add(ws);
+                }
+            }
+        } catch (IOException e) {
+            logger.error(e.getMessage());
+        }
+        return workspaceList;
     }
 
     //defect or us
@@ -155,7 +182,7 @@ public class OctaneReleaseIntegration extends ReleaseIntegration {
         return backlogItems;
     }
 
-    protected void SetUpThemeFeatureBacklogItems(final Workspace wp, ClientPublicAPI client, int sharedSpaceId, int workSpaceId)
+    protected void SetUpThemeFeatureBacklogItems(final Workspace wp, ClientPublicAPI client, int sharedSpaceId, int workSpaceId, String sharedSpaceName)
             throws IOException
     {
         WorkItemRoot workItemRoot = client.getWorkItemRoot(sharedSpaceId, workSpaceId);
@@ -354,5 +381,4 @@ public class OctaneReleaseIntegration extends ReleaseIntegration {
         }
         return releaseThemes;
     }
-
 }
