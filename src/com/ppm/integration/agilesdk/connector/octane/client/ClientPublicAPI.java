@@ -1,6 +1,15 @@
 package com.ppm.integration.agilesdk.connector.octane.client;
 
+import com.fasterxml.jackson.core.JsonParseException;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.JsonMappingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.kintana.core.server.execution.ParseException;
+import com.ppm.integration.agilesdk.connector.octane.model.EpicAttr;
+import com.ppm.integration.agilesdk.connector.octane.model.EpicCreateEntity;
+import com.ppm.integration.agilesdk.connector.octane.model.EpicEntity;
 import com.ppm.integration.agilesdk.connector.octane.model.Release;
 import com.ppm.integration.agilesdk.connector.octane.model.ReleaseTeam;
 import com.ppm.integration.agilesdk.connector.octane.model.ReleaseTeams;
@@ -551,4 +560,77 @@ public class ClientPublicAPI {
         return tempWorkItemRoot;
     }
 
+    public List<EpicEntity> createEpicInWorkspace(String sharedspaceId, String workspaceId, EpicCreateEntity epicCreateEntity) throws JsonProcessingException, IOException, JSONException {
+        String url = String.format("%s/api/shared_spaces/%s/workspaces/%s/epics", baseURL, sharedspaceId, workspaceId);
+        Map<String, String> headers = new HashMap<>();
+        
+        headers.put("Cookie", this.cookies);
+        headers.put("HPECLIENTTYPE", "HPE_MQM_UI");
+  //    	headers.put("HPECLIENTTYPE", "HPE_SWAGGER_API");
+  //    	headers.put("Cookie", this.cookies.replace("OCTANE_USER", "S_OCTANE_USER"));
+        headers.put("Content-Type", MediaType.APPLICATION_JSON);
+        String csrf = this.getCSRF(this.cookies);
+        if (csrf != null) {
+          headers.put("HPSSO-HEADER-CSRF", csrf);
+        }
+        
+        RestResponse response = sendRequest(url, HttpMethod.POST, this.getJsonStrFromObject(epicCreateEntity), headers);
+        if (HttpStatus.SC_CREATED != response.getStatusCode()) {
+          this.logger.error("Error occurs when creating epic in Octane: Response code = " + response.getStatusCode());
+          throw new OctaneClientException("AGM_APP", "ERROR_HTTP_CONNECTIVITY_ERROR", new String[] { response.getData() });
+        }
+        return (List<EpicEntity>) getDataContent(response.getData(), new TypeReference<List<EpicEntity>>(){});
+    }
+
+    public List<EpicAttr> getEpicPhase(final String sharedspaceId, final String workspaceId, final String phaseLogicName) throws JsonProcessingException, IOException, JSONException {
+        String url = String.format("%s/api/shared_spaces/%s/workspaces/%s/phases?fields=id&query=%s%s%s",
+            baseURL, sharedspaceId, workspaceId, "%22logical_name%3D'", phaseLogicName, "'%22");
+        Map<String, String> headers = new HashMap<>();
+        headers.put("Cookie", this.cookies);
+        headers.put("HPECLIENTTYPE", "HPE_MQM_UI");
+        RestResponse response = sendRequest(url, HttpMethod.GET, null, headers);
+        
+        return (List<EpicAttr>)getDataContent(response.getData(), new TypeReference<List<EpicAttr>>(){});
+    }
+    
+    public List<EpicAttr> getEpicParent(final String sharedspaceId, final String workspaceId, final String workitemSubtype) throws JsonProcessingException, IOException, JSONException {
+        String url = String.format("%s/api/shared_spaces/%s/workspaces/%s/work_items?fields=id&query=%s%s%s",
+            baseURL, sharedspaceId, workspaceId, "%22subtype%3D'", workitemSubtype, "'%22");
+        Map<String, String> headers = new HashMap<>();
+        headers.put("Cookie", this.cookies);
+        headers.put("HPECLIENTTYPE", "HPE_MQM_UI");
+        RestResponse response = sendRequest(url, HttpMethod.GET, null, headers);
+    	
+        return (List<EpicAttr>)getDataContent(response.getData(), new TypeReference<List<EpicAttr>>(){});
+    }
+    
+    public String getJsonStrFromObject(Object sourceObj) throws JsonProcessingException {
+    	ObjectMapper objectMapper = new ObjectMapper();
+    	return objectMapper.writeValueAsString(sourceObj);
+    }
+    
+    public String getCSRF(final String cookies) {
+        String csrf = null;
+        int csrfStart = cookies.indexOf("HPSSO_COOKIE_CSRF=");
+        if (csrfStart > -1) {
+            int csrfEnd = cookies.indexOf(";", csrfStart);
+            csrf = cookies.substring(csrfStart + 18, csrfEnd);
+        }
+        return csrf;
+    }
+    
+    private List<?> getDataContent(String jsonData, TypeReference<?> typeRef)
+        throws JSONException, JsonParseException, JsonMappingException, IOException {
+        ObjectMapper mapper = new ObjectMapper();
+        mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+        JSONObject obj = new JSONObject(jsonData);
+        Object dataObj = obj.get("data");
+        if(dataObj != null) {
+            String arrayStr = dataObj.toString();			
+            if(arrayStr.length() > 2){
+                return mapper.readValue(arrayStr, typeRef);
+            }
+        }
+        return null;
+    }
 }

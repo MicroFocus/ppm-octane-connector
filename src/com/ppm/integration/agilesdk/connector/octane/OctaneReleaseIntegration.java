@@ -1,8 +1,12 @@
 package com.ppm.integration.agilesdk.connector.octane;
 
+import com.hp.ppm.integration.model.EpicCreateInfo;
 import com.hp.ppm.integration.model.Workspace;
 import com.ppm.integration.agilesdk.ValueSet;
 import com.ppm.integration.agilesdk.connector.octane.client.ClientPublicAPI;
+import com.ppm.integration.agilesdk.connector.octane.model.EpicAttr;
+import com.ppm.integration.agilesdk.connector.octane.model.EpicCreateEntity;
+import com.ppm.integration.agilesdk.connector.octane.model.EpicEntity;
 import com.ppm.integration.agilesdk.connector.octane.model.Release;
 import com.ppm.integration.agilesdk.connector.octane.model.ReleaseTeam;
 import com.ppm.integration.agilesdk.connector.octane.model.SharedSpace;
@@ -381,4 +385,32 @@ public class OctaneReleaseIntegration extends ReleaseIntegration {
         }
         return releaseThemes;
     }
+    
+    @Override public Long createEpicInWorkspace(final String sharedSpaceId, final String workSpaceId, final EpicCreateInfo epicCreateInfo, final ValueSet paramValueSet) {
+        Long epicId = null;
+        client = getClient(paramValueSet);
+        EpicEntity epic = new EpicEntity();
+        epic.setName(epicCreateInfo.getName());
+        
+        try {
+            List<EpicAttr> epicPhases = client.getEpicPhase(sharedSpaceId, workSpaceId, "phase.epic.new");
+            epic.setPhase(epicPhases.get(0));
+            
+            List<EpicAttr> epicParents = client.getEpicParent(sharedSpaceId, workSpaceId, "work_item_root");
+            epic.setParent(epicParents.get(0));
+            List<EpicEntity> epicList = new ArrayList<EpicEntity>();
+            epicList.add(epic);
+            
+            EpicCreateEntity epicCreateEntity = new EpicCreateEntity();
+            epicCreateEntity.setData(epicList);
+        	
+            List<EpicEntity> epics = client.createEpicInWorkspace(sharedSpaceId, workSpaceId, epicCreateEntity);
+            epicId = epics.size() > 0 ? Long.valueOf(epics.get(0).id) : null;
+        } catch (Exception e) {
+            logger.error(e.getMessage());
+        }
+        
+        return epicId;
+    }
+    
 }
