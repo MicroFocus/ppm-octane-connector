@@ -12,6 +12,7 @@ import com.ppm.integration.agilesdk.connector.octane.model.Sprints;
 import com.ppm.integration.agilesdk.connector.octane.model.Team;
 import com.ppm.integration.agilesdk.connector.octane.model.Teams;
 import com.ppm.integration.agilesdk.connector.octane.model.TimesheetItem;
+import com.ppm.integration.agilesdk.connector.octane.model.WorkItemEpic;
 import com.ppm.integration.agilesdk.connector.octane.model.WorkItemRoot;
 import com.ppm.integration.agilesdk.connector.octane.model.WorkSpace;
 import com.ppm.integration.agilesdk.connector.octane.model.WorkSpaces;
@@ -551,4 +552,296 @@ public class ClientPublicAPI {
         return tempWorkItemRoot;
     }
 
+    /*
+    example request:
+    http://XXX.asiapacific.hpqcorp.net:8080/api/shared_spaces/2001/workspaces/1002/epics/2001?fields=path,actual_story_points
+    example result:
+
+    {
+       "type":"epic",
+       "path":"0000000001OT",
+       "logical_name":"k9z2qy3jjw06yan223ev67x4n",
+       "actual_story_points":null,
+       "id":"2001"
+    }
+    * */
+    public WorkItemEpic getEpicActualStoryPointsAndPath(int sharedSpaceId, int workSpaceId, String epicId) throws IOException {
+
+        String method = "GET";
+        String url = String.format("%s/api/shared_spaces/%d/workspaces/%d/epics/%s?fields=path,actual_story_points",
+                baseURL, sharedSpaceId, workSpaceId, epicId);
+
+        Map<String, String> headers = new HashMap<>();
+        headers.put("Cookie", this.cookies);
+        //headers.put("HPECLIENTTYPE", "HPE_MQM_UI");
+        RestResponse response = sendRequest(url, method, null, headers);
+
+        WorkItemEpic epic = new WorkItemEpic();
+        try {
+            net.sf.json.JSONObject jsonStr = net.sf.json.JSONObject.fromObject(response.getData());
+            if(jsonStr.containsKey("path")) {
+                epic.path = jsonStr.getString("path");
+            }
+            if(jsonStr.containsKey("actual_story_points")) {
+                String val = (String)jsonStr.getString("actual_story_points");
+                try{
+                    if(val != null && !"null".equals(val)) {
+                        epic.totalStoryPoints = Integer.parseInt(val);
+                    }
+                }catch(NumberFormatException e) {
+                    logger.error("NumberFormatException of actual_story_points in getEpicActualStoryPointsAndPath, "
+                            + "ignore error and use 0.", e);
+                }
+            } else {
+                logger.error("Could not found key 'actual_story_points' in response of getEpicActualStoryPointsAndPath,"
+                        + " maybe Octane 's version should be upgraded.");
+            }
+        } catch (Exception e) {
+            logger.error("error in getEpicActualStoryPointsAndPath:", e);
+            throw new OctaneClientException("AGM_APP", "error of get epicActualStoryPoints and path:", e.getMessage());
+        }
+        return epic;
+    }
+
+    /*
+    example request:
+    http://XXX.asiapacific.hpqcorp.net:8080/api/shared_spaces/2001/workspaces/1002/phases?query="(entity='defect'||
+        entity='story'||entity='quality_story');metaphase={logical_name='metaphase.work_item.done'}"
+    example result:
+    {
+       "total_count":5,
+       "data":[
+          {
+             "type":"phase",
+             "creation_time":"2017-05-02T07:32:39Z",
+             "is_system":true,
+             "logical_name":"phase.quality_story.done",
+             "version_stamp":1,
+             "is_start_phase":false,
+             "is_hidden":false,
+             "color_hex":"#00a982",
+             "description":null,
+             "index":2,
+             "workspace_id":1002,
+             "name":"Done",
+             "id":"1033",
+             "metaphase":{
+                "type":"metaphase",
+                "id":"1004"
+             },
+             "last_modified":"2017-05-02T07:32:39Z",
+             "entity":"quality_story"
+          },
+          {
+             "type":"phase",
+             "creation_time":"2017-05-02T07:32:39Z",
+             "is_system":true,
+             "logical_name":"phase.story.done",
+             "version_stamp":1,
+             "is_start_phase":false,
+             "is_hidden":false,
+             "color_hex":"#00a982",
+             "description":null,
+             "index":3,
+             "workspace_id":1002,
+             "name":"Done",
+             "id":"1030",
+             "metaphase":{
+                "type":"metaphase",
+                "id":"1004"
+             },
+             "last_modified":"2017-05-02T07:32:39Z",
+             "entity":"story"
+          },
+          {
+             "type":"phase",
+             "creation_time":"2017-05-02T07:32:38Z",
+             "is_system":true,
+             "logical_name":"phase.defect.closed",
+             "version_stamp":1,
+             "is_start_phase":false,
+             "is_hidden":false,
+             "color_hex":"#00a982",
+             "description":null,
+             "index":4,
+             "workspace_id":1002,
+             "name":"Closed",
+             "id":"1004",
+             "metaphase":{
+                "type":"metaphase",
+                "id":"1004"
+             },
+             "last_modified":"2017-05-02T07:32:38Z",
+             "entity":"defect"
+          },
+          {
+             "type":"phase",
+             "creation_time":"2017-05-02T07:32:38Z",
+             "is_system":true,
+             "logical_name":"phase.defect.duplicate",
+             "version_stamp":1,
+             "is_start_phase":false,
+             "is_hidden":false,
+             "color_hex":"#d7c238",
+             "description":null,
+             "index":6,
+             "workspace_id":1002,
+             "name":"Duplicate",
+             "id":"1007",
+             "metaphase":{
+                "type":"metaphase",
+                "id":"1004"
+             },
+             "last_modified":"2017-05-02T07:32:38Z",
+             "entity":"defect"
+          },
+          {
+             "type":"phase",
+             "creation_time":"2017-05-02T07:32:38Z",
+             "is_system":true,
+             "logical_name":"phase.defect.rejected",
+             "version_stamp":1,
+             "is_start_phase":false,
+             "is_hidden":false,
+             "color_hex":"#be665c",
+             "description":null,
+             "index":7,
+             "workspace_id":1002,
+             "name":"Rejected",
+             "id":"1008",
+             "metaphase":{
+                "type":"metaphase",
+                "id":"1004"
+             },
+             "last_modified":"2017-05-02T07:32:38Z",
+             "entity":"defect"
+          }
+       ],
+       "exceeds_total_count":false
+    }
+* */
+
+    public String[] getDoneDefinationOfUserStoryAndDefect(int sharedSpaceId, int workSpaceId) throws IOException {
+        String method = "GET";
+        String url = String.format("%s/api/shared_spaces/%d/workspaces/%d/phases?query=\"(entity='defect'||entity='story'||"
+                + "entity='quality_story');metaphase={logical_name='metaphase.work_item.done'}\"", baseURL, sharedSpaceId, workSpaceId);
+        Map<String, String> headers = new HashMap<>();
+        headers.put("Cookie", this.cookies);
+//        headers.put("HPECLIENTTYPE", "HPE_MQM_UI");
+        RestResponse response = sendRequest(url, method, null, headers);
+
+        ArrayList<String> ids = new ArrayList();
+        try {
+            net.sf.json.JSONObject jsonResponse = net.sf.json.JSONObject.fromObject(response.getData());
+            net.sf.json.JSONArray jsonData = jsonResponse.getJSONArray("data");
+            if(jsonData != null && jsonData.size() > 0) {
+                for(int i=0; i<jsonData.size(); i++) {
+                    net.sf.json.JSONObject data = (net.sf.json.JSONObject)jsonData.get(i);
+                    ids.add(data.getString("id"));
+                }
+            }
+        } catch (Exception e) {
+            logger.error("error in getDoneDefinationOfUserStoryAndDefect:", e);
+            throw new OctaneClientException("AGM_APP", "error in getDoneDefinationOfUserStoryAndDefect:", e.getMessage());
+        }
+        return ids.toArray(new String[]{});
+    }
+
+/*
+    example request:
+    http://XXX.asiapacific.hpqcorp.net:8080/api/shared_spaces/2001/workspaces/1002/work_items/groups?group_by=phase&query="path='0000000001OT*';
+        (subtype='defect'||subtype='story'||subtype='quality_story');(phase={id=1030}||phase={id=1033}||phase={id=1004})"
+    example result 1:
+
+    {"groups":[],"groupsTotalCount":0}
+
+    example result 2:
+    {
+       "groups":[
+          {
+             "count":1,
+             "value":{
+                "type":"phase",
+                "logical_name":"phase.defect.closed",
+                "name":"Closed",
+                "index":3,
+                "id":"1004"
+             },
+             "aggregatedData":{
+                "story_points":99
+             },
+             "groups":null
+          },
+          {
+             "count":1,
+             "value":{
+                "type":"phase",
+                "logical_name":"phase.story.done",
+                "name":"Done",
+                "index":3,
+                "id":"1030"
+             },
+             "aggregatedData":{
+                "story_points":12
+             },
+             "groups":null
+          }
+       ],
+       "groupsTotalCount":2
+    }
+    * */
+    public WorkItemEpic getEpicDoneStoryPoints(int sharedSpaceId, int workSpaceId, String epicPath, String[] doneStatusIDs) throws IOException {
+
+        String method = "GET";
+        //example:
+        // (phase={id=1030}||phase={id=1033}||phase={id=1004})
+        StringBuffer statusStr= new StringBuffer();
+
+        if(doneStatusIDs.length > 0) {
+            statusStr.append("(");
+            boolean first = true;
+            for(String x : doneStatusIDs) {
+                if(first) {
+                    first= false;
+                    statusStr.append("phase={id=" + x + "}");
+                } else {
+                    statusStr.append("||phase={id=" + x + "}");
+                }
+            }
+            statusStr.append(")");
+        } else {
+            Exception e = new RuntimeException("error by get doneStatusIDs empty");
+            logger.error("error by get doneStatusIDs empty", e);
+            throw new OctaneClientException("AGM_APP", "error by get doneStatusIDs empty", e.getMessage());
+
+        }
+        String url = String.format("%s/api/shared_spaces/%d/workspaces/%d/work_items/groups?group_data=sum(story_points)&group_by=phase&query=\""
+                + "path='%s*';(subtype='defect'||subtype='story'||subtype='quality_story');%s\"", baseURL, sharedSpaceId, workSpaceId, epicPath, statusStr);
+
+        Map<String, String> headers = new HashMap<>();
+        headers.put("Cookie", this.cookies);
+        //headers.put("HPECLIENTTYPE", "HPE_MQM_UI");
+        RestResponse response = sendRequest(url, method, null, headers);
+
+        WorkItemEpic epic = new WorkItemEpic();
+        try {
+            net.sf.json.JSONObject jsonResponse = net.sf.json.JSONObject.fromObject(response.getData());
+            net.sf.json.JSONArray jsonData = jsonResponse.getJSONArray("groups");
+            if(jsonData != null && jsonData.size() > 0) {
+                for(int i=0; i<jsonData.size(); i++) {
+                    net.sf.json.JSONObject data = (net.sf.json.JSONObject)jsonData.get(i);
+                    if(data.containsKey("aggregatedData")) {
+                        net.sf.json.JSONObject aggregatedData = data.getJSONObject("aggregatedData");
+                        if(aggregatedData.containsKey("story_points")) {
+                            epic.doneStoryPoints += aggregatedData.getInt("story_points");
+                        }
+                    }
+                }
+            }
+        } catch (Exception e) {
+            logger.error("error in getEpicDoneStoryPoints:", e);
+            throw new OctaneClientException("AGM_APP", "error in getEpicDoneStoryPoints:", e.getMessage());
+        }
+        return epic;
+    }
 }

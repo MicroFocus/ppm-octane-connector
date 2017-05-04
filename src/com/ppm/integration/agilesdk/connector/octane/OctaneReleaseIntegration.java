@@ -381,4 +381,28 @@ public class OctaneReleaseIntegration extends ReleaseIntegration {
         }
         return releaseThemes;
     }
+
+    @Override public ReleaseTheme getEpicInfo(final Workspace wp, final ValueSet values, final String epicId, final net.sf.json.JSONObject jsonConfig) {
+        ReleaseTheme epic = new ReleaseTheme();
+        try{
+            client = getClient(values);
+
+            int shareSpaceId = jsonConfig.getInt(OctaneConstants.KEY_SHAREDSPACEID);
+            int workSpaceId = jsonConfig.getInt(OctaneConstants.KEY_WORKSPACEID);
+            String[] doneStatusIDs = client.getDoneDefinationOfUserStoryAndDefect(
+                    shareSpaceId, workSpaceId);
+
+            WorkItemEpic epic1= client.getEpicActualStoryPointsAndPath(
+                    shareSpaceId, workSpaceId, epicId);
+
+            WorkItemEpic epic2 = client.getEpicDoneStoryPoints(shareSpaceId,
+                    workSpaceId, epic1.path, doneStatusIDs);
+
+            epic.setDoneStoryPoints(epic2.doneStoryPoints);
+            epic.setTotalStoryPoints(epic1.totalStoryPoints);
+        } catch (IOException e) {
+            logger.error(e.getMessage());
+        }
+        return epic;
+    }
 }
