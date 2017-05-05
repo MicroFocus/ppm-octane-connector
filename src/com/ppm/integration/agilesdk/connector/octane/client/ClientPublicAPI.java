@@ -1,6 +1,15 @@
 package com.ppm.integration.agilesdk.connector.octane.client;
 
+import com.fasterxml.jackson.core.JsonParseException;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.JsonMappingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.kintana.core.server.execution.ParseException;
+import com.ppm.integration.agilesdk.connector.octane.model.EpicAttr;
+import com.ppm.integration.agilesdk.connector.octane.model.EpicCreateEntity;
+import com.ppm.integration.agilesdk.connector.octane.model.EpicEntity;
 import com.ppm.integration.agilesdk.connector.octane.model.Release;
 import com.ppm.integration.agilesdk.connector.octane.model.ReleaseTeam;
 import com.ppm.integration.agilesdk.connector.octane.model.ReleaseTeams;
@@ -795,14 +804,14 @@ public class ClientPublicAPI {
         String method = "GET";
         //example:
         // (phase={id=1030}||phase={id=1033}||phase={id=1004})
-        StringBuffer statusStr= new StringBuffer();
+        StringBuffer statusStr = new StringBuffer();
 
-        if(doneStatusIDs.length > 0) {
+        if (doneStatusIDs.length > 0) {
             statusStr.append("(");
             boolean first = true;
-            for(String x : doneStatusIDs) {
-                if(first) {
-                    first= false;
+            for (String x : doneStatusIDs) {
+                if (first) {
+                    first = false;
                     statusStr.append("phase={id=" + x + "}");
                 } else {
                     statusStr.append("||phase={id=" + x + "}");
@@ -815,8 +824,10 @@ public class ClientPublicAPI {
             throw new OctaneClientException("AGM_APP", "error by get doneStatusIDs empty", e.getMessage());
 
         }
-        String url = String.format("%s/api/shared_spaces/%d/workspaces/%d/work_items/groups?group_data=sum(story_points)&group_by=phase&query=\""
-                + "path='%s*';(subtype='defect'||subtype='story'||subtype='quality_story');%s\"", baseURL, sharedSpaceId, workSpaceId, epicPath, statusStr);
+        String url = String.format(
+                "%s/api/shared_spaces/%d/workspaces/%d/work_items/groups?group_data=sum(story_points)&group_by=phase&query=\""
+                        + "path='%s*';(subtype='defect'||subtype='story'||subtype='quality_story');%s\"", baseURL,
+                sharedSpaceId, workSpaceId, epicPath, statusStr);
 
         Map<String, String> headers = new HashMap<>();
         headers.put("Cookie", this.cookies);
@@ -827,12 +838,12 @@ public class ClientPublicAPI {
         try {
             net.sf.json.JSONObject jsonResponse = net.sf.json.JSONObject.fromObject(response.getData());
             net.sf.json.JSONArray jsonData = jsonResponse.getJSONArray("groups");
-            if(jsonData != null && jsonData.size() > 0) {
-                for(int i=0; i<jsonData.size(); i++) {
+            if (jsonData != null && jsonData.size() > 0) {
+                for (int i = 0; i < jsonData.size(); i++) {
                     net.sf.json.JSONObject data = (net.sf.json.JSONObject)jsonData.get(i);
-                    if(data.containsKey("aggregatedData")) {
+                    if (data.containsKey("aggregatedData")) {
                         net.sf.json.JSONObject aggregatedData = data.getJSONObject("aggregatedData");
-                        if(aggregatedData.containsKey("story_points")) {
+                        if (aggregatedData.containsKey("story_points")) {
                             epic.doneStoryPoints += aggregatedData.getInt("story_points");
                         }
                     }
@@ -843,5 +854,80 @@ public class ClientPublicAPI {
             throw new OctaneClientException("AGM_APP", "error in getEpicDoneStoryPoints:", e.getMessage());
         }
         return epic;
+    }
+
+    public List<EpicEntity> createEpicInWorkspace(String sharedspaceId, String workspaceId, EpicCreateEntity epicCreateEntity) throws JsonProcessingException, IOException, JSONException {
+        String url = String.format("%s/api/shared_spaces/%s/workspaces/%s/epics", baseURL, sharedspaceId, workspaceId);
+        Map<String, String> headers = new HashMap<>();
+        
+        headers.put("Cookie", this.cookies);
+        headers.put("HPECLIENTTYPE", "HPE_MQM_UI");
+  //    	headers.put("HPECLIENTTYPE", "HPE_SWAGGER_API");
+  //    	headers.put("Cookie", this.cookies.replace("OCTANE_USER", "S_OCTANE_USER"));
+        headers.put("Content-Type", MediaType.APPLICATION_JSON);
+        String csrf = this.getCSRF(this.cookies);
+        if (csrf != null) {
+          headers.put("HPSSO-HEADER-CSRF", csrf);
+        }
+        
+        RestResponse response = sendRequest(url, HttpMethod.POST, this.getJsonStrFromObject(epicCreateEntity), headers);
+        if (HttpStatus.SC_CREATED != response.getStatusCode()) {
+          this.logger.error("Error occurs when creating epic in Octane: Response code = " + response.getStatusCode());
+          throw new OctaneClientException("AGM_APP", "ERROR_HTTP_CONNECTIVITY_ERROR", new String[] { response.getData() });
+        }
+        return (List<EpicEntity>) getDataContent(response.getData(), new TypeReference<List<EpicEntity>>(){});
+    }
+
+    public List<EpicAttr> getEpicPhase(final String sharedspaceId, final String workspaceId, final String phaseLogicName) throws JsonProcessingException, IOException, JSONException {
+        String url = String.format("%s/api/shared_spaces/%s/workspaces/%s/phases?fields=id&query=%s%s%s",
+            baseURL, sharedspaceId, workspaceId, "%22logical_name%3D'", phaseLogicName, "'%22");
+        Map<String, String> headers = new HashMap<>();
+        headers.put("Cookie", this.cookies);
+        headers.put("HPECLIENTTYPE", "HPE_MQM_UI");
+        RestResponse response = sendRequest(url, HttpMethod.GET, null, headers);
+        
+        return (List<EpicAttr>)getDataContent(response.getData(), new TypeReference<List<EpicAttr>>(){});
+    }
+    
+    public List<EpicAttr> getEpicParent(final String sharedspaceId, final String workspaceId, final String workitemSubtype) throws JsonProcessingException, IOException, JSONException {
+        String url = String.format("%s/api/shared_spaces/%s/workspaces/%s/work_items?fields=id&query=%s%s%s",
+            baseURL, sharedspaceId, workspaceId, "%22subtype%3D'", workitemSubtype, "'%22");
+        Map<String, String> headers = new HashMap<>();
+        headers.put("Cookie", this.cookies);
+        headers.put("HPECLIENTTYPE", "HPE_MQM_UI");
+        RestResponse response = sendRequest(url, HttpMethod.GET, null, headers);
+    	
+        return (List<EpicAttr>)getDataContent(response.getData(), new TypeReference<List<EpicAttr>>(){});
+    }
+    
+    public String getJsonStrFromObject(Object sourceObj) throws JsonProcessingException {
+    	ObjectMapper objectMapper = new ObjectMapper();
+    	return objectMapper.writeValueAsString(sourceObj);
+    }
+    
+    public String getCSRF(final String cookies) {
+        String csrf = null;
+        int csrfStart = cookies.indexOf("HPSSO_COOKIE_CSRF=");
+        if (csrfStart > -1) {
+            int csrfEnd = cookies.indexOf(";", csrfStart);
+            csrf = cookies.substring(csrfStart + 18, csrfEnd);
+        }
+        return csrf;
+    }
+    
+    private List<?> getDataContent(String jsonData, TypeReference<?> typeRef)
+        throws JSONException, JsonParseException, JsonMappingException, IOException {
+        ObjectMapper mapper = new ObjectMapper();
+        mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+        JSONObject obj = new JSONObject(jsonData);
+        Object dataObj = obj.get("data");
+        if(dataObj != null) {
+            String arrayStr = dataObj.toString();			
+            if(arrayStr.length() > 2){
+                return mapper.readValue(arrayStr, typeRef);
+            }
+        }
+        return null;
+
     }
 }
