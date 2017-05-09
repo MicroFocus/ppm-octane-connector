@@ -14,7 +14,7 @@ import com.ppm.integration.agilesdk.connector.octane.model.EpicEntity;
 
 public class ClientPublicAPIMockTest {
 
-	ValueSet values = new ValueSet();长度
+	ValueSet values = new ValueSet();
 	
 	
 	@Test public void testCreateEpicInWorkspace() throws Exception {
