@@ -3,6 +3,9 @@ package com.ppm.integration.agilesdk.connector.octane;
 import com.hp.ppm.tm.model.TimeSheet;
 import com.ppm.integration.agilesdk.ValueSet;
 import com.ppm.integration.agilesdk.connector.octane.client.ClientPublicAPI;
+import com.ppm.integration.agilesdk.connector.octane.model.EpicAttr;
+import com.ppm.integration.agilesdk.connector.octane.model.EpicCreateEntity;
+import com.ppm.integration.agilesdk.connector.octane.model.EpicEntity;
 import com.ppm.integration.agilesdk.connector.octane.model.Release;
 import com.ppm.integration.agilesdk.connector.octane.model.ReleaseTeam;
 import com.ppm.integration.agilesdk.connector.octane.model.SharedSpace;
@@ -293,5 +296,63 @@ public class ClientPublicAPITest {
             }
         }
     }
-
+    
+    @Test public void testCreateEpicInWorkspace() throws Exception {
+    	ClientPublicAPI client = OctaneFunctionIntegration.setupClientPublicAPI(values);
+    	String clientId = values.get(OctaneConstants.APP_CLIENT_ID);
+    	String clientSecret = values.get(OctaneConstants.APP_CLIENT_SECRET);
+    	boolean isGetAccess = client.getAccessTokenWithFormFormat(clientId, clientSecret);
+    	Assert.assertTrue(isGetAccess);
+    	List<EpicEntity> result = null;
+    	EpicCreateEntity epicCreateEntity = new EpicCreateEntity();
+    	List<EpicEntity> data = new ArrayList<>();
+    	EpicEntity epicEntity=new EpicEntity();
+    	epicEntity.setName(values.get(OctaneConstants.KEY_EPIC_ENTITY_NAME));
+    	epicEntity.setType(values.get(OctaneConstants.KEY_EPIC_ENTITY_TYPE));
+    	EpicAttr epicAttrPhase=new EpicAttr();
+    	epicAttrPhase.setId(values.get(OctaneConstants.KEY_PHASE_LOGICNAME_ID));
+    	epicAttrPhase.setType(values.get(OctaneConstants.KEY_PHASE_LOGICNAME_TYPE));
+    	EpicAttr epicAttrParent=new EpicAttr();
+    	epicAttrParent.setId(values.get(OctaneConstants.KEY_WORKITME_PARENT_ID));
+    	epicAttrParent.setType(values.get(OctaneConstants.KEY_WORKITME_PARENT_TYPE));
+    	epicEntity.setPhase(epicAttrPhase);
+    	epicEntity.setParent(epicAttrParent);
+    	data.add(epicEntity);
+    	epicCreateEntity.setData(data);
+    	result= client.createEpicInWorkspace(values.get(OctaneConstants.KEY_SHAREDSPACEID),
+                values.get(OctaneConstants.KEY_WORKSPACEID), epicCreateEntity);
+    	Assert.assertNotNull(result);
+    	for(EpicEntity e : result){
+    		 System.out.println("id:"+e.getId()+"   name:"+e.getName()+"   type:"+e.getType()+
+    				 "  parent:"+e.getParent().name+ "  phase:"+e.getPhase().getName());
+    	}
+    }
+    
+    @Test public void testGetEpicPhase() throws Exception {
+    	ClientPublicAPI client = OctaneFunctionIntegration.setupClientPublicAPI(values);
+    	String clientId = values.get(OctaneConstants.APP_CLIENT_ID);
+    	String clientSecret = values.get(OctaneConstants.APP_CLIENT_SECRET);
+    	boolean isGetAccess = client.getAccessTokenWithFormFormat(clientId, clientSecret);
+    	Assert.assertTrue(isGetAccess);
+    	List<EpicAttr> result = client.getEpicPhase(values.get(OctaneConstants.KEY_SHAREDSPACEID),
+                values.get(OctaneConstants.KEY_WORKSPACEID), values.get(OctaneConstants.KEY_PHASE_LOGICNAME));
+    	Assert.assertNotNull(result);
+    	for(EpicAttr e : result){
+    		System.out.println("id: " + e.getId() +"  name:"+ e.getName() + "  type:"+ e.getType());
+    	}
+    }
+    
+    @Test public void testGetEpicParent() throws Exception {
+    	ClientPublicAPI client = OctaneFunctionIntegration.setupClientPublicAPI(values);
+    	String clientId = values.get(OctaneConstants.APP_CLIENT_ID);
+    	String clientSecret = values.get(OctaneConstants.APP_CLIENT_SECRET);
+    	boolean isGetAccess = client.getAccessTokenWithFormFormat(clientId, clientSecret);
+    	Assert.assertTrue(isGetAccess);
+    	List<EpicAttr> result = client.getEpicParent(values.get(OctaneConstants.KEY_SHAREDSPACEID),
+                values.get(OctaneConstants.KEY_WORKSPACEID), values.get(OctaneConstants.KEY_WORKITME_SUBTYPE));
+    	Assert.assertNotNull(result);
+    	for(EpicAttr e : result){
+    		System.out.println("id: " + e.getId() +"  name:"+ e.getName() + "  type:"+ e.getType());
+    	}
+    }
 }
