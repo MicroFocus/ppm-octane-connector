@@ -31,11 +31,11 @@ public class OctaneConstants {
 
     public static final String KEY_WORKSPACEID = "workSpaceId";
 
-    public static final String KEY_WORKITME_SUBTYPE = "workitemSubtype";
+    public static final String KEY_WORKITEM_SUBTYPE = "workitemSubtype";
     
-    public static final String KEY_WORKITME_PARENT_ID = "workitemSubtypeId";
+    public static final String KEY_WORKITEM_PARENT_ID = "workitemSubtypeId";
     
-    public static final String KEY_WORKITME_PARENT_TYPE = "workitemSubtypeType";
+    public static final String KEY_WORKITEM_PARENT_TYPE = "workitemSubtypeType";
     
     public static final String KEY_PHASE_LOGICNAME = "phaseLogicName";
     

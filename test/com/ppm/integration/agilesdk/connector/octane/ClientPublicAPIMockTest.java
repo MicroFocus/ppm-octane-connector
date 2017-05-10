@@ -44,7 +44,7 @@ public class ClientPublicAPIMockTest {
 		ClientPublicAPI client= new MockClientPublicAPI("");
 		values = CommonParameters.getDefaultValueSet();
     	List<EpicAttr> result = client.getEpicParent(values.get(OctaneConstants.KEY_SHAREDSPACEID),
-                values.get(OctaneConstants.KEY_WORKSPACEID), values.get(OctaneConstants.KEY_WORKITME_SUBTYPE));
+                values.get(OctaneConstants.KEY_WORKSPACEID), values.get(OctaneConstants.KEY_WORKITEM_SUBTYPE));
     	Assert.assertNotNull(result);
     	for(EpicAttr e : result){
     		System.out.println("id: " + e.getId() +"  name:"+ e.getName() + "  type:"+ e.getType());
