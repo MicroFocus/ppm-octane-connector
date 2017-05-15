@@ -15,7 +15,11 @@ public class WorkItemEpic extends WorkItem {
 
     public int planedStoryPoints = 0;
 
+    public int doneStoryPoints = 0;
+
     public String author;
+
+    public String path;
 
     public Map<String, WorkItemFeature> featureList = new HashMap<String, WorkItemFeature>();
 

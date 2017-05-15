@@ -17,6 +17,7 @@ import com.ppm.integration.agilesdk.connector.octane.model.WorkItemFeature;
 import com.ppm.integration.agilesdk.connector.octane.model.WorkItemRoot;
 import com.ppm.integration.agilesdk.connector.octane.model.WorkItemStory;
 import com.ppm.integration.agilesdk.connector.octane.model.WorkSpace;
+import java.io.IOException;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -296,6 +297,38 @@ public class ClientPublicAPITest {
             }
         }
     }
+
+
+
+    @Test public void testGetEpicDoneStoryPoints() throws
+            Exception{
+        ClientPublicAPI client = OctaneFunctionIntegration.setupClientPublicAPI(values);
+
+        String clientId = values.get(OctaneConstants.APP_CLIENT_ID);
+        String clientSecret = values.get(OctaneConstants.APP_CLIENT_SECRET);
+        boolean isGetAccess = client.getAccessTokenWithFormFormat(clientId, clientSecret);
+        Assert.assertTrue(isGetAccess);
+
+        String[] doneStatusIDs = client.getDoneDefinationOfUserStoryAndDefect(
+                values.getInteger(OctaneConstants.KEY_SHAREDSPACEID, 1001),
+                values.getInteger(OctaneConstants.KEY_WORKSPACEID, 1002));
+        Assert.assertNotNull(doneStatusIDs);
+        System.out.println("doneStatusIDs------------------------" + doneStatusIDs.length);
+        String epicId = "1002";
+
+        WorkItemEpic epic1= client.getEpicActualStoryPointsAndPath(
+                values.getInteger(OctaneConstants.KEY_SHAREDSPACEID, 1001),
+                values.getInteger(OctaneConstants.KEY_WORKSPACEID, 1002), epicId);
+        Assert.assertNotNull(epic1);
+        System.out.println("epic.path=" + epic1.path);
+        System.out.println("epic.totalStoryPoints=" + epic1.totalStoryPoints);
+
+        WorkItemEpic epic = client.getEpicDoneStoryPoints(values.getInteger(OctaneConstants.KEY_SHAREDSPACEID, 1001),
+                values.getInteger(OctaneConstants.KEY_WORKSPACEID, 1002), epic1.path, doneStatusIDs);
+        Assert.assertNotNull(doneStatusIDs);
+        System.out.println("epic.doneStoryPoints=" + epic.doneStoryPoints);
+    }
+
     
     @Test public void testCreateEpicInWorkspace() throws Exception {
     	ClientPublicAPI client = OctaneFunctionIntegration.setupClientPublicAPI(values);
@@ -356,3 +389,4 @@ public class ClientPublicAPITest {
     	}
     }
 }
+
