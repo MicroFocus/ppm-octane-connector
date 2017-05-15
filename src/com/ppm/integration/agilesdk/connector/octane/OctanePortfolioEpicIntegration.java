@@ -1,5 +1,6 @@
 package com.ppm.integration.agilesdk.connector.octane;
 
+import com.hp.ppm.integration.model.Workspace;
 import com.ppm.integration.agilesdk.ValueSet;
 import com.ppm.integration.agilesdk.connector.octane.client.ClientPublicAPI;
 import com.ppm.integration.agilesdk.connector.octane.client.OctaneClientException;
@@ -7,9 +8,12 @@ import com.ppm.integration.agilesdk.connector.octane.model.EpicAttr;
 import com.ppm.integration.agilesdk.connector.octane.model.EpicCreateEntity;
 import com.ppm.integration.agilesdk.connector.octane.model.EpicEntity;
 import com.ppm.integration.agilesdk.connector.octane.model.SharedSpace;
+import com.ppm.integration.agilesdk.connector.octane.model.WorkItemEpic;
 import com.ppm.integration.agilesdk.connector.octane.model.WorkSpace;
 import com.ppm.integration.agilesdk.epic.AgileProject;
 import com.ppm.integration.agilesdk.epic.PortfolioEpicIntegration;
+import com.ppm.integration.agilesdk.release.ReleaseTheme;
+import java.io.IOException;
 import net.sf.json.JSONObject;
 import net.sf.json.JSONSerializer;
 import org.apache.log4j.Logger;
@@ -86,5 +90,30 @@ public class OctanePortfolioEpicIntegration extends PortfolioEpicIntegration {
         }
 
         return epicId;
+    }
+
+
+    @Override public ReleaseTheme getEpicInfo(final Workspace wp, final ValueSet values, final String epicId, final net.sf.json.JSONObject jsonConfig) {
+        ReleaseTheme epic = new ReleaseTheme();
+        try{
+            ClientPublicAPI client = OnctaneIntegrationHelper.getClient(values);
+
+            int shareSpaceId = jsonConfig.getInt(OctaneConstants.KEY_SHAREDSPACEID);
+            int workSpaceId = jsonConfig.getInt(OctaneConstants.KEY_WORKSPACEID);
+            String[] doneStatusIDs = client.getDoneDefinationOfUserStoryAndDefect(
+                    shareSpaceId, workSpaceId);
+
+            WorkItemEpic epic1= client.getEpicActualStoryPointsAndPath(
+                    shareSpaceId, workSpaceId, epicId);
+
+            WorkItemEpic epic2 = client.getEpicDoneStoryPoints(shareSpaceId,
+                    workSpaceId, epic1.path, doneStatusIDs);
+
+            epic.setDoneStoryPoints(epic2.doneStoryPoints);
+            epic.setTotalStoryPoints(epic1.totalStoryPoints);
+        } catch (Exception e) {
+            logger.error(e.getMessage());
+        }
+        return epic;
     }
 }
