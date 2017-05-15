@@ -65,6 +65,10 @@ public class OctaneConstants {
 	
 	public static final String LABEL_LINK_CONFIGURE_WORKSPACE  = "LABEL_LINK_CONFIGURE_WORKSPACE";
 
+	public static final String WORKSPACE_ID = "WORKSPACE_ID";
+
+	public static final String SHARED_SPACE_ID = "SHARED_SPACE_ID";
+
     public static final String CREATE_EPIC_IN_WORKSPACE_RESPONSE_JSONDATA = "the response json data when create epic in workspace";
 
     public static final String GET_EPIC_PHASE_JSONDATA = "get the epic phase json data";
