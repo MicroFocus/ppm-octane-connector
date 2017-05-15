@@ -47,4 +47,8 @@ public class OctaneConstants {
 	
 	public static final String LABEL_LINK_CONFIGURE_WORKSPACE  = "LABEL_LINK_CONFIGURE_WORKSPACE";
 
+	public static final String WORKSPACE_ID = "WORKSPACE_ID";
+
+	public static final String SHARED_SPACE_ID = "SHARED_SPACE_ID";
+
 }

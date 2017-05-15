@@ -1,12 +1,8 @@
 package com.ppm.integration.agilesdk.connector.octane;
 
-import com.hp.ppm.integration.model.EpicCreateInfo;
 import com.hp.ppm.integration.model.Workspace;
 import com.ppm.integration.agilesdk.ValueSet;
 import com.ppm.integration.agilesdk.connector.octane.client.ClientPublicAPI;
-import com.ppm.integration.agilesdk.connector.octane.model.EpicAttr;
-import com.ppm.integration.agilesdk.connector.octane.model.EpicCreateEntity;
-import com.ppm.integration.agilesdk.connector.octane.model.EpicEntity;
 import com.ppm.integration.agilesdk.connector.octane.model.Release;
 import com.ppm.integration.agilesdk.connector.octane.model.ReleaseTeam;
 import com.ppm.integration.agilesdk.connector.octane.model.SharedSpace;
@@ -24,17 +20,17 @@ import com.ppm.integration.agilesdk.release.ReleaseRelease;
 import com.ppm.integration.agilesdk.release.ReleaseReleaseTeam;
 import com.ppm.integration.agilesdk.release.ReleaseSprint;
 import com.ppm.integration.agilesdk.release.ReleaseTheme;
+import net.sf.json.JSONObject;
+import org.apache.log4j.Logger;
+import org.json.JSONException;
+
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
-import org.json.JSONException;
-import org.apache.log4j.Logger;
 
 /**
  * Created by lutian on 2017/1/13.
@@ -101,31 +97,6 @@ public class OctaneReleaseIntegration extends ReleaseIntegration {
         } catch (IOException e) {
             logger.error(e.getMessage());
         }
-    }
-
-    public List<com.ppm.integration.agilesdk.release.WorkSpace> getWorkSpaces(final Workspace wp, ValueSet paramValueSet) {
-        List<com.ppm.integration.agilesdk.release.WorkSpace> workspaceList = new ArrayList();
-        try {
-            client = getClient(paramValueSet);
-            List<SharedSpace> sharedSpacesList = client.getSharedSpaces();
-            for (SharedSpace sharedSpace : sharedSpacesList) {
-                //workspace
-                int sharedSpaceId = Integer.parseInt(sharedSpace.getId());
-                String sharedSpaceName = sharedSpace.getName();
-                List<WorkSpace> workSpaces = client.getWorkSpaces(sharedSpaceId);
-                for (WorkSpace workSpace : workSpaces) {
-                    com.ppm.integration.agilesdk.release.WorkSpace ws = new com.ppm.integration.agilesdk.release.WorkSpace();
-                    ws.setId(Integer.parseInt(workSpace.getId()));
-                    ws.setName(workSpace.getName());
-                    ws.setSharedSpaceId(sharedSpaceId);
-                    ws.setSharedSpaceName(sharedSpaceName);
-                    workspaceList.add(ws);
-                }
-            }
-        } catch (IOException e) {
-            logger.error(e.getMessage());
-        }
-        return workspaceList;
     }
 
     //defect or us
@@ -385,32 +356,9 @@ public class OctaneReleaseIntegration extends ReleaseIntegration {
         }
         return releaseThemes;
     }
-    
-    @Override public Long createEpicInWorkspace(final String sharedSpaceId, final String workSpaceId, final EpicCreateInfo epicCreateInfo, final ValueSet paramValueSet) {
-        Long epicId = null;
-        client = getClient(paramValueSet);
-        EpicEntity epic = new EpicEntity();
-        epic.setName(epicCreateInfo.getName());
-        
-        try {
-            List<EpicAttr> epicPhases = client.getEpicPhase(sharedSpaceId, workSpaceId, "phase.epic.new");
-            epic.setPhase(epicPhases.get(0));
-            
-            List<EpicAttr> epicParents = client.getEpicParent(sharedSpaceId, workSpaceId, "work_item_root");
-            epic.setParent(epicParents.get(0));
-            List<EpicEntity> epicList = new ArrayList<EpicEntity>();
-            epicList.add(epic);
-            
-            EpicCreateEntity epicCreateEntity = new EpicCreateEntity();
-            epicCreateEntity.setData(epicList);
-        	
-            List<EpicEntity> epics = client.createEpicInWorkspace(sharedSpaceId, workSpaceId, epicCreateEntity);
-            epicId = epics.size() > 0 ? Long.valueOf(epics.get(0).id) : null;
-        } catch (Exception e) {
-            logger.error(e.getMessage());
-        }
-        
-        return epicId;
+
+    @Override public ReleaseTheme getEpicInfo(Workspace wp, ValueSet values, String epicId, JSONObject jsonConfig)
+    {
+        return null;
     }
-    
 }
