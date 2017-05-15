@@ -31,6 +31,24 @@ public class OctaneConstants {
 
     public static final String KEY_WORKSPACEID = "workSpaceId";
 
+    public static final String KEY_WORKITEM_SUBTYPE = "workitemSubtype";
+    
+    public static final String KEY_WORKITEM_PARENT_ID = "workitemSubtypeId";
+    
+    public static final String KEY_WORKITEM_PARENT_TYPE = "workitemSubtypeType";
+    
+    public static final String KEY_PHASE_LOGICNAME = "phaseLogicName";
+    
+    public static final String KEY_PHASE_LOGICNAME_ID = "phaseLogicId";
+    
+    public static final String KEY_PHASE_LOGICNAME_TYPE = "phaseLogicType";
+    
+    public static final String KEY_EPIC_ENTITY_ID = "epicEntityId";
+    
+    public static final String KEY_EPIC_ENTITY_NAME = "epicEntityName";
+    
+    public static final String KEY_EPIC_ENTITY_TYPE = "epic";
+    
     public static final String KEY_RELEASEID = "releaseId";
 
     public static final String SUB_TYPE_WORK_ITEM_ROOT = "work_item_root";
@@ -51,4 +69,9 @@ public class OctaneConstants {
 
 	public static final String SHARED_SPACE_ID = "SHARED_SPACE_ID";
 
+    public static final String CREATE_EPIC_IN_WORKSPACE_RESPONSE_JSONDATA = "the response json data when create epic in workspace";
+
+    public static final String GET_EPIC_PHASE_JSONDATA = "get the epic phase json data";
+
+    public static final String GET_EPIC_PARENT_JSONDATA = "get the epic parent json data";
 }

@@ -357,8 +357,55 @@ public class OctaneReleaseIntegration extends ReleaseIntegration {
         return releaseThemes;
     }
 
-    @Override public ReleaseTheme getEpicInfo(Workspace wp, ValueSet values, String epicId, JSONObject jsonConfig)
-    {
-        return null;
+    @Override public ReleaseTheme getEpicInfo(final Workspace wp, final ValueSet values, final String epicId, final net.sf.json.JSONObject jsonConfig) {
+        ReleaseTheme epic = new ReleaseTheme();
+        try{
+            client = getClient(values);
+
+            int shareSpaceId = jsonConfig.getInt(OctaneConstants.KEY_SHAREDSPACEID);
+            int workSpaceId = jsonConfig.getInt(OctaneConstants.KEY_WORKSPACEID);
+            String[] doneStatusIDs = client.getDoneDefinationOfUserStoryAndDefect(
+                    shareSpaceId, workSpaceId);
+
+            WorkItemEpic epic1= client.getEpicActualStoryPointsAndPath(
+                    shareSpaceId, workSpaceId, epicId);
+
+            WorkItemEpic epic2 = client.getEpicDoneStoryPoints(shareSpaceId,
+                    workSpaceId, epic1.path, doneStatusIDs);
+
+            epic.setDoneStoryPoints(epic2.doneStoryPoints);
+            epic.setTotalStoryPoints(epic1.totalStoryPoints);
+        } catch (IOException e) {
+            logger.error(e.getMessage());
+        }
+        return epic;
     }
+
+    @Override public Long createEpicInWorkspace(final String sharedSpaceId, final String workSpaceId, final EpicCreateInfo epicCreateInfo, final ValueSet paramValueSet) {
+        Long epicId = null;
+        client = getClient(paramValueSet);
+        EpicEntity epic = new EpicEntity();
+        epic.setName(epicCreateInfo.getName());
+        
+        try {
+            List<EpicAttr> epicPhases = client.getEpicPhase(sharedSpaceId, workSpaceId, "phase.epic.new");
+            epic.setPhase(epicPhases.get(0));
+            
+            List<EpicAttr> epicParents = client.getEpicParent(sharedSpaceId, workSpaceId, "work_item_root");
+            epic.setParent(epicParents.get(0));
+            List<EpicEntity> epicList = new ArrayList<EpicEntity>();
+            epicList.add(epic);
+            
+            EpicCreateEntity epicCreateEntity = new EpicCreateEntity();
+            epicCreateEntity.setData(epicList);
+        	
+            List<EpicEntity> epics = client.createEpicInWorkspace(sharedSpaceId, workSpaceId, epicCreateEntity);
+            epicId = epics.size() > 0 ? Long.valueOf(epics.get(0).id) : null;
+        } catch (Exception e) {
+            logger.error(e.getMessage());
+        }
+        
+        return epicId;
+    }
+
 }
