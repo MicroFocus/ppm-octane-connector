@@ -27,7 +27,7 @@ import java.util.List;
 public class OctanePortfolioEpicIntegration extends PortfolioEpicIntegration {
 
     private final Logger logger = Logger.getLogger(this.getClass());
-    private static final String DEFAULT_OCTANE_EPIC_URL = "/ui/entity-navigation?p={sharedSpaceId}/{workSpaceId}&entityType=work_item&id={epicId}";
+    public static final String DEFAULT_OCTANE_EPIC_URL = "/ui/entity-navigation?p={sharedSpaceId}/{workSpaceId}&entityType=work_item&id={epicId}";
 
     /**
      * Get all available agile projects(agile workspaces) in a instance
