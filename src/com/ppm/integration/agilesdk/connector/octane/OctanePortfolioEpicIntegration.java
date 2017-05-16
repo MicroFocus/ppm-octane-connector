@@ -1,7 +1,6 @@
 package com.ppm.integration.agilesdk.connector.octane;
 
 import com.hp.ppm.integration.model.Workspace;
-import com.kintana.core.server.ServerConfigAgent;
 import com.ppm.integration.agilesdk.ValueSet;
 import com.ppm.integration.agilesdk.connector.octane.client.ClientPublicAPI;
 import com.ppm.integration.agilesdk.connector.octane.client.OctaneClientException;
@@ -14,7 +13,6 @@ import com.ppm.integration.agilesdk.connector.octane.model.WorkSpace;
 import com.ppm.integration.agilesdk.epic.AgileProject;
 import com.ppm.integration.agilesdk.epic.PortfolioEpicIntegration;
 import com.ppm.integration.agilesdk.release.ReleaseTheme;
-import java.io.IOException;
 import net.sf.json.JSONObject;
 import net.sf.json.JSONSerializer;
 import org.apache.commons.lang.StringUtils;
