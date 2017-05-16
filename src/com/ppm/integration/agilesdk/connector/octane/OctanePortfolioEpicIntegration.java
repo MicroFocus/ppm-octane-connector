@@ -13,9 +13,9 @@ import com.ppm.integration.agilesdk.connector.octane.model.WorkSpace;
 import com.ppm.integration.agilesdk.epic.AgileProject;
 import com.ppm.integration.agilesdk.epic.PortfolioEpicIntegration;
 import com.ppm.integration.agilesdk.release.ReleaseTheme;
-import java.io.IOException;
 import net.sf.json.JSONObject;
 import net.sf.json.JSONSerializer;
+import org.apache.commons.lang.StringUtils;
 import org.apache.log4j.Logger;
 
 import java.util.ArrayList;
@@ -27,7 +27,13 @@ import java.util.List;
 public class OctanePortfolioEpicIntegration extends PortfolioEpicIntegration {
 
     private final Logger logger = Logger.getLogger(this.getClass());
+    private static final String DEFAULT_OCTANE_EPIC_URL = "/ui/entity-navigation?p={sharedSpaceId}/{workSpaceId}&entityType=work_item&id={epicId}";
 
+    /**
+     * Get all available agile projects(agile workspaces) in a instance
+     * @param paramValueSet  a value set which contains the information of the instance
+     * @return a list of agile project
+     */
     @Override
     public List<AgileProject> getAgileProjects(ValueSet paramValueSet) {
         List<AgileProject> agileProjectList = new ArrayList();
@@ -57,6 +63,13 @@ public class OctanePortfolioEpicIntegration extends PortfolioEpicIntegration {
         return agileProjectList;
     }
 
+    /**
+     * Create portfolio epic under the agile project(agile workspace) in a instance
+     * @param epicName the name of epic
+     * @param value this is a json format value, which contains the necessary information to create epic.
+     * @param paramValueSet a value set which contains the information of the instance
+     * @return epic id
+     */
     @Override
     public Long createEpicInAgileProject(final String epicName, final String value, final ValueSet paramValueSet) {
         Long epicId = null;
@@ -93,7 +106,8 @@ public class OctanePortfolioEpicIntegration extends PortfolioEpicIntegration {
     }
 
 
-    @Override public ReleaseTheme getEpicInfo(final Workspace wp, final ValueSet values, final String epicId, final net.sf.json.JSONObject jsonConfig) {
+    @Override
+    public ReleaseTheme getEpicInfo(final Workspace wp, final ValueSet values, final String epicId, final net.sf.json.JSONObject jsonConfig) {
         ReleaseTheme epic = new ReleaseTheme();
         try{
             ClientPublicAPI client = OnctaneIntegrationHelper.getClient(values);
@@ -115,5 +129,21 @@ public class OctanePortfolioEpicIntegration extends PortfolioEpicIntegration {
             logger.error(e.getMessage());
         }
         return epic;
+    }
+
+    /**
+     * Get the epic URI, which is used to generate a link of epic in PPM.
+     * @param epicId epic id in agile tool
+     * @param value this is a json format value, which contains the necessary information to create epic.
+     * @return epic URI
+     */
+    @Override
+    public String getEpicURI(final Long epicId, final String value) {
+        JSONObject valueJson = (JSONObject)JSONSerializer.toJSON(value);
+        String epicUrl = DEFAULT_OCTANE_EPIC_URL;
+        epicUrl = StringUtils.replace(epicUrl, "{sharedSpaceId}", valueJson.getString("SHARED_SPACE_ID"));
+        epicUrl = StringUtils.replace(epicUrl, "{workSpaceId}", valueJson.getString("WORKSPACE_ID"));
+        epicUrl = StringUtils.replace(epicUrl, "{epicId}", epicId.toString());
+        return epicUrl;
     }
 }
