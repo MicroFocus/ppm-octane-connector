@@ -111,9 +111,9 @@ public class OctanePortfolioEpicIntegration extends PortfolioEpicIntegration {
         ReleaseTheme epic = new ReleaseTheme();
         try{
             ClientPublicAPI client = OnctaneIntegrationHelper.getClient(values);
-
-            int shareSpaceId = jsonConfig.getInt(OctaneConstants.KEY_SHAREDSPACEID);
-            int workSpaceId = jsonConfig.getInt(OctaneConstants.KEY_WORKSPACEID);
+            net.sf.json.JSONObject valueJson = jsonConfig.getJSONObject("value");
+            int shareSpaceId = valueJson.getInt("SHARED_SPACE_ID");
+            int workSpaceId = valueJson.getInt("WORKSPACE_ID");
             String[] doneStatusIDs = client.getDoneDefinationOfUserStoryAndDefect(
                     shareSpaceId, workSpaceId);
 
