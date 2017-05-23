@@ -16,10 +16,14 @@ import com.ppm.integration.agilesdk.connector.octane.model.WorkSpace;
 import com.ppm.integration.agilesdk.release.ReleaseBacklogItem;
 import com.ppm.integration.agilesdk.release.ReleaseFeature;
 import com.ppm.integration.agilesdk.release.ReleaseIntegration;
+import com.ppm.integration.agilesdk.release.ReleaseProgram;
+import com.ppm.integration.agilesdk.release.ReleaseProgramProjectMapping;
+import com.ppm.integration.agilesdk.release.ReleaseProject;
 import com.ppm.integration.agilesdk.release.ReleaseRelease;
 import com.ppm.integration.agilesdk.release.ReleaseReleaseTeam;
 import com.ppm.integration.agilesdk.release.ReleaseSprint;
 import com.ppm.integration.agilesdk.release.ReleaseTheme;
+
 import org.apache.log4j.Logger;
 import org.json.JSONException;
 
@@ -39,6 +43,12 @@ public class OctaneReleaseIntegration extends ReleaseIntegration {
     private final Logger logger = Logger.getLogger(this.getClass());
 
     ClientPublicAPI client = null;
+    
+    List<ReleaseProject> releaseProjects = new LinkedList<>();
+    
+    List<ReleaseProgram> releasePrograms = new LinkedList<>();
+    
+    List<ReleaseProgramProjectMapping> releaseProgramProjectMappings = new LinkedList<>();
 
     List<ReleaseBacklogItem> releaseBacklogItems = new LinkedList<>();
 
@@ -85,7 +95,23 @@ public class OctaneReleaseIntegration extends ReleaseIntegration {
                 workSpacesWithSharedSpaceMap.put(sharedSpaceId, workSpaces);
                 for (int j = 0, sizej = workSpaces.size(); j < sizej; j++) {
                     String strWorkSpaceId = workSpaces.get(j).id;
+                    if(!paramValueSet.get(OctaneConstants.PROJECT_ID).equals(strWorkSpaceId)){
+                    	continue;
+                    }
                     int workSpaceId = Integer.parseInt(strWorkSpaceId);
+                    ReleaseProject tempProject = new ReleaseProject();;
+                    tempProject.setInstanceId(wp.getId());
+                    tempProject.setProjectId(workSpaceId);
+                    tempProject.setName(workSpaces.get(j).name);
+                    this.releaseProjects.add(tempProject);
+                    
+                    ReleaseProgram tempProgram = new ReleaseProgram();;
+                    tempProgram.setInstanceId(wp.getId());
+                    tempProgram.setProgramId(sharedSpaceId);
+                    tempProgram.setName(sharedSpacesList.get(i).name);
+                    this.releasePrograms.add(tempProgram);
+                    
+                    SetUpProgramAndProject(wp,releaseProjects,releasePrograms);
                     SetUpReleaseTeams(wp, client, sharedSpaceId, workSpaceId);
                     SetUpReleases(wp, client, sharedSpaceId, workSpaceId);
                     SetUpSprints(wp, client, sharedSpaceId, workSpaceId);
@@ -264,6 +290,18 @@ public class OctaneReleaseIntegration extends ReleaseIntegration {
             }
         }
     }
+    
+    protected void SetUpProgramAndProject(final Workspace wp,List<ReleaseProject> releaseProjects,  List<ReleaseProgram> releasePrograms) throws IOException {
+    	for(ReleaseProject entityProject : releaseProjects){
+    		for(ReleaseProgram entityProgram : releasePrograms){
+    			ReleaseProgramProjectMapping tempMapping = new ReleaseProgramProjectMapping();
+                tempMapping.setInstanceId(wp.getId());
+                tempMapping.setProjectId(entityProject.getProjectId());
+                tempMapping.setProgramId(entityProgram.getProgramId());
+                this.releaseProgramProjectMappings.add(tempMapping);
+    		}
+    	}
+    }
 
     protected void SetUpSprints(final Workspace wp, ClientPublicAPI client, int sharedSpaceId, int workSpaceId) throws IOException {
         List<Sprint> releases = client.getSprints(sharedSpaceId, workSpaceId);
@@ -299,6 +337,25 @@ public class OctaneReleaseIntegration extends ReleaseIntegration {
                 this.releaseTeams.add(tempTeam);
             }
         }
+    }
+    
+    public List<ReleaseProject> getProjects(final Workspace wp, final ValueSet paramValueSet){
+    	if (releaseProjects.isEmpty()) {
+            SetUpSharedSpacesAndWorkSpaces(wp, paramValueSet);
+        }
+        return releaseProjects;
+    }
+    public List<ReleaseProgram> getPrograms(final Workspace wp, final ValueSet paramValueSet){
+    	if (releasePrograms.isEmpty()) {
+            SetUpSharedSpacesAndWorkSpaces(wp, paramValueSet);
+        }
+        return releasePrograms;
+    }
+    public List<ReleaseProgramProjectMapping> getProgramProjectMappings(final Workspace wp, final ValueSet paramValueSet){
+    	if (releaseProgramProjectMappings.isEmpty()) {
+            SetUpSharedSpacesAndWorkSpaces(wp, paramValueSet);
+        }
+        return releaseProgramProjectMappings;
     }
 
     @Override public List<ReleaseBacklogItem> getBacklogItems(final Workspace wp, ValueSet paramValueSet) {

@@ -12,6 +12,8 @@ public class OctaneConstants {
     public static final String APP_CLIENT_ID = "clientId";
 
     public static final String APP_CLIENT_SECRET = "clientSecret";
+    
+    public static final String PROJECT_ID = "ProjectId";
 
     public static final String KEY_USERNAME = "username";
 
