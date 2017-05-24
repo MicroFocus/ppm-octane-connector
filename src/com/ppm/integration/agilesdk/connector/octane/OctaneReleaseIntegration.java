@@ -178,7 +178,6 @@ public class OctaneReleaseIntegration extends ReleaseIntegration {
             backlogItem.setInstanceId(wp.getId());
             backlogItems.add(backlogItem);
         }
-
         return backlogItems;
     }
 
