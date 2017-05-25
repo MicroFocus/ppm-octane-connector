@@ -125,7 +125,7 @@ public class OctaneReleaseIntegration extends ReleaseIntegration {
     }
 
     //defect or us
-    private List<ReleaseBacklogItem> pareseBacklogItem(final Workspace wp, List<WorkItemStory> tempWorkItems) {
+    private List<ReleaseBacklogItem> pareseBacklogItem(final Workspace wp, List<WorkItemStory> tempWorkItems, int workSpaceId) {
 
         List<ReleaseBacklogItem> backlogItems = new LinkedList<ReleaseBacklogItem>();
         for (int i = 0, size = tempWorkItems.size(); i < size; i++) {
@@ -176,6 +176,7 @@ public class OctaneReleaseIntegration extends ReleaseIntegration {
             backlogItem.setNumberOfTasks(0);
             backlogItem.setDefectStatus(ReleaseBacklogItem.BACKLOG_OR_DEFECT_STATUS.fromTypeName(tempWorkItem.defectStatus));
             backlogItem.setInstanceId(wp.getId());
+            backlogItem.setProjectId(workSpaceId);
             backlogItems.add(backlogItem);
         }
 
@@ -187,7 +188,7 @@ public class OctaneReleaseIntegration extends ReleaseIntegration {
     {
         WorkItemRoot workItemRoot = client.getWorkItemRoot(sharedSpaceId, workSpaceId);
         List<WorkItemStory> itemBacklogs = workItemRoot.storyList;
-        releaseBacklogItems.addAll(this.pareseBacklogItem(wp, itemBacklogs));
+        releaseBacklogItems.addAll(this.pareseBacklogItem(wp, itemBacklogs, workSpaceId));
         Map<String, WorkItemFeature> itemFeatureRootMap=workItemRoot.featureList;
         if(itemFeatureRootMap != null && itemFeatureRootMap.size() > 0) {
         	 Set<String> keySetF = itemFeatureRootMap.keySet();
@@ -210,9 +211,10 @@ public class OctaneReleaseIntegration extends ReleaseIntegration {
                  feature.setLastModified(tempFeature.lastModified);
                  feature.setSolution("");
                  feature.setInstanceId(wp.getId());
+                 feature.setProjectId(workSpaceId);
                  releaseFeatures.add(feature);//for feature
                  List<WorkItemStory> tempItemBacklog = tempFeature.storyList;//for story
-                 releaseBacklogItems.addAll(this.pareseBacklogItem(wp, tempItemBacklog));
+                 releaseBacklogItems.addAll(this.pareseBacklogItem(wp, tempItemBacklog, workSpaceId));
              }
         }
         Map<String, WorkItemEpic> itemEpicMap = workItemRoot.epicList;
@@ -228,6 +230,7 @@ public class OctaneReleaseIntegration extends ReleaseIntegration {
                 theme.setTotalStoryPoints(tempEpic.totalStoryPoints);
                 theme.setAuthor(tempEpic.author);
                 theme.setInstanceId(wp.getId());
+                theme.setProjectId(workSpaceId);
                 releaseThemes.add(theme);//for epic
                 Map<String, WorkItemFeature> itemFeatureMap = tempEpic.featureList;
                 if (itemFeatureMap != null && itemFeatureMap.size() > 0) {
@@ -251,9 +254,10 @@ public class OctaneReleaseIntegration extends ReleaseIntegration {
                         feature.setLastModified(tempFeature.lastModified);
                         feature.setSolution("");
                         feature.setInstanceId(wp.getId());
+                        feature.setProjectId(workSpaceId);
                         releaseFeatures.add(feature);//for feature
                         List<WorkItemStory> tempItemBacklog = tempFeature.storyList;//for story
-                        releaseBacklogItems.addAll(this.pareseBacklogItem(wp, tempItemBacklog));
+                        releaseBacklogItems.addAll(this.pareseBacklogItem(wp, tempItemBacklog, workSpaceId));
                     }
                 }
             }
@@ -271,6 +275,7 @@ public class OctaneReleaseIntegration extends ReleaseIntegration {
                 tempReleaseReleaseTeam.setReleaseId(Integer.parseInt(entity.releaseId));
                 tempReleaseReleaseTeam.setTeamId(Integer.parseInt(entity.teamId));
                 tempReleaseReleaseTeam.setReleaseTeamId(entity.releaseTeamId);
+                tempReleaseReleaseTeam.setProjectId(workSpaceId);
                 this.releaseReleaseTeams.add(tempReleaseReleaseTeam);
             }
         }
@@ -286,6 +291,7 @@ public class OctaneReleaseIntegration extends ReleaseIntegration {
                 tempRelease.setInstanceId(wp.getId());
                 tempRelease.setReleaseId(Integer.parseInt(entity.id));
                 tempRelease.setName(entity.name);
+                tempRelease.setProjectId(workSpaceId);
                 this.releaseReleases.add(tempRelease);
             }
         }
@@ -314,6 +320,7 @@ public class OctaneReleaseIntegration extends ReleaseIntegration {
                 tempSprint.setSprintId(Integer.parseInt(entity.id));
                 tempSprint.setName(entity.name);
                 tempSprint.setReleaseId(Integer.parseInt(entity.releaseId));
+                tempSprint.setProjectId(workSpaceId);
                 this.releaseSprints.add(tempSprint);
             }
         }
@@ -334,6 +341,7 @@ public class OctaneReleaseIntegration extends ReleaseIntegration {
                 tempTeam.setNumOfMembers(entity.numOfMembers);
                 tempTeam.setEstimatedVelocity(entity.estimatedVelocity);
                 tempTeam.setInstanceId(wp.getId());
+                tempTeam.setProjectId(workSpaceId);
                 this.releaseTeams.add(tempTeam);
             }
         }
