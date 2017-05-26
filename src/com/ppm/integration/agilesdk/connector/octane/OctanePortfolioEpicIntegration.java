@@ -12,7 +12,7 @@ import com.ppm.integration.agilesdk.connector.octane.model.WorkItemEpic;
 import com.ppm.integration.agilesdk.connector.octane.model.WorkSpace;
 import com.ppm.integration.agilesdk.epic.AgileProject;
 import com.ppm.integration.agilesdk.epic.PortfolioEpicIntegration;
-import com.ppm.integration.agilesdk.release.ReleaseTheme;
+import com.ppm.integration.agilesdk.agiledata.AgileDataTheme;
 import net.sf.json.JSONObject;
 import net.sf.json.JSONSerializer;
 import org.apache.commons.lang.StringUtils;
@@ -107,8 +107,8 @@ public class OctanePortfolioEpicIntegration extends PortfolioEpicIntegration {
 
 
     @Override
-    public ReleaseTheme getEpicInfo(final Workspace wp, final ValueSet values, final String epicId, final String jsonText) {
-        ReleaseTheme epic = new ReleaseTheme();
+    public AgileDataTheme getEpicInfo(final Workspace wp, final ValueSet values, final String epicId, final String jsonText) {
+        AgileDataTheme epic = new AgileDataTheme();
         try{
             ClientPublicAPI client = OnctaneIntegrationHelper.getClient(values);
             JSONObject jsonConfig = (JSONObject)JSONSerializer.toJSON(jsonText);
