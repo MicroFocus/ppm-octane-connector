@@ -44,25 +44,25 @@ public class OctaneReleaseIntegration extends ReleaseIntegration {
 
     ClientPublicAPI client = null;
     
-    List<ReleaseProject> releaseProjects = new LinkedList<>();
+    List<ReleaseProject> releaseProjects = null;
     
-    List<ReleaseProgram> releasePrograms = new LinkedList<>();
+    List<ReleaseProgram> releasePrograms = null;
     
-    List<ReleaseProgramProjectMapping> releaseProgramProjectMappings = new LinkedList<>();
+    List<ReleaseProgramProjectMapping> releaseProgramProjectMappings = null;
 
-    List<ReleaseBacklogItem> releaseBacklogItems = new LinkedList<>();
+    List<ReleaseBacklogItem> releaseBacklogItems = null;
 
-    List<ReleaseFeature> releaseFeatures = new LinkedList<>();
+    List<ReleaseFeature> releaseFeatures = null;
 
-    List<ReleaseReleaseTeam> releaseReleaseTeams = new LinkedList<>();
+    List<ReleaseReleaseTeam> releaseReleaseTeams = null;
 
-    List<ReleaseRelease> releaseReleases = new LinkedList<>();
+    List<ReleaseRelease> releaseReleases = null;
 
-    List<ReleaseSprint> releaseSprints = new LinkedList<>();
+    List<ReleaseSprint> releaseSprints = null;
 
-    List<com.ppm.integration.agilesdk.release.ReleaseTeam> releaseTeams = new LinkedList<>();
+    List<com.ppm.integration.agilesdk.release.ReleaseTeam> releaseTeams = null;
 
-    List<ReleaseTheme> releaseThemes = new LinkedList<>();
+    List<ReleaseTheme> releaseThemes = null;
 
     Map<Integer, List<WorkSpace>> workSpacesWithSharedSpaceMap = null;
 
@@ -82,7 +82,20 @@ public class OctaneReleaseIntegration extends ReleaseIntegration {
         return client;
     }
 
-    protected void SetUpSharedSpacesAndWorkSpaces(final Workspace wp, ValueSet paramValueSet) {
+    @Override
+    public void setUp(final Workspace wp, ValueSet paramValueSet) {
+        releaseProjects = new LinkedList<>();
+        releasePrograms = new LinkedList<>();
+        releaseProgramProjectMappings = new LinkedList<>();
+        releaseBacklogItems = new LinkedList<>();
+        releaseFeatures = new LinkedList<>();
+        releaseReleaseTeams = new LinkedList<>();
+        releaseReleases = new LinkedList<>();
+        releaseSprints = new LinkedList<>();
+        releaseTeams = new LinkedList<>();
+        releaseThemes = new LinkedList<>();
+
+        Map<Integer, List<WorkSpace>> workSpacesWithSharedSpaceMap = null;
         try {
             client = getClient(paramValueSet);
             workSpacesWithSharedSpaceMap = new HashMap<>();
@@ -346,78 +359,42 @@ public class OctaneReleaseIntegration extends ReleaseIntegration {
             }
         }
     }
-    
-    public List<ReleaseProject> getProjects(final Workspace wp, final ValueSet paramValueSet){
-    	if (releaseProjects.isEmpty()) {
-            SetUpSharedSpacesAndWorkSpaces(wp, paramValueSet);
-        }
+
+    @Override public List<ReleaseProject> getProjects(final Workspace wp, final ValueSet paramValueSet){
         return releaseProjects;
     }
-    public List<ReleaseProgram> getPrograms(final Workspace wp, final ValueSet paramValueSet){
-    	if (releasePrograms.isEmpty()) {
-            SetUpSharedSpacesAndWorkSpaces(wp, paramValueSet);
-        }
+    @Override public List<ReleaseProgram> getPrograms(final Workspace wp, final ValueSet paramValueSet){
         return releasePrograms;
     }
-    public List<ReleaseProgramProjectMapping> getProgramProjectMappings(final Workspace wp, final ValueSet paramValueSet){
-    	if (releaseProgramProjectMappings.isEmpty()) {
-            SetUpSharedSpacesAndWorkSpaces(wp, paramValueSet);
-        }
+    @Override public List<ReleaseProgramProjectMapping> getProgramProjectMappings(final Workspace wp, final ValueSet paramValueSet){
         return releaseProgramProjectMappings;
     }
 
     @Override public List<ReleaseBacklogItem> getBacklogItems(final Workspace wp, ValueSet paramValueSet) {
-        if (releaseBacklogItems.isEmpty()) {
-            SetUpSharedSpacesAndWorkSpaces(wp, paramValueSet);
-        }
         return releaseBacklogItems;
     }
 
     @Override public List<ReleaseFeature> getFeatures(final Workspace wp, ValueSet paramValueSet) {
-
-        if (releaseFeatures.isEmpty()) {
-            SetUpSharedSpacesAndWorkSpaces(wp, paramValueSet);
-        }
         return releaseFeatures;
     }
 
     @Override public List<ReleaseReleaseTeam> getReleaseTeams(final Workspace wp, ValueSet paramValueSet) {
-
-        if (releaseReleaseTeams.isEmpty()) {
-            SetUpSharedSpacesAndWorkSpaces(wp, paramValueSet);
-        }
         return releaseReleaseTeams;
     }
 
     @Override public List<ReleaseRelease> getReleases(final Workspace wp, ValueSet paramValueSet) {
-
-        if (releaseReleases.isEmpty()) {
-            SetUpSharedSpacesAndWorkSpaces(wp, paramValueSet);
-        }
         return releaseReleases;
     }
 
     @Override public List<ReleaseSprint> getSprints(final Workspace wp, ValueSet paramValueSet) {
-
-        if (releaseSprints.isEmpty()) {
-            SetUpSharedSpacesAndWorkSpaces(wp, paramValueSet);
-        }
         return releaseSprints;
     }
 
     @Override public List<com.ppm.integration.agilesdk.release.ReleaseTeam> getTeams(final Workspace wp, ValueSet paramValueSet) {
-        if (releaseTeams.isEmpty()) {
-            SetUpSharedSpacesAndWorkSpaces(wp, paramValueSet);
-        }
-
         return releaseTeams;
     }
 
     @Override public List<ReleaseTheme> getThemes(final Workspace wp, ValueSet paramValueSet) {
-
-        if (releaseThemes.isEmpty()) {
-            SetUpSharedSpacesAndWorkSpaces(wp, paramValueSet);
-        }
         return releaseThemes;
     }
 
