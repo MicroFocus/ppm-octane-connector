@@ -145,17 +145,14 @@ public class OctaneAgileDataIntegration extends AgileDataIntegration {
             WorkItemStory tempWorkItem = tempWorkItems.get(i);
             AgileDataBacklogItem backlogItem = new AgileDataBacklogItem();
             backlogItem.setBacklogItemId(Integer.parseInt(tempWorkItem.id));
-            if ("story".equals(tempWorkItem.subType)) {
-                backlogItem.setBacklogType(AgileDataBacklogItem.BACKLOG_TYPE.USER_STORY);
-            } else {
-                backlogItem.setBacklogType(AgileDataBacklogItem.BACKLOG_TYPE.DEFECT);
-            }
+            backlogItem.setBacklogType(tempWorkItem.subType);
+
             backlogItem.setRank(0);
             backlogItem.setName(tempWorkItem.name);
             backlogItem.setAssignTo(tempWorkItem.ownerName);
             backlogItem.setStoryPoints(tempWorkItem.storyPoints);
 
-            backlogItem.setStatus(AgileDataBacklogItem.BACKLOG_OR_DEFECT_STATUS.fromTypeName(tempWorkItem.status));
+            backlogItem.setStatus(tempWorkItem.status);
 
             if (!tempWorkItem.releaseId.equals("") && Integer.parseInt(tempWorkItem.releaseId) > 0) {
                 backlogItem.setReleaseId(Integer.parseInt(tempWorkItem.releaseId));
@@ -184,10 +181,10 @@ public class OctaneAgileDataIntegration extends AgileDataIntegration {
             }
 
             backlogItem.setAuthor(tempWorkItem.ownerName);
-            backlogItem.setPriority(AgileDataBacklogItem.BACKLOG_PRIORITY.fromTypeName(tempWorkItem.priority));
+            backlogItem.setPriority(tempWorkItem.priority);
             backlogItem.setLastModified(tempWorkItem.lastModifiedTime);
             backlogItem.setNumberOfTasks(0);
-            backlogItem.setDefectStatus(AgileDataBacklogItem.BACKLOG_OR_DEFECT_STATUS.fromTypeName(tempWorkItem.defectStatus));
+            backlogItem.setDefectStatus(tempWorkItem.defectStatus);
             backlogItem.setInstanceId(wp.getId());
             backlogItem.setProjectId(workSpaceId);
             backlogItems.add(backlogItem);
@@ -210,7 +207,7 @@ public class OctaneAgileDataIntegration extends AgileDataIntegration {
                  AgileDataFeature feature = new AgileDataFeature();
                  feature.setFeatureId(Integer.parseInt(tempFeature.id));
                  feature.setName(tempFeature.name);
-                 feature.setStatus(AgileDataFeature.STATUS.fromTypeName(tempFeature.status));
+                 feature.setStatus(tempFeature.status);
                  feature.setFeaturePoints(tempFeature.featurePoints);
                  feature.setAggStoryPoints(tempFeature.aggStoryPoints);
                  feature.setNumOfUserStories(tempFeature.numOfStories);
@@ -253,7 +250,7 @@ public class OctaneAgileDataIntegration extends AgileDataIntegration {
                         AgileDataFeature feature = new AgileDataFeature();
                         feature.setFeatureId(Integer.parseInt(tempFeature.id));
                         feature.setName(tempFeature.name);
-                        feature.setStatus(AgileDataFeature.STATUS.fromTypeName(tempFeature.status));
+                        feature.setStatus(tempFeature.status);
                         feature.setFeaturePoints(tempFeature.featurePoints);
                         feature.setAggStoryPoints(tempFeature.aggStoryPoints);
                         feature.setNumOfUserStories(tempFeature.numOfStories);
