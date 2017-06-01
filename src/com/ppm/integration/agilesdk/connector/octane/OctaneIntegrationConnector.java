@@ -36,11 +36,7 @@ public class OctaneIntegrationConnector extends IntegrationConnector {
                 new CheckBox(OctaneConstants.KEY_USE_GLOBAL_PROXY, "USE_GLOBAL_PROXY", "", false), new LineBreaker(),
                 new PlainText(OctaneConstants.APP_CLIENT_ID, "CLIENT_ID", "", "", true),
                 new PasswordText(OctaneConstants.APP_CLIENT_SECRET, "CLIENT_SECRET", "", "", true), new LineBreaker(),
-                new LineHr(), new LabelText(Constants.AGILE_DATA_SYNC_SERVICE, "LABEL_SYNC","",false),
-                //repleace the url to your own address
-                new Link(OctaneConstants.LABEL_LINK_CONFIGURE_WORKSPACE, "LABEL_LINK_CONFIGURE_WORKSPACE","","",false,"#", "dialogUtil.showTaglessDialog('saveAgileConfiguration','/itg/integrationcenter/ppm-integration-agile-configuration.jsp',600,520, ['instanceId'], ['{id}']);"),
-                new LineBreaker(), new CheckBox(Constants.AGILE_DATA_SYNC_SERVICE, "SYNC_AGILE_DATA_TO_THIS_INSTANCE", "", false),new LineBreaker(),
-                new CheckBox(com.hp.ppm.integration.service.impl.Constants.SYNC_EPIC_FROM_WORKSPACE_GROUP, "SYNC_EPIC_FROM_WORKSPACE_GROUP", "", false), new LineBreaker()});
+                new LineHr(), new LabelText(Constants.AGILE_DATA_SYNC_SERVICE, "LABEL_SYNC","",false)});
     }
 
     @Override public List<FunctionIntegration> getIntegrations() {
