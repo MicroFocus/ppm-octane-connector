@@ -45,7 +45,7 @@ public class OctaneIntegrationConnector extends IntegrationConnector {
 
     @Override public List<FunctionIntegration> getIntegrations() {
         return Arrays
-                .asList(new FunctionIntegration[] {new OctaneWorkPlanIntegration(), new OctaneTimeSheetIntegration(), new OctaneReleaseIntegration(), new OctanePortfolioEpicIntegration()});
+                .asList(new FunctionIntegration[] {new OctaneWorkPlanIntegration(), new OctaneTimeSheetIntegration(), new OctaneAgileDataIntegration(), new OctanePortfolioEpicIntegration()});
     }
 
     @Override public String getConnectorVersion() {
