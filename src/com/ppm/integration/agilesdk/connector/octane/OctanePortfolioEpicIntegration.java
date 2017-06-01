@@ -50,7 +50,7 @@ public class OctanePortfolioEpicIntegration extends PortfolioEpicIntegration {
                 List<WorkSpace> workspaces = client.getWorkSpaces(sharedSpaceId);
                 for (WorkSpace workspace : workspaces) {
                     AgileProject project = new AgileProject();
-                    String displayName = sharedSpaceName + "/" + workspace.getName();
+                    String displayName = workspace.getName() + "(" + sharedSpaceName + ")";
                     project.setDisplayName(displayName);
                     JSONObject workspaceJson = new JSONObject();
                     workspaceJson.put(OctaneConstants.WORKSPACE_ID, Integer.parseInt(workspace.getId()));
