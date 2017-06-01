@@ -124,7 +124,7 @@ public class OctanePortfolioEpicIntegration extends PortfolioEpicIntegration {
             String[] doneStatusIDs = client.getDoneDefinationOfUserStoryAndDefect(shareSpaceId, workSpaceId);
 
             WorkItemEpic epic1 = client.getEpicActualStoryPointsAndPath(shareSpaceId, workSpaceId, epicId);
-
+            epic.setName(epic1.name);
             WorkItemEpic epic2 = client.getEpicDoneStoryPoints(shareSpaceId, workSpaceId, epic1.path, doneStatusIDs);
 
             epic.setDoneStoryPoints(epic2.doneStoryPoints);
