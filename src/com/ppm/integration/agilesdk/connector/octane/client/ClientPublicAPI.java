@@ -577,7 +577,7 @@ public class ClientPublicAPI {
     public WorkItemEpic getEpicActualStoryPointsAndPath(int sharedSpaceId, int workSpaceId, String epicId) throws IOException {
 
         String method = "GET";
-        String url = String.format("%s/api/shared_spaces/%d/workspaces/%d/epics/%s?fields=path,actual_story_points",
+        String url = String.format("%s/api/shared_spaces/%d/workspaces/%d/epics/%s?fields=name,path,actual_story_points",
                 baseURL, sharedSpaceId, workSpaceId, epicId);
 
         Map<String, String> headers = new HashMap<>();
@@ -590,6 +590,10 @@ public class ClientPublicAPI {
             net.sf.json.JSONObject jsonStr = net.sf.json.JSONObject.fromObject(response.getData());
             if(jsonStr.containsKey("path")) {
                 epic.path = jsonStr.getString("path");
+            }
+            //US#108005-Epic item name should be able to updated to reflect the latest changes in agile tools
+            if(jsonStr.containsKey("name")) {
+                epic.name = jsonStr.getString("name");
             }
             if(jsonStr.containsKey("actual_story_points")) {
                 String val = (String)jsonStr.getString("actual_story_points");
