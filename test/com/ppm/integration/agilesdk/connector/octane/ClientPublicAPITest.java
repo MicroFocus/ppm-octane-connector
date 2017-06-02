@@ -314,13 +314,14 @@ public class ClientPublicAPITest {
                 values.getInteger(OctaneConstants.KEY_WORKSPACEID, 1002));
         Assert.assertNotNull(doneStatusIDs);
         System.out.println("doneStatusIDs------------------------" + doneStatusIDs.length);
-        String epicId = "1002";
+        String epicId = "114032";
 
         WorkItemEpic epic1= client.getEpicActualStoryPointsAndPath(
                 values.getInteger(OctaneConstants.KEY_SHAREDSPACEID, 1001),
                 values.getInteger(OctaneConstants.KEY_WORKSPACEID, 1002), epicId);
         Assert.assertNotNull(epic1);
         System.out.println("epic.path=" + epic1.path);
+        System.out.println("epic.name=" + epic1.name);
         System.out.println("epic.totalStoryPoints=" + epic1.totalStoryPoints);
 
         WorkItemEpic epic = client.getEpicDoneStoryPoints(values.getInteger(OctaneConstants.KEY_SHAREDSPACEID, 1001),
