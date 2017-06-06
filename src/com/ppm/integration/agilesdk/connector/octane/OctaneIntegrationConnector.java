@@ -35,8 +35,7 @@ public class OctaneIntegrationConnector extends IntegrationConnector {
                 new PlainText(OctaneConstants.KEY_PROXY_PORT, "PROXY_PORT", "", "", false),
                 new CheckBox(OctaneConstants.KEY_USE_GLOBAL_PROXY, "USE_GLOBAL_PROXY", "", false), new LineBreaker(),
                 new PlainText(OctaneConstants.APP_CLIENT_ID, "CLIENT_ID", "", "", true),
-                new PasswordText(OctaneConstants.APP_CLIENT_SECRET, "CLIENT_SECRET", "", "", true), new LineBreaker(),
-                new LineHr(), new LabelText(Constants.AGILE_DATA_SYNC_SERVICE, "LABEL_SYNC","",false)});
+                new PasswordText(OctaneConstants.APP_CLIENT_SECRET, "CLIENT_SECRET", "", "", true), new LineBreaker()});
     }
 
     @Override public List<FunctionIntegration> getIntegrations() {
