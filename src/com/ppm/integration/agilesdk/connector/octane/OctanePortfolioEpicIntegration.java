@@ -70,11 +70,12 @@ public class OctanePortfolioEpicIntegration extends PortfolioEpicIntegration {
      * Create portfolio epic under the agile project(agile workspace) in a instance
      *
      * @param epicName      the name of epic
+     * @param epicDescription      the description of epic
      * @param value         this is a json format value, which contains the necessary information to create epic.
      * @param paramValueSet a value set which contains the information of the instance
      * @return epic id
      */
-    @Override public Long createEpicInAgileProject(final String epicName, final String value,
+    @Override public Long createEpicInAgileProject(final String epicName, final String epicDescription, final String value,
             final ValueSet paramValueSet)
     {
         Long epicId = null;
@@ -85,6 +86,7 @@ public class OctanePortfolioEpicIntegration extends PortfolioEpicIntegration {
                 throw new OctaneClientException("AGM_APP", "Epic name is empty.");
             }
             epic.setName(epicName);
+            epic.setDescription(epicDescription);
             ClientPublicAPI client = OnctaneIntegrationHelper.getClient(paramValueSet);
             JSONObject workspaceJson = (JSONObject)JSONSerializer.toJSON(value);
             String workSpaceId = workspaceJson.getString(OctaneConstants.WORKSPACE_ID);
