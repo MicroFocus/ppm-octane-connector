@@ -156,7 +156,7 @@ public class OctanePortfolioEpicIntegration extends PortfolioEpicIntegration {
         AgileDataBacklogConfig config1 = new AgileDataBacklogConfig();
         config1.setBacklogStatus("Done");
         config1.setColor("black");
-        config1.setBacklogType("user_story");
+        config1.setBacklogType("story");
         config1.setIsFinishStatus(true);
         list.add(config1);
 
