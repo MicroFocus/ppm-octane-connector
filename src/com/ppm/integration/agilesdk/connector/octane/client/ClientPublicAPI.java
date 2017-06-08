@@ -582,7 +582,7 @@ public class ClientPublicAPI {
 
         Map<String, String> headers = new HashMap<>();
         headers.put("Cookie", this.cookies);
-        //headers.put("HPECLIENTTYPE", "HPE_MQM_UI");
+        headers.put("HPECLIENTTYPE", "HPE_MQM_UI");
         RestResponse response = sendRequest(url, method, null, headers);
 
         WorkItemEpic epic = new WorkItemEpic();
