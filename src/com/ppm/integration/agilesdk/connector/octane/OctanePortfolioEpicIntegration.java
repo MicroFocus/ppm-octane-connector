@@ -15,7 +15,7 @@ import com.ppm.integration.agilesdk.connector.octane.model.WorkItemEpic;
 import com.ppm.integration.agilesdk.connector.octane.model.WorkSpace;
 import com.ppm.integration.agilesdk.epic.AgileProject;
 import com.ppm.integration.agilesdk.epic.PortfolioEpicIntegration;
-import com.ppm.integration.agilesdk.epic.AgileProjectWithEpicInfo;
+import com.ppm.integration.agilesdk.epic.AgileEpicInfo;
 import java.util.ArrayList;
 import java.util.List;
 import net.sf.json.JSONObject;
@@ -76,13 +76,13 @@ public class OctanePortfolioEpicIntegration extends PortfolioEpicIntegration {
      * @param paramValueSet a value set which contains the information of the instance
      * @return epic id
      */
-    @Override public Long createEpicInAgileProject(final AgileProjectWithEpicInfo epicSyncInfo, final String value,
+    @Override public Long createEpicInAgileProject(final AgileEpicInfo epicInfo, final String value,
             final ValueSet paramValueSet)
     {
         Long epicId = null;
         EpicEntity epic = new EpicEntity();
-        String epicName = epicSyncInfo.getEpicName();
-        String epicDescription = epicSyncInfo.getEpicDescription();
+        String epicName = epicInfo.getEpicName();
+        String epicDescription = epicInfo.getEpicDescription();
 
         try {
             if (epicName == null || epicName.trim().length() == 0) {
