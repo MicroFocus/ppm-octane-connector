@@ -1,16 +1,9 @@
 package com.ppm.integration.agilesdk.connector.octane;
 
-import com.hp.ppm.integration.sdk.release.Constants;
 import com.ppm.integration.agilesdk.FunctionIntegration;
 import com.ppm.integration.agilesdk.IntegrationConnector;
-import com.ppm.integration.agilesdk.ui.CheckBox;
-import com.ppm.integration.agilesdk.ui.Field;
-import com.ppm.integration.agilesdk.ui.LineBreaker;
-import com.ppm.integration.agilesdk.ui.LabelText;
-import com.ppm.integration.agilesdk.ui.PasswordText;
-import com.ppm.integration.agilesdk.ui.PlainText;
-import com.ppm.integration.agilesdk.ui.LineHr;
-import com.ppm.integration.agilesdk.ui.Link;
+import com.ppm.integration.agilesdk.ui.*;
+
 import java.util.Arrays;
 import java.util.List;
 
@@ -38,9 +31,17 @@ public class OctaneIntegrationConnector extends IntegrationConnector {
                 new PasswordText(OctaneConstants.APP_CLIENT_SECRET, "CLIENT_SECRET", "", "", true), new LineBreaker()});
     }
 
+    /**
+     * This is needed for keeping the Octane connector backward compatible with PPM 9.41.
+     */
     @Override public List<FunctionIntegration> getIntegrations() {
         return Arrays
-                .asList(new FunctionIntegration[] {new OctaneWorkPlanIntegration(), new OctaneTimeSheetIntegration(), new OctaneAgileDataIntegration(), new OctanePortfolioEpicIntegration()});
+                .asList(new FunctionIntegration[] {new OctaneWorkPlanIntegration(), new OctaneTimeSheetIntegration()});
+    }
+
+    @Override public List<String> getIntegrationClasses() {
+        return Arrays
+                .asList(new String[] {"com.ppm.integration.agilesdk.connector.octane.OctaneWorkPlanIntegration","com.ppm.integration.agilesdk.connector.octane.OctaneTimeSheetIntegration", "com.ppm.integration.agilesdk.connector.octane.OctaneAgileDataIntegration", "com.ppm.integration.agilesdk.connector.octane.OctanePortfolioEpicIntegration"});
     }
 
     @Override public String getConnectorVersion() {

@@ -2,38 +2,14 @@ package com.ppm.integration.agilesdk.connector.octane;
 
 import com.hp.ppm.integration.model.Workspace;
 import com.ppm.integration.agilesdk.ValueSet;
+import com.ppm.integration.agilesdk.agiledata.*;
 import com.ppm.integration.agilesdk.connector.octane.client.ClientPublicAPI;
-import com.ppm.integration.agilesdk.connector.octane.model.Release;
-import com.ppm.integration.agilesdk.connector.octane.model.ReleaseTeam;
-import com.ppm.integration.agilesdk.connector.octane.model.SharedSpace;
-import com.ppm.integration.agilesdk.connector.octane.model.Sprint;
-import com.ppm.integration.agilesdk.connector.octane.model.Team;
-import com.ppm.integration.agilesdk.connector.octane.model.WorkItemEpic;
-import com.ppm.integration.agilesdk.connector.octane.model.WorkItemFeature;
-import com.ppm.integration.agilesdk.connector.octane.model.WorkItemRoot;
-import com.ppm.integration.agilesdk.connector.octane.model.WorkItemStory;
-import com.ppm.integration.agilesdk.connector.octane.model.WorkSpace;
-import com.ppm.integration.agilesdk.agiledata.AgileDataBacklogItem;
-import com.ppm.integration.agilesdk.agiledata.AgileDataFeature;
-import com.ppm.integration.agilesdk.agiledata.AgileDataIntegration;
-import com.ppm.integration.agilesdk.agiledata.AgileDataProgram;
-import com.ppm.integration.agilesdk.agiledata.AgileDataProgramProjectMapping;
-import com.ppm.integration.agilesdk.agiledata.AgileDataProject;
-import com.ppm.integration.agilesdk.agiledata.AgileDataRelease;
-import com.ppm.integration.agilesdk.agiledata.AgileDataReleaseTeam;
-import com.ppm.integration.agilesdk.agiledata.AgileDataSprint;
-import com.ppm.integration.agilesdk.agiledata.AgileDataTheme;
-
+import com.ppm.integration.agilesdk.connector.octane.model.*;
 import org.apache.log4j.Logger;
 import org.json.JSONException;
 
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 /**
  * Created by lutian on 2017/1/13.
@@ -393,6 +369,98 @@ public class OctaneAgileDataIntegration extends AgileDataIntegration {
 
     @Override public List<AgileDataTheme> getThemes(final Workspace wp, ValueSet paramValueSet) {
         return releaseThemes;
+    }
+
+    public List<AgileDataBacklogConfig> getAgileDataBacklogConfig() {
+        List<AgileDataBacklogConfig> list = new ArrayList<AgileDataBacklogConfig>();
+        AgileDataBacklogConfig config1 = new AgileDataBacklogConfig();
+        config1.setBacklogStatus("Done");
+        config1.setColor("black");
+        config1.setBacklogType("story");
+        config1.setIsFinishStatus(true);
+        list.add(config1);
+
+        AgileDataBacklogConfig config2 = new AgileDataBacklogConfig();
+        config2.setBacklogStatus("Closed");
+        config2.setColor("grey");
+        config2.setBacklogType("defect");
+        config2.setIsFinishStatus(true);
+        list.add(config2);
+
+        AgileDataBacklogConfig config3 = new AgileDataBacklogConfig();
+        config3.setBacklogStatus("Duplicate");
+        config3.setColor("orange");
+        config3.setBacklogType("defect");
+        config3.setIsFinishStatus(true);
+        list.add(config3);
+
+        AgileDataBacklogConfig config4 = new AgileDataBacklogConfig();
+        config4.setBacklogStatus("Rejected");
+        config4.setColor("red");
+        config4.setBacklogType("defect");
+        config4.setIsFinishStatus(true);
+        list.add(config4);
+
+        AgileDataBacklogConfig config5 = new AgileDataBacklogConfig();
+        config5.setBacklogStatus("Deferred");
+        config5.setColor("purple");
+        config5.setBacklogType("defect");
+        config5.setIsFinishStatus(false);
+        list.add(config5);
+
+        AgileDataBacklogConfig config6 = new AgileDataBacklogConfig();
+        config6.setBacklogStatus("New");
+        config6.setColor("pink");
+        config6.setBacklogType("defect");
+        config6.setIsFinishStatus(false);
+        list.add(config6);
+
+        AgileDataBacklogConfig config7 = new AgileDataBacklogConfig();
+        config7.setBacklogStatus("Opened");
+        config7.setColor("blue");
+        config7.setBacklogType("defect");
+        config7.setIsFinishStatus(false);
+        list.add(config7);
+
+        AgileDataBacklogConfig config8 = new AgileDataBacklogConfig();
+        config8.setBacklogStatus("Fixed");
+        config8.setColor("yellow");
+        config8.setBacklogType("defect");
+        config8.setIsFinishStatus(false);
+        list.add(config8);
+
+        AgileDataBacklogConfig config9 = new AgileDataBacklogConfig();
+        config9.setBacklogStatus("Proposed Closed");
+        config9.setColor("green");
+        config9.setBacklogType("defect");
+        config9.setIsFinishStatus(false);
+        list.add(config9);
+        return list;
+    }
+
+    public List<AgileDataBacklogSeverity> getAgileDataBacklogSeverity() {
+        List<AgileDataBacklogSeverity> list = new ArrayList<AgileDataBacklogSeverity>();
+        AgileDataBacklogSeverity severity1 = new AgileDataBacklogSeverity();
+        severity1.setBacklogType("defect");
+        severity1.setSeverity("1");
+        list.add(severity1);
+
+        AgileDataBacklogSeverity severity2 = new AgileDataBacklogSeverity();
+        severity2.setBacklogType("defect");
+        severity2.setSeverity("2");
+        list.add(severity2);
+
+        AgileDataBacklogSeverity severity3 = new AgileDataBacklogSeverity();
+        severity3.setBacklogType("defect");
+        severity3.setSeverity("3");
+        list.add(severity3);
+
+        AgileDataBacklogSeverity severity4 = new AgileDataBacklogSeverity();
+        severity4.setBacklogType("defect");
+        severity4.setSeverity("4");
+        list.add(severity4);
+
+        return list;
     }
 
 }
