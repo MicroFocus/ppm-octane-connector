@@ -19,7 +19,7 @@ public class WorkItemFeature extends WorkItem {
 
     public int numbOfDefects = 0;
 
-    public long themeId = -1;
+    public String epicId = null;
 
     public String releaseId = "";
 
@@ -37,7 +37,7 @@ public class WorkItemFeature extends WorkItem {
             this.name = (String)Obj.get("name");
             this.subType = (String)Obj.get("subtype");
             this.releaseId = getSubObjectItem("release", "id", Obj);
-            this.themeId = Long.parseLong(getSubObjectItem("parent", "id", Obj));
+            this.epicId = getSubObjectItem("parent", "id", Obj);
             this.status = this.getSubObjectItem("phase", "name", Obj);
             this.lastModified = (String)Obj.get("last_modified");
             this.lastModifiedDatetime = Client.convertDateTime(lastModified);

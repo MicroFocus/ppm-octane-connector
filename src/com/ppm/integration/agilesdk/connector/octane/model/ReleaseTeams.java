@@ -32,7 +32,7 @@ public class ReleaseTeams extends SimpleEntityCollection<ReleaseTeam> {
             tempReleaseTeam.teamId = (String)tempObj.get("id");
             tempReleaseTeam.releaseId = releaseId;
             tempReleaseTeam.workSpaceId = workSpaceId;
-            tempReleaseTeam.releaseTeamId = ++releaseTeamId;
+            tempReleaseTeam.releaseTeamId = String.valueOf(++releaseTeamId);
             super.add(tempReleaseTeam);
         }
     }

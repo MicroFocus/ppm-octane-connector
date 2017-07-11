@@ -108,7 +108,7 @@ public class WorkItemRoot extends SimpleEntity {
                         WorkItemFeature tempFeature = new WorkItemFeature();
                         //initialization the WorkItemFeature
                         tempFeature.ParseJsonData(tempFeatureObj);
-                        tempStory.themeId = tempFeature.themeId;
+                        tempStory.epicId = tempFeature.epicId;
                         tempFeature.aggStoryPoints += tempStory.storyPoints;
                         tempFeature.storyList.add(tempStory);
                         // add the WorkItemFeature into epicList
@@ -123,7 +123,7 @@ public class WorkItemRoot extends SimpleEntity {
                     	Set<String> keySetFeature = featureList.keySet();
                     	tempFeature=featureList.get((String)tempStoryParentObj.get("id"));
                     	if (tempFeature != null) {
-                            tempStory.themeId = tempFeature.themeId;
+                            tempStory.epicId = tempFeature.epicId;
                             tempFeature.aggStoryPoints += tempStory.storyPoints;
                             tempFeature.storyList.add(tempStory);
                             featureList.put((String)tempStoryParentObj.get("id"), tempFeature);
@@ -136,7 +136,7 @@ public class WorkItemRoot extends SimpleEntity {
                             WorkItemEpic tempEpic = epicList.get(key);
                             tempFeature = tempEpic.featureList.remove(tempStoryParentObj.get("id"));
                             if (tempFeature != null) {
-                                tempStory.themeId = tempFeature.themeId;
+                                tempStory.epicId = tempFeature.epicId;
                                 tempFeature.aggStoryPoints += tempStory.storyPoints;
                                 tempFeature.storyList.add(tempStory);
                                 tempEpic.featureList.put((String)tempStoryParentObj.get("id"), tempFeature);
@@ -233,7 +233,7 @@ public class WorkItemRoot extends SimpleEntity {
                     	//featureList
                     	tempFeature=featureList.get((String)tempStoryParentObj.get("id"));
                     	if (tempFeature != null) {
-                            tempStory.themeId = tempFeature.themeId;
+                            tempStory.epicId = tempFeature.epicId;
                             tempFeature.aggStoryPoints += tempStory.storyPoints;
                             tempFeature.storyList.add(tempStory);
                             featureList.put((String)tempStoryParentObj.get("id"), tempFeature);

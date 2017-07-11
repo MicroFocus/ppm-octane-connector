@@ -2,12 +2,22 @@ package com.ppm.integration.agilesdk.connector.octane;
 
 import com.ppm.integration.agilesdk.FunctionIntegration;
 import com.ppm.integration.agilesdk.IntegrationConnector;
+import com.ppm.integration.agilesdk.ValueSet;
+import com.ppm.integration.agilesdk.connector.octane.client.ClientPublicAPI;
+import com.ppm.integration.agilesdk.connector.octane.model.SharedSpace;
+import com.ppm.integration.agilesdk.connector.octane.model.WorkSpace;
+import com.ppm.integration.agilesdk.model.AgileProject;
 import com.ppm.integration.agilesdk.ui.*;
+import net.sf.json.JSONObject;
+import org.apache.log4j.Logger;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
 public class OctaneIntegrationConnector extends IntegrationConnector {
+
+    private final Logger logger = Logger.getLogger(this.getClass());
 
     @Override public String getExternalApplicationName() {
         return "Octane Connector";
@@ -46,6 +56,40 @@ public class OctaneIntegrationConnector extends IntegrationConnector {
 
     @Override public String getConnectorVersion() {
         return "1.0";
+    }
+
+    /**
+     * Get all available agile projects(agile workspaces) in a instance
+     *
+     * @param paramValueSet a value set which contains the information of the instance
+     * @return a list of agile project
+     */
+    @Override public List<AgileProject> getAgileProjects(ValueSet paramValueSet) {
+        List<AgileProject> agileProjectList = new ArrayList();
+        try {
+            ClientPublicAPI client = OnctaneIntegrationHelper.getClient(paramValueSet);
+            List<SharedSpace> sharedSpacesList = client.getSharedSpaces();
+            for (SharedSpace sharedSpace : sharedSpacesList) {
+                //workspace
+                int sharedSpaceId = Integer.parseInt(sharedSpace.getId());
+                String sharedSpaceName = sharedSpace.getName();
+                List<WorkSpace> workspaces = client.getWorkSpaces(sharedSpaceId);
+                for (WorkSpace workspace : workspaces) {
+                    AgileProject project = new AgileProject();
+                    String displayName = workspace.getName() + "(" + sharedSpaceName + ")";
+                    project.setDisplayName(displayName);
+                    JSONObject workspaceJson = new JSONObject();
+                    workspaceJson.put(OctaneConstants.WORKSPACE_ID, Integer.parseInt(workspace.getId()));
+                    workspaceJson.put(OctaneConstants.SHARED_SPACE_ID, sharedSpaceId);
+                    project.setValue(workspaceJson.toString());
+                    agileProjectList.add(project);
+                }
+            }
+        } catch (Throwable e) {
+            logger.error("Error when retrieving Octane workspaces list", e);
+            new OctaneConnectivityExceptionHandler().uncaughtException(Thread.currentThread(), e);
+        }
+        return agileProjectList;
     }
 
 }
