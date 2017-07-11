@@ -42,13 +42,13 @@ public class WorkItemStory extends WorkItem {
 
     public int storyPoints;
 
-    public long teamId;
+    public String teamId;
 
-    public long themeId = -1;
+    public String epicId = null;
 
-    public long featureId;
+    public String featureId;
 
-    public long sprintId;
+    public String sprintId;
 
     public String priority;
 
@@ -73,12 +73,12 @@ public class WorkItemStory extends WorkItem {
 
             this.defectStatus = this.status;
             if (!"".equals(this.getSubObjectItem("team", "id", Obj))) {
-                this.teamId = Long.parseLong(this.getSubObjectItem("team", "id", Obj));
+                this.teamId = this.getSubObjectItem("team", "id", Obj);
             }
 
             this.priority = getSubObjectItem("severity", "name", Obj);
             if (!"".equals(this.getSubObjectItem("parent", "id", Obj))) {
-                this.featureId = Long.parseLong(this.getSubObjectItem("parent", "id", Obj));
+                this.featureId = this.getSubObjectItem("parent", "id", Obj);
             }
             if (!"".equals(this.getSubObjectItem("release", "id", Obj))) {
                 this.releaseId = this.getSubObjectItem("release", "id", Obj);
@@ -89,7 +89,7 @@ public class WorkItemStory extends WorkItem {
                 this.sprintEndDate = (String)tempJsonObj.get("end_date");
                 this.sprintStart = Client.convertDateTime(sprintStartDate);
                 this.sprintEnd = Client.convertDateTime(sprintEndDate);
-                this.sprintId = tempJsonObj.getLong("id");
+                this.sprintId = tempJsonObj.getString("id");
             }
             if (!"".equals(this.getSubObjectItem("owner", "id", Obj))) {
                 tempJsonObj = (JSONObject)Obj.get("owner");

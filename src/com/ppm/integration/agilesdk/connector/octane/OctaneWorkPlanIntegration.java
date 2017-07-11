@@ -174,7 +174,7 @@ public class OctaneWorkPlanIntegration extends WorkPlanIntegration implements Fu
                         //user story?
                         if(workItemRoot != null && workItemRoot.workItemStories.size() > 0) {
                             for(WorkItemStory us : workItemRoot.workItemStories) {
-                                if(us.sprintId == Long.parseLong(spt.id) && OctaneConstants.SUB_TYPE_STORY.equals(us.subType)) {
+                                if(spt.id.equals(us.sprintId) && OctaneConstants.SUB_TYPE_STORY.equals(us.subType)) {
                                     OctaneUSIExternalTask octaneUS =
                                             createOctaneIExternalTask(release, us);
                                     octaneSprint.getChildren().add(octaneUS);

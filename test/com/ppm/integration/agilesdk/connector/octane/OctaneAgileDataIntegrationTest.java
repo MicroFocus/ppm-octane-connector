@@ -5,12 +5,9 @@ import com.ppm.integration.agilesdk.ValueSet;
 import com.ppm.integration.agilesdk.agiledata.AgileDataBacklogItem;
 import com.ppm.integration.agilesdk.agiledata.AgileDataFeature;
 import com.ppm.integration.agilesdk.agiledata.AgileDataReleaseTeam;
-import com.ppm.integration.agilesdk.agiledata.AgileDataBacklogItem;
-import com.ppm.integration.agilesdk.agiledata.AgileDataFeature;
 import com.ppm.integration.agilesdk.agiledata.AgileDataRelease;
-import com.ppm.integration.agilesdk.agiledata.AgileDataReleaseTeam;
 import com.ppm.integration.agilesdk.agiledata.AgileDataSprint;
-import com.ppm.integration.agilesdk.agiledata.AgileDataTheme;
+import com.ppm.integration.agilesdk.agiledata.AgileDataEpic;
 
 import java.util.List;
 
@@ -89,10 +86,10 @@ public class OctaneAgileDataIntegrationTest {
 
     @Test public void testGetThemes() throws Exception {
         OctaneAgileDataIntegration ori = new OctaneAgileDataIntegration();
-        List<AgileDataTheme> tItem = ori.getThemes(wp,values);
+        List<AgileDataEpic> tItem = ori.getEpics(wp,values);
         Assert.assertNotNull(tItem);
         Assert.assertTrue(tItem.size() > 0);
-        for (AgileDataTheme t : tItem) {
+        for (AgileDataEpic t : tItem) {
             System.out.println(t.getName());
         }
     }

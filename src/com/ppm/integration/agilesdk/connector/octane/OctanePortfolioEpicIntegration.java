@@ -4,7 +4,7 @@ import com.ppm.integration.agilesdk.ValueSet;
 import com.ppm.integration.agilesdk.connector.octane.client.ClientPublicAPI;
 import com.ppm.integration.agilesdk.connector.octane.client.OctaneClientException;
 import com.ppm.integration.agilesdk.connector.octane.model.*;
-import com.ppm.integration.agilesdk.epic.AgileProject;
+import com.ppm.integration.agilesdk.model.AgileProject;
 import com.ppm.integration.agilesdk.epic.PortfolioEpicCreationInfo;
 import com.ppm.integration.agilesdk.epic.PortfolioEpicIntegration;
 import com.ppm.integration.agilesdk.epic.PortfolioEpicSyncInfo;
@@ -26,39 +26,6 @@ public class OctanePortfolioEpicIntegration extends PortfolioEpicIntegration {
     private static final String DEFAULT_OCTANE_EPIC_URL =
             "/ui/entity-navigation?p={sharedSpaceId}/{workSpaceId}&entityType=work_item&id={epicId}";
 
-    /**
-     * Get all available agile projects(agile workspaces) in a instance
-     *
-     * @param paramValueSet a value set which contains the information of the instance
-     * @return a list of agile project
-     */
-    @Override public List<AgileProject> getAgileProjects(ValueSet paramValueSet) {
-        List<AgileProject> agileProjectList = new ArrayList();
-        try {
-            ClientPublicAPI client = OnctaneIntegrationHelper.getClient(paramValueSet);
-            List<SharedSpace> sharedSpacesList = client.getSharedSpaces();
-            for (SharedSpace sharedSpace : sharedSpacesList) {
-                //workspace
-                int sharedSpaceId = Integer.parseInt(sharedSpace.getId());
-                String sharedSpaceName = sharedSpace.getName();
-                List<WorkSpace> workspaces = client.getWorkSpaces(sharedSpaceId);
-                for (WorkSpace workspace : workspaces) {
-                    AgileProject project = new AgileProject();
-                    String displayName = workspace.getName() + "(" + sharedSpaceName + ")";
-                    project.setDisplayName(displayName);
-                    JSONObject workspaceJson = new JSONObject();
-                    workspaceJson.put(OctaneConstants.WORKSPACE_ID, Integer.parseInt(workspace.getId()));
-                    workspaceJson.put(OctaneConstants.SHARED_SPACE_ID, sharedSpaceId);
-                    project.setValue(workspaceJson.toString());
-                    agileProjectList.add(project);
-                }
-            }
-        } catch (Throwable e) {
-            logger.error(e.getMessage());
-            new OctaneConnectivityExceptionHandler().uncaughtException(Thread.currentThread(), e);
-        }
-        return agileProjectList;
-    }
 
     @Override public String createEpicInAgileProject(final PortfolioEpicCreationInfo epicInfo, final String value,
             final ValueSet paramValueSet)
