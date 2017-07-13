@@ -2,6 +2,7 @@ package com.ppm.integration.agilesdk.connector.octane;
 
 import com.ppm.integration.agilesdk.FunctionIntegration;
 import com.ppm.integration.agilesdk.ValueSet;
+import com.ppm.integration.agilesdk.pm.LinkedTaskAgileEntityInfo;
 import com.ppm.integration.agilesdk.connector.octane.client.ClientPublicAPI;
 import com.ppm.integration.agilesdk.connector.octane.model.Release;
 import com.ppm.integration.agilesdk.connector.octane.client.OctaneClientException;
@@ -174,7 +175,7 @@ public class OctaneWorkPlanIntegration extends WorkPlanIntegration implements Fu
                         //user story?
                         if(workItemRoot != null && workItemRoot.workItemStories.size() > 0) {
                             for(WorkItemStory us : workItemRoot.workItemStories) {
-                                if(us.sprintId == Long.parseLong(spt.id) && OctaneConstants.SUB_TYPE_STORY.equals(us.subType)) {
+                                if(spt.id.equals(us.sprintId) && OctaneConstants.SUB_TYPE_STORY.equals(us.subType)) {
                                     OctaneUSIExternalTask octaneUS =
                                             createOctaneIExternalTask(release, us);
                                     octaneSprint.getChildren().add(octaneUS);
@@ -270,4 +271,14 @@ public class OctaneWorkPlanIntegration extends WorkPlanIntegration implements Fu
         return null;
     }
 
+    public LinkedTaskAgileEntityInfo getAgileEntityInfoFromMappingConfiguration(ValueSet values) {
+        LinkedTaskAgileEntityInfo info = new LinkedTaskAgileEntityInfo();
+        if (values != null) {
+            String releaseId = (String)(values.get("releaseId"));
+            String projectId = (String)(values.get("workSpaceId"));
+            info.setReleaseId(releaseId);
+            info.setProjectId(projectId);
+        }
+        return info;
+    }
 }

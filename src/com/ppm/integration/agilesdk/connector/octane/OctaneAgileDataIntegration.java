@@ -1,10 +1,11 @@
 package com.ppm.integration.agilesdk.connector.octane;
 
-import com.hp.ppm.integration.model.Workspace;
 import com.ppm.integration.agilesdk.ValueSet;
 import com.ppm.integration.agilesdk.agiledata.*;
 import com.ppm.integration.agilesdk.connector.octane.client.ClientPublicAPI;
 import com.ppm.integration.agilesdk.connector.octane.model.*;
+import net.sf.json.JSONObject;
+import net.sf.json.JSONSerializer;
 import org.apache.log4j.Logger;
 import org.json.JSONException;
 
@@ -20,12 +21,10 @@ public class OctaneAgileDataIntegration extends AgileDataIntegration {
 
     ClientPublicAPI client = null;
     
-    List<AgileDataProject> releaseProjects = null;
+    AgileDataProject releaseProject = null;
     
     List<AgileDataProgram> releasePrograms = null;
     
-    List<AgileDataProgramProjectMapping> releaseProgramProjectMappings = null;
-
     List<AgileDataBacklogItem> releaseBacklogItems = null;
 
     List<AgileDataFeature> releaseFeatures = null;
@@ -38,7 +37,7 @@ public class OctaneAgileDataIntegration extends AgileDataIntegration {
 
     List<com.ppm.integration.agilesdk.agiledata.AgileDataTeam> releaseTeams = null;
 
-    List<AgileDataTheme> releaseThemes = null;
+    List<AgileDataEpic> releaseEpics = null;
 
     Map<Integer, List<WorkSpace>> workSpacesWithSharedSpaceMap = null;
 
@@ -59,20 +58,25 @@ public class OctaneAgileDataIntegration extends AgileDataIntegration {
     }
 
     @Override
-    public void setUp(final Workspace wp, ValueSet paramValueSet) {
-        releaseProjects = new LinkedList<>();
+    public void setUp(ValueSet paramValueSet, String projectId) {
+
+        if (projectId == null) {
+            return;
+        }
+
+        releaseProject = null;
         releasePrograms = new LinkedList<>();
-        releaseProgramProjectMappings = new LinkedList<>();
         releaseBacklogItems = new LinkedList<>();
         releaseFeatures = new LinkedList<>();
         releaseReleaseTeams = new LinkedList<>();
         releaseReleases = new LinkedList<>();
         releaseSprints = new LinkedList<>();
         releaseTeams = new LinkedList<>();
-        releaseThemes = new LinkedList<>();
+        releaseEpics = new LinkedList<>();
 
         Map<Integer, List<WorkSpace>> workSpacesWithSharedSpaceMap = null;
         try {
+            boolean found = false;
             client = getClient(paramValueSet);
             workSpacesWithSharedSpaceMap = new HashMap<>();
             List<SharedSpace> sharedSpacesList = client.getSharedSpaces();
@@ -84,43 +88,52 @@ public class OctaneAgileDataIntegration extends AgileDataIntegration {
                 workSpacesWithSharedSpaceMap.put(sharedSpaceId, workSpaces);
                 for (int j = 0, sizej = workSpaces.size(); j < sizej; j++) {
                     String strWorkSpaceId = workSpaces.get(j).id;
-                    if(!paramValueSet.get(OctaneConstants.PROJECT_ID).equals(strWorkSpaceId)){
+
+                    if(!projectId.equals(strWorkSpaceId)){
+                        // This is not the workspace we're looking for
                     	continue;
+                    } else {
+
+                        found = true;
+
+                        int workSpaceId = Integer.parseInt(strWorkSpaceId);
+                        AgileDataProject tempProject = new AgileDataProject();
+                        tempProject.setProjectId(strWorkSpaceId);
+                        tempProject.setName(workSpaces.get(j).name);
+                        this.releaseProject = tempProject;
+
+                        AgileDataProgram tempProgram = new AgileDataProgram();
+                        tempProgram.setProgramId(strSharedSpaceId);
+                        tempProgram.setName(sharedSpacesList.get(i).name);
+                        this.releasePrograms.add(tempProgram);
+
+                        SetUpReleaseTeams(client, sharedSpaceId, workSpaceId);
+                        SetUpReleases(client, sharedSpaceId, workSpaceId);
+                        SetUpSprints(client, sharedSpaceId, workSpaceId);
+                        SetUpTeams(client, sharedSpaceId, workSpaceId);
+                        SetUpEpicFeatureBacklogItems(client, sharedSpaceId, workSpaceId);
+
+                        // workspace found and data loaded.
+                        break;
                     }
-                    int workSpaceId = Integer.parseInt(strWorkSpaceId);
-                    AgileDataProject tempProject = new AgileDataProject();;
-                    tempProject.setInstanceId(wp.getId());
-                    tempProject.setProjectId(workSpaceId);
-                    tempProject.setName(workSpaces.get(j).name);
-                    this.releaseProjects.add(tempProject);
-                    
-                    AgileDataProgram tempProgram = new AgileDataProgram();;
-                    tempProgram.setInstanceId(wp.getId());
-                    tempProgram.setProgramId(sharedSpaceId);
-                    tempProgram.setName(sharedSpacesList.get(i).name);
-                    this.releasePrograms.add(tempProgram);
-                    
-                    SetUpProgramAndProject(wp,releaseProjects,releasePrograms);
-                    SetUpReleaseTeams(wp, client, sharedSpaceId, workSpaceId);
-                    SetUpReleases(wp, client, sharedSpaceId, workSpaceId);
-                    SetUpSprints(wp, client, sharedSpaceId, workSpaceId);
-                    SetUpTeams(wp, client, sharedSpaceId, workSpaceId);
-                    SetUpThemeFeatureBacklogItems(wp, client, sharedSpaceId, workSpaceId);
+                }
+                if (found) {
+                    break;
                 }
             }
         } catch (IOException e) {
-            logger.error(e.getMessage());
+            logger.error("error when setting up & retrieving agile data", e);
         }
     }
 
     //defect or us
-    private List<AgileDataBacklogItem> pareseBacklogItem(final Workspace wp, List<WorkItemStory> tempWorkItems, int workSpaceId) {
+    private List<AgileDataBacklogItem> parseBacklogItem(List<WorkItemStory> tempWorkItems, int workSpaceId) {
 
         List<AgileDataBacklogItem> backlogItems = new LinkedList<AgileDataBacklogItem>();
         for (int i = 0, size = tempWorkItems.size(); i < size; i++) {
             WorkItemStory tempWorkItem = tempWorkItems.get(i);
             AgileDataBacklogItem backlogItem = new AgileDataBacklogItem();
-            backlogItem.setBacklogItemId(Integer.parseInt(tempWorkItem.id));
+            backlogItem.setBacklogItemId(tempWorkItem.id);
             backlogItem.setBacklogType(tempWorkItem.subType);
 
             backlogItem.setRank(0);
@@ -131,76 +144,60 @@ public class OctaneAgileDataIntegration extends AgileDataIntegration {
             backlogItem.setStatus(tempWorkItem.status);
 
             if (!tempWorkItem.releaseId.equals("") && Integer.parseInt(tempWorkItem.releaseId) > 0) {
-                backlogItem.setReleaseId(Integer.parseInt(tempWorkItem.releaseId));
+                backlogItem.setReleaseId(tempWorkItem.releaseId);
             } else {
-                backlogItem.setReleaseId(-1);
+                backlogItem.setReleaseId(null);
             }
-            if (tempWorkItem.teamId > 0) {
-                backlogItem.setTeamId((int)tempWorkItem.teamId);
-            } else {
-                backlogItem.setTeamId(-1);
-            }
-            if (tempWorkItem.themeId > 0) {
-                backlogItem.setThemeId((int)tempWorkItem.themeId);
-            } else {
-                backlogItem.setThemeId(-1);
-            }
-            if (tempWorkItem.featureId > 0) {
-                backlogItem.setFeatureId((int)tempWorkItem.featureId);
-            } else {
-                backlogItem.setFeatureId(-1);
-            }
-            if (tempWorkItem.sprintId > 0) {
-                backlogItem.setSprintId((int)tempWorkItem.sprintId);
-            } else {
-                backlogItem.setSprintId(-1);
-            }
+
+                backlogItem.setTeamId(tempWorkItem.teamId);
+
+                backlogItem.setEpicId(tempWorkItem.epicId);
+
+                backlogItem.setFeatureId(tempWorkItem.featureId);
+
+                backlogItem.setSprintId(tempWorkItem.sprintId);
 
             backlogItem.setAuthor(tempWorkItem.ownerName);
             backlogItem.setPriority(tempWorkItem.priority);
             backlogItem.setLastModified(tempWorkItem.lastModifiedTime);
             backlogItem.setNumberOfTasks(0);
             backlogItem.setDefectStatus(tempWorkItem.defectStatus);
-            backlogItem.setInstanceId(wp.getId());
-            backlogItem.setProjectId(workSpaceId);
             backlogItems.add(backlogItem);
         }
 
         return backlogItems;
     }
 
-    protected void SetUpThemeFeatureBacklogItems(final Workspace wp, ClientPublicAPI client, int sharedSpaceId, int workSpaceId)
+    protected void SetUpEpicFeatureBacklogItems(ClientPublicAPI client, int sharedSpaceId, int workSpaceId)
             throws IOException
     {
         WorkItemRoot workItemRoot = client.getWorkItemRoot(sharedSpaceId, workSpaceId);
         List<WorkItemStory> itemBacklogs = workItemRoot.storyList;
-        releaseBacklogItems.addAll(this.pareseBacklogItem(wp, itemBacklogs, workSpaceId));
+        releaseBacklogItems.addAll(this.parseBacklogItem(itemBacklogs, workSpaceId));
         Map<String, WorkItemFeature> itemFeatureRootMap=workItemRoot.featureList;
         if(itemFeatureRootMap != null && itemFeatureRootMap.size() > 0) {
         	 Set<String> keySetF = itemFeatureRootMap.keySet();
              for (String keyF : keySetF) {
                  WorkItemFeature tempFeature = itemFeatureRootMap.get(keyF);
                  AgileDataFeature feature = new AgileDataFeature();
-                 feature.setFeatureId(Integer.parseInt(tempFeature.id));
+                 feature.setFeatureId(tempFeature.id);
                  feature.setName(tempFeature.name);
                  feature.setStatus(tempFeature.status);
                  feature.setFeaturePoints(tempFeature.featurePoints);
                  feature.setAggStoryPoints(tempFeature.aggStoryPoints);
                  feature.setNumOfUserStories(tempFeature.numOfStories);
                  feature.setNumOfDefects(tempFeature.numbOfDefects);
-                 feature.setThemeId((int)tempFeature.themeId);
-                 if (!tempFeature.releaseId.equals("") && Integer.parseInt(tempFeature.releaseId) > 0) {
-                     feature.setReleaseId(Integer.parseInt(tempFeature.releaseId));
+                 feature.setEpicId(tempFeature.epicId);
+                 if (tempFeature.releaseId != null && !"".equals(tempFeature.releaseId) && Integer.parseInt(tempFeature.releaseId) > 0) {
+                     feature.setReleaseId(tempFeature.releaseId);
                  } else {
-                     feature.setReleaseId(-1);
+                     feature.setReleaseId(null);
                  }
                  feature.setLastModified(tempFeature.lastModified);
                  feature.setSolution("");
-                 feature.setInstanceId(wp.getId());
-                 feature.setProjectId(workSpaceId);
                  releaseFeatures.add(feature);//for feature
                  List<WorkItemStory> tempItemBacklog = tempFeature.storyList;//for story
-                 releaseBacklogItems.addAll(this.pareseBacklogItem(wp, tempItemBacklog, workSpaceId));
+                 releaseBacklogItems.addAll(this.parseBacklogItem(tempItemBacklog, workSpaceId));
              }
         }
         Map<String, WorkItemEpic> itemEpicMap = workItemRoot.epicList;
@@ -208,111 +205,91 @@ public class OctaneAgileDataIntegration extends AgileDataIntegration {
             Set<String> keySetT = itemEpicMap.keySet();
             for (String keyT : keySetT) {
                 WorkItemEpic tempEpic = itemEpicMap.get(keyT);
-                AgileDataTheme theme = new AgileDataTheme();
-                theme.setThemeId(Integer.parseInt(tempEpic.id));
-                theme.setName(tempEpic.name);
-                theme.setAggFeatureStoryPoints(tempEpic.aggFeatureStoryPoints);
-                theme.setPlanedStoryPoints(tempEpic.planedStoryPoints);
-                theme.setTotalStoryPoints(tempEpic.totalStoryPoints);
-                theme.setAuthor(tempEpic.author);
-                theme.setInstanceId(wp.getId());
-                theme.setProjectId(workSpaceId);
-                releaseThemes.add(theme);//for epic
+                AgileDataEpic epic = new AgileDataEpic();
+                epic.setEpicId(tempEpic.id);
+                epic.setName(tempEpic.name);
+                epic.setAggFeatureStoryPoints(tempEpic.aggFeatureStoryPoints);
+                epic.setPlannedStoryPoints(tempEpic.plannedStoryPoints);
+                epic.setTotalStoryPoints(tempEpic.totalStoryPoints);
+                epic.setAuthor(tempEpic.author);
+                releaseEpics.add(epic);//for epic
                 Map<String, WorkItemFeature> itemFeatureMap = tempEpic.featureList;
                 if (itemFeatureMap != null && itemFeatureMap.size() > 0) {
                     Set<String> keySetF = itemFeatureMap.keySet();
                     for (String keyF : keySetF) {
                         WorkItemFeature tempFeature = itemFeatureMap.get(keyF);
                         AgileDataFeature feature = new AgileDataFeature();
-                        feature.setFeatureId(Integer.parseInt(tempFeature.id));
+                        feature.setFeatureId(tempFeature.id);
                         feature.setName(tempFeature.name);
                         feature.setStatus(tempFeature.status);
                         feature.setFeaturePoints(tempFeature.featurePoints);
                         feature.setAggStoryPoints(tempFeature.aggStoryPoints);
                         feature.setNumOfUserStories(tempFeature.numOfStories);
                         feature.setNumOfDefects(tempFeature.numbOfDefects);
-                        feature.setThemeId((int)tempFeature.themeId);
-                        if (!tempFeature.releaseId.equals("") && Integer.parseInt(tempFeature.releaseId) > 0) {
-                            feature.setReleaseId(Integer.parseInt(tempFeature.releaseId));
+                        feature.setEpicId(tempFeature.epicId);
+                        if (tempFeature.releaseId != null && !"".equals(tempFeature.releaseId) && Integer.parseInt(tempFeature.releaseId) > 0) {
+                            feature.setReleaseId(tempFeature.releaseId);
                         } else {
-                            feature.setReleaseId(-1);
+                            feature.setReleaseId(null);
                         }
                         feature.setLastModified(tempFeature.lastModified);
                         feature.setSolution("");
-                        feature.setInstanceId(wp.getId());
-                        feature.setProjectId(workSpaceId);
                         releaseFeatures.add(feature);//for feature
                         List<WorkItemStory> tempItemBacklog = tempFeature.storyList;//for story
-                        releaseBacklogItems.addAll(this.pareseBacklogItem(wp, tempItemBacklog, workSpaceId));
+                        releaseBacklogItems.addAll(this.parseBacklogItem(tempItemBacklog, workSpaceId));
                     }
                 }
             }
         }
     }
 
-    protected void SetUpReleaseTeams(final Workspace wp, ClientPublicAPI client, int sharedSpaceId, int workSpaceId) throws IOException {
+    protected void SetUpReleaseTeams(ClientPublicAPI client, int sharedSpaceId, int workSpaceId) throws IOException {
         List<ReleaseTeam> releaseTeams = client.getReleaseTeams(sharedSpaceId, workSpaceId);
         if (releaseTeams != null && releaseTeams.size() > 0) {
             Iterator<ReleaseTeam> iterator = releaseTeams.iterator();
             while (iterator.hasNext()) {
                 ReleaseTeam entity = (ReleaseTeam)iterator.next();
                 AgileDataReleaseTeam tempReleaseReleaseTeam = new AgileDataReleaseTeam();
-                tempReleaseReleaseTeam.setInstanceId(wp.getId());
-                tempReleaseReleaseTeam.setReleaseId(Integer.parseInt(entity.releaseId));
-                tempReleaseReleaseTeam.setTeamId(Integer.parseInt(entity.teamId));
+                tempReleaseReleaseTeam.setReleaseId(entity.releaseId);
+                tempReleaseReleaseTeam.setTeamId(entity.teamId);
                 tempReleaseReleaseTeam.setReleaseTeamId(entity.releaseTeamId);
-                tempReleaseReleaseTeam.setProjectId(workSpaceId);
                 this.releaseReleaseTeams.add(tempReleaseReleaseTeam);
             }
         }
     }
 
-    protected void SetUpReleases(final Workspace wp, ClientPublicAPI client, int sharedSpaceId, int workSpaceId) throws IOException {
+    protected void SetUpReleases(ClientPublicAPI client, int sharedSpaceId, int workSpaceId) throws IOException {
         List<Release> releases = client.getReleases(sharedSpaceId, workSpaceId);
         if (releases != null && releases.size() > 0) {
             Iterator<Release> iterator = releases.iterator();
             while (iterator.hasNext()) {
                 Release entity = (Release)iterator.next();
                 AgileDataRelease tempRelease = new AgileDataRelease();
-                tempRelease.setInstanceId(wp.getId());
-                tempRelease.setReleaseId(Integer.parseInt(entity.id));
+                tempRelease.setReleaseId(entity.id);
                 tempRelease.setName(entity.name);
-                tempRelease.setProjectId(workSpaceId);
                 this.releaseReleases.add(tempRelease);
             }
         }
     }
     
-    protected void SetUpProgramAndProject(final Workspace wp,List<AgileDataProject> releaseProjects,  List<AgileDataProgram> releasePrograms) throws IOException {
-    	for(AgileDataProject entityProject : releaseProjects){
-    		for(AgileDataProgram entityProgram : releasePrograms){
-    			AgileDataProgramProjectMapping tempMapping = new AgileDataProgramProjectMapping();
-                tempMapping.setInstanceId(wp.getId());
-                tempMapping.setProjectId(entityProject.getProjectId());
-                tempMapping.setProgramId(entityProgram.getProgramId());
-                this.releaseProgramProjectMappings.add(tempMapping);
-    		}
-    	}
-    }
-
-    protected void SetUpSprints(final Workspace wp, ClientPublicAPI client, int sharedSpaceId, int workSpaceId) throws IOException {
+    protected void SetUpSprints(ClientPublicAPI client, int sharedSpaceId, int workSpaceId) throws IOException {
         List<Sprint> releases = client.getSprints(sharedSpaceId, workSpaceId);
         if (releases != null && releases.size() > 0) {
             Iterator<Sprint> iterator = releases.iterator();
             while (iterator.hasNext()) {
                 Sprint entity = (Sprint)iterator.next();
                 AgileDataSprint tempSprint = new AgileDataSprint();
-                tempSprint.setInstanceId(wp.getId());
-                tempSprint.setSprintId(Integer.parseInt(entity.id));
+                tempSprint.setSprintId(entity.id);
                 tempSprint.setName(entity.name);
-                tempSprint.setReleaseId(Integer.parseInt(entity.releaseId));
-                tempSprint.setProjectId(workSpaceId);
+                tempSprint.setReleaseId(entity.releaseId);
+                tempSprint.setStartDate(entity.sprintStart);
+                tempSprint.setFinishDate(entity.sprintEnd);
                 this.releaseSprints.add(tempSprint);
             }
         }
     }
 
-    protected void SetUpTeams(final Workspace wp, ClientPublicAPI client, int sharedSpaceId, int workSpaceId) throws IOException {
+    protected void SetUpTeams(ClientPublicAPI client, int sharedSpaceId, int workSpaceId) throws IOException {
         List<Team> teams = client.getTeams(sharedSpaceId, workSpaceId);
         if (teams != null && teams.size() > 0) {
             Iterator<Team> iterator = teams.iterator();
@@ -320,58 +297,54 @@ public class OctaneAgileDataIntegration extends AgileDataIntegration {
                 Team entity = (Team)iterator.next();
                 com.ppm.integration.agilesdk.agiledata.AgileDataTeam tempTeam =
                         new com.ppm.integration.agilesdk.agiledata.AgileDataTeam();
-                tempTeam.setTeamId(Integer.parseInt(entity.id));
+                tempTeam.setTeamId(entity.id);
                 tempTeam.setName(entity.name);
                 tempTeam.setTeamLeader(entity.teamLeader);
                 tempTeam.setMembersCapacity(entity.membersCapacity);
                 tempTeam.setNumOfMembers(entity.numOfMembers);
                 tempTeam.setEstimatedVelocity(entity.estimatedVelocity);
-                tempTeam.setInstanceId(wp.getId());
-                tempTeam.setProjectId(workSpaceId);
                 this.releaseTeams.add(tempTeam);
             }
         }
     }
 
-    @Override public List<AgileDataProject> getProjects(final Workspace wp, final ValueSet paramValueSet){
-        return releaseProjects;
+    @Override public AgileDataProject getProject(){
+        return releaseProject;
     }
-    @Override public List<AgileDataProgram> getPrograms(final Workspace wp, final ValueSet paramValueSet){
+    @Override public List<AgileDataProgram> getPrograms(){
         return releasePrograms;
     }
-    @Override public List<AgileDataProgramProjectMapping> getProgramProjectMappings(final Workspace wp, final ValueSet paramValueSet){
-        return releaseProgramProjectMappings;
-    }
 
-    @Override public List<AgileDataBacklogItem> getBacklogItems(final Workspace wp, ValueSet paramValueSet) {
+    @Override public List<AgileDataBacklogItem> getBacklogItems() {
         return releaseBacklogItems;
     }
 
-    @Override public List<AgileDataFeature> getFeatures(final Workspace wp, ValueSet paramValueSet) {
+    @Override public List<AgileDataFeature> getFeatures() {
         return releaseFeatures;
     }
 
-    @Override public List<AgileDataReleaseTeam> getReleaseTeams(final Workspace wp, ValueSet paramValueSet) {
+    @Override public List<AgileDataReleaseTeam> getReleaseTeams() {
         return releaseReleaseTeams;
     }
 
-    @Override public List<AgileDataRelease> getReleases(final Workspace wp, ValueSet paramValueSet) {
+    @Override public List<AgileDataRelease> getReleases() {
         return releaseReleases;
     }
 
-    @Override public List<AgileDataSprint> getSprints(final Workspace wp, ValueSet paramValueSet) {
+    @Override public List<AgileDataSprint> getSprints() {
         return releaseSprints;
     }
 
-    @Override public List<com.ppm.integration.agilesdk.agiledata.AgileDataTeam> getTeams(final Workspace wp, ValueSet paramValueSet) {
+    @Override public List<com.ppm.integration.agilesdk.agiledata.AgileDataTeam> getTeams() {
         return releaseTeams;
     }
 
-    @Override public List<AgileDataTheme> getThemes(final Workspace wp, ValueSet paramValueSet) {
-        return releaseThemes;
+    @Override public List<AgileDataEpic> getEpics() {
+        return releaseEpics;
     }
 
-    public List<AgileDataBacklogConfig> getAgileDataBacklogConfig() {
+    @Override
+    public List<AgileDataBacklogConfig> getAgileDataBacklogConfig(ValueSet configuration) {
         List<AgileDataBacklogConfig> list = new ArrayList<AgileDataBacklogConfig>();
         AgileDataBacklogConfig config1 = new AgileDataBacklogConfig();
         config1.setBacklogStatus("Done");
@@ -438,7 +411,8 @@ public class OctaneAgileDataIntegration extends AgileDataIntegration {
         return list;
     }
 
-    public List<AgileDataBacklogSeverity> getAgileDataBacklogSeverity() {
+    @Override
+    public List<AgileDataBacklogSeverity> getAgileDataBacklogSeverity(ValueSet configuration) {
         List<AgileDataBacklogSeverity> list = new ArrayList<AgileDataBacklogSeverity>();
         AgileDataBacklogSeverity severity1 = new AgileDataBacklogSeverity();
         severity1.setBacklogType("defect");
@@ -462,5 +436,17 @@ public class OctaneAgileDataIntegration extends AgileDataIntegration {
 
         return list;
     }
+
+    @Override
+    /**
+     * We store both Shared Workspace ID and Workspace ID in the Agile Project value, but we only use workspace ID as "project ID" for Agile Data integration.
+     */
+    public String getProjectIdFromAgileProjectValue(String agileProjectValue) {
+
+        JSONObject value = (JSONObject)JSONSerializer.toJSON(agileProjectValue);
+        return value.getString("WORKSPACE_ID");
+    }
+
+
 
 }

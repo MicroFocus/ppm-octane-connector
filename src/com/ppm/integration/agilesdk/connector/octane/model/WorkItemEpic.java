@@ -13,7 +13,7 @@ public class WorkItemEpic extends WorkItem {
 
     public int totalStoryPoints = 0;
 
-    public int planedStoryPoints = 0;
+    public int plannedStoryPoints = 0;
 
     public int doneStoryPoints = 0;
 
@@ -29,7 +29,7 @@ public class WorkItemEpic extends WorkItem {
             this.name = (String)Obj.get("name");
             this.subType = (String)Obj.get("subtype");
             this.author = getSubObjectItem("author", "name", Obj);
-            this.planedStoryPoints = Obj.getInt("story_points");
+            this.plannedStoryPoints = Obj.getInt("story_points");
         } catch (net.sf.json.JSONException expected) {
             // the lable is null
         }
