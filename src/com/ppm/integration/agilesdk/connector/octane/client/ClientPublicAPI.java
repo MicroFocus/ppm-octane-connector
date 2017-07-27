@@ -587,6 +587,10 @@ public class ClientPublicAPI {
 
         WorkItemEpic epic = new WorkItemEpic();
         try {
+            if(response.getStatusCode() != 200) {
+                logger.error("error in getEpicActualStoryPointsAndPath:" + response.getData());
+                throw new OctaneClientException("AGM_APP", "error of get epicActualStoryPoints and path: [http status code, error message]:" + response.getStatusCode() + "," + response.getData());
+            }
             net.sf.json.JSONObject jsonStr = net.sf.json.JSONObject.fromObject(response.getData());
             if(jsonStr.containsKey("path")) {
                 epic.path = jsonStr.getString("path");
@@ -745,6 +749,9 @@ public class ClientPublicAPI {
 
         ArrayList<String> ids = new ArrayList();
         try {
+            if(response.getStatusCode() != 200) {
+                throw new OctaneClientException("AGM_APP", "error of get getDoneDefinationOfUserStoryAndDefect and path: [http status code, error message]:" + response.getStatusCode() + "," + response.getData());
+            }
             net.sf.json.JSONObject jsonResponse = net.sf.json.JSONObject.fromObject(response.getData());
             net.sf.json.JSONArray jsonData = jsonResponse.getJSONArray("data");
             if(jsonData != null && jsonData.size() > 0) {
@@ -840,6 +847,9 @@ public class ClientPublicAPI {
 
         WorkItemEpic epic = new WorkItemEpic();
         try {
+            if(response.getStatusCode() != 200) {
+                throw new OctaneClientException("AGM_APP", "error of get getDoneDefinationOfUserStoryAndDefect and path: [http status code, error message]:" + response.getStatusCode() + "," + response.getData());
+            }
             net.sf.json.JSONObject jsonResponse = net.sf.json.JSONObject.fromObject(response.getData());
             net.sf.json.JSONArray jsonData = jsonResponse.getJSONArray("groups");
             if (jsonData != null && jsonData.size() > 0) {
