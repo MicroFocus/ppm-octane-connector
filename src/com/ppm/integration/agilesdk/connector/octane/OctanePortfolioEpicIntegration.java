@@ -72,9 +72,7 @@ public class OctanePortfolioEpicIntegration extends PortfolioEpicIntegration {
         PortfolioEpicSyncInfo epic = new PortfolioEpicSyncInfo();
         try {
             ClientPublicAPI client = OnctaneIntegrationHelper.getClient(instanceConfigurationParameters);
-            JSONObject jsonConfig = (JSONObject)JSONSerializer.toJSON(agileProjectValue);
-            String valueText = jsonConfig.getString("value");
-            JSONObject valueJson = (JSONObject)JSONSerializer.toJSON(valueText);
+            JSONObject valueJson = (JSONObject)JSONSerializer.toJSON(agileProjectValue);
             int shareSpaceId = valueJson.getInt("SHARED_SPACE_ID");
             int workSpaceId = valueJson.getInt("WORKSPACE_ID");
             String[] doneStatusIDs = client.getDoneDefinationOfUserStoryAndDefect(shareSpaceId, workSpaceId);
