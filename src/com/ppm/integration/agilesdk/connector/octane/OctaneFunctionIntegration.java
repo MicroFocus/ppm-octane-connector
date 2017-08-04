@@ -20,14 +20,19 @@ public class OctaneFunctionIntegration {
         ClientPublicAPI client = new ClientPublicAPI(values.get(OctaneConstants.KEY_BASE_URL));
         String proxyHost = null, proxyPort = null;
         if (values.getBoolean(OctaneConstants.KEY_USE_GLOBAL_PROXY, false)) {
-
-            //String proxyURL = Providers.getServerConfigurationProvider(OctaneIntegrationConnector.class).getServerProperty("HTTP_PROXY_URL");
-            //            Matcher m = Pattern.compile("^([^:]*)(:(\\d+))?$").matcher(proxyURL);
-            //            if(m.matches()){
-            //                proxyHost = m.group(1);
-            //                proxyPort = m.group(3);
-            //                proxyPort = proxyPort == null? "80":proxyPort;
-            //            }
+            String proxyURL = Providers.getServerConfigurationProvider(OctaneIntegrationConnector.class).getServerProperty("HTTP_PROXY_URL");
+            if(proxyURL == null){
+            	 Logger.getLogger(OctaneIntegrationConnector.class)
+                 .debug(String.format("Please configure proxy in server.conf"));
+            } else {
+            	 Matcher m = Pattern.compile("^([^:]*)(:(\\d+))?$").matcher(proxyURL);
+                 if(m.matches()){
+                     proxyHost = m.group(1);
+                     proxyPort = m.group(3);
+                     proxyPort = proxyPort == null? "80":proxyPort;
+                 }
+            }
+            
         } else {
             proxyHost = values.get(OctaneConstants.KEY_PROXY_HOST);
             proxyPort = values.get(OctaneConstants.KEY_PROXY_PORT);
