@@ -149,7 +149,7 @@ public class ClientPublicAPI {
             return new RestResponse(responseCode, output);
         } catch (IOException e) {
             logger.error("error in http connectivity:", e);
-            throw new OctaneClientException("AGM_APP", "error in http connectivity:", e.getMessage());
+            throw new OctaneClientException("AGM_APP", "error in http connectivity: "+ e.getMessage());
         }
     }
 

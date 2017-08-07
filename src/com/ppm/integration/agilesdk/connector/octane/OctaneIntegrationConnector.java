@@ -20,7 +20,7 @@ public class OctaneIntegrationConnector extends IntegrationConnector {
     private final Logger logger = Logger.getLogger(this.getClass());
 
     @Override public String getExternalApplicationName() {
-        return "Octane Connector";
+        return "Octane";
     }
 
     @Override public String getExternalApplicationVersionIndication() {
