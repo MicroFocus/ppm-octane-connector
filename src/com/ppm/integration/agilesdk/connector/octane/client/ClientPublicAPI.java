@@ -157,7 +157,7 @@ public class ClientPublicAPI {
         boolean isVerify = false;
         if (expected != result) {
             logger.error("error in access token retrieve.");
-            throw new OctaneClientException("AGM_APP", "error in access token retrieve.");
+            throw new OctaneClientException("AGM_APP", "error in access token retrieve, please check client id and client secret.");
         } else {
             isVerify = true;
         }
