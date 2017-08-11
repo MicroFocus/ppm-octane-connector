@@ -53,6 +53,10 @@ public class WorkItemStory extends WorkItem {
     public String priority;
 
     public String defectStatus;
+    
+    public String detectedInRelease;
+    
+    public String severity;
 
     public void ParseJsonData(JSONObject Obj) {
 
@@ -71,12 +75,15 @@ public class WorkItemStory extends WorkItem {
 
             this.status = this.getSubObjectItem("phase", "name", Obj);
 
+            this.detectedInRelease = getSubObjectItem("detected_in_release", "id", Obj);
+            
             this.defectStatus = this.status;
             if (!"".equals(this.getSubObjectItem("team", "id", Obj))) {
                 this.teamId = this.getSubObjectItem("team", "id", Obj);
             }
 
-            this.priority = getSubObjectItem("severity", "name", Obj);
+            this.severity = getSubObjectItem("severity", "name", Obj);
+            this.priority = getSubObjectItem("priority", "name", Obj);
             if (!"".equals(this.getSubObjectItem("parent", "id", Obj))) {
                 this.featureId = this.getSubObjectItem("parent", "id", Obj);
             }
