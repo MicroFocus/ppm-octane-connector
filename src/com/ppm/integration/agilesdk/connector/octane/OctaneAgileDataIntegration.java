@@ -143,6 +143,12 @@ public class OctaneAgileDataIntegration extends AgileDataIntegration {
 
             backlogItem.setStatus(tempWorkItem.status);
 
+            if (!tempWorkItem.detectedInRelease.equals("") && Integer.parseInt(tempWorkItem.detectedInRelease) > 0) {
+                backlogItem.setDetectedInReleaseId(tempWorkItem.detectedInRelease);
+            } else {
+                backlogItem.setDetectedInReleaseId(null);
+            }
+            
             if (!tempWorkItem.releaseId.equals("") && Integer.parseInt(tempWorkItem.releaseId) > 0) {
                 backlogItem.setReleaseId(tempWorkItem.releaseId);
             } else {
@@ -159,6 +165,7 @@ public class OctaneAgileDataIntegration extends AgileDataIntegration {
 
             backlogItem.setAuthor(tempWorkItem.ownerName);
             backlogItem.setPriority(tempWorkItem.priority);
+            backlogItem.setSeverity(tempWorkItem.severity);
             backlogItem.setLastModified(tempWorkItem.lastModifiedTime);
             backlogItem.setNumberOfTasks(0);
             backlogItem.setDefectStatus(tempWorkItem.defectStatus);
