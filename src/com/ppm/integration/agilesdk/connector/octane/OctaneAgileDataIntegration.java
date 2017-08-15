@@ -423,27 +423,27 @@ public class OctaneAgileDataIntegration extends AgileDataIntegration {
         List<AgileDataBacklogSeverity> list = new ArrayList<AgileDataBacklogSeverity>();
         AgileDataBacklogSeverity severity1 = new AgileDataBacklogSeverity();
         severity1.setBacklogType("defect");
-        severity1.setSeverity("1");
+        severity1.setSeverity("Critical");
         list.add(severity1);
 
         AgileDataBacklogSeverity severity2 = new AgileDataBacklogSeverity();
         severity2.setBacklogType("defect");
-        severity2.setSeverity("2");
+        severity2.setSeverity("Very High");
         list.add(severity2);
 
         AgileDataBacklogSeverity severity3 = new AgileDataBacklogSeverity();
         severity3.setBacklogType("defect");
-        severity3.setSeverity("3");
+        severity3.setSeverity("High");
         list.add(severity3);
 
         AgileDataBacklogSeverity severity4 = new AgileDataBacklogSeverity();
         severity4.setBacklogType("defect");
-        severity4.setSeverity("4");
+        severity4.setSeverity("Medium");
         list.add(severity4);
 
         AgileDataBacklogSeverity severity5 = new AgileDataBacklogSeverity();
         severity5.setBacklogType("defect");
-        severity5.setSeverity("5");
+        severity5.setSeverity("Low");
         list.add(severity5);
 
         return list;
