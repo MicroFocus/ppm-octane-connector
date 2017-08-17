@@ -17,7 +17,7 @@ public class OnctaneIntegrationHelper {
         String clientId = values.get(OctaneConstants.APP_CLIENT_ID);
         String clientSecret = values.get(OctaneConstants.APP_CLIENT_SECRET);
         if (!client.getAccessTokenWithFormFormat(clientId, clientSecret)) {
-            throw new OctaneClientException("AGM_APP", "error in access token retrieve.");
+            throw new OctaneClientException("OCTANE_API", "error in access token retrieve.");
         }
         return client;
     }
