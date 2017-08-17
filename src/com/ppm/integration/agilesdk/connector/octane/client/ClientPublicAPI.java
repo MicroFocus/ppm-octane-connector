@@ -58,6 +58,8 @@ public class ClientPublicAPI {
 
     private Proxy proxy = null;
 
+    private int retryNumber = 0;
+
     public ClientPublicAPI(String baseUrl) {
         this.baseURL = baseUrl.trim();
         if (this.baseURL.endsWith("/")) {
@@ -71,7 +73,7 @@ public class ClientPublicAPI {
         //http(s)://<server>:<port>/agm/oauth/token
         String url = String.format("%s/authentication/sign_in", baseURL);
         String data =
-                String.format("{  \"client_id\":\"%s\",\"client_secret\":\"%s\",\"enable_csrf\": \"true\"}", clientId,
+                String.format("{\"client_id\":\"%s\",\"client_secret\":\"%s\",\"enable_csrf\": \"true\"}", clientId,
                         clientSecret);
         Map<String, String> headers = new HashMap<>();
         headers.put("Content-Type", MediaType.APPLICATION_JSON);
@@ -125,10 +127,7 @@ public class ClientPublicAPI {
                     this.cookies = getCookie(con);
                 }
 
-            } else if (responseCode == 403) {
-            	throw new OctaneClientException("OCTANE_API", "ERROR_AUTHENTICATION_FAILED");
-            }
-            else {
+            } else {
                 InputStream inputStream = con.getErrorStream();
                 if (inputStream == null) {
                     inputStream = con.getInputStream();
@@ -146,8 +145,31 @@ public class ClientPublicAPI {
 
             String output = response.toString();
 
+            if (responseCode == 401) {
+                retryNumber = 0;
+                logger.error("OCTANE_API: HTTP 401 Error - URL:" + url + " Result: " + output);
+                throw new OctaneClientException("OCTANE_API", "ERROR_AUTHENTICATION_FAILED");
+            } else if (responseCode == 403) {
+                retryNumber = 0;
+                logger.error("OCTANE_API: HTTP 403 Error - URL:" + url + " Result: " + output);
+                throw new OctaneClientException("OCTANE_API", "ERROR_ACCESS_FAILED");
+            } else if (responseCode == 400) {
+                //sometimes there is a network issue, so we retry it again. If the retry number is great than 3,
+                //We will throw exception
+                logger.error("OCTANE_API: HTTP 400 Error - URL:" + url + " Result: " + output);
+                if (retryNumber < 3) {
+                    retryNumber += 1;
+                    logger.error("OCTANE_API: HTTP 400 Error - This is the " + retryNumber + " time to retry.");
+                    return sendRequest(url, method, data, headers);
+                } else {
+                    retryNumber = 0;
+                    throw new OctaneClientException("OCTANE_API", "ERROR_BAD_REQUEST");
+                }
+            }
+            retryNumber = 0;
             return new RestResponse(responseCode, output);
         } catch (IOException e) {
+            retryNumber = 0;
             logger.error("error in http connectivity:", e);
             throw new OctaneClientException("AGM_APP", "error in http connectivity: "+ e.getMessage());
         }
@@ -157,7 +179,7 @@ public class ClientPublicAPI {
         boolean isVerify = false;
         if (expected != result) {
             logger.error("error in access token retrieve.");
-            throw new OctaneClientException("AGM_APP", "error in access token retrieve, please check client id and client secret.");
+            throw new OctaneClientException("OCTANE_API", "error in access token retrieve");
         } else {
             isVerify = true;
         }
