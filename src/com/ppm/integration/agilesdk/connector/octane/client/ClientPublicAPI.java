@@ -380,7 +380,7 @@ public class ClientPublicAPI {
             int limit = 100;
             do {
                 String url =
-                        String.format("%s/api/shared_spaces/%d/workspaces/%d/teams%s%s%s?offset=%d&limit=%d", baseURL,
+                        String.format("%s/api/shared_spaces/%d/workspaces/%d/teams%s%s%s&offset=%d&limit=%d", baseURL,
                                 sharedSpaceId, workSpaceId, "?query=%22releases%3D%7Bid%3D", releaseId, "%7D%22",
                                 offset, limit);
 
@@ -459,7 +459,7 @@ public class ClientPublicAPI {
         int limit = 100;
         int memberCapacity = 0;
         do {
-            String url = String.format("%s/api/shared_spaces/%d/workspaces/%d/team_members%s%d%s?offset=%d&limit=%d",
+            String url = String.format("%s/api/shared_spaces/%d/workspaces/%d/team_members%s%d%s&offset=%d&limit=%d",
                     baseURL, sharedSpaceId, workSpaceId, "?query=%22team%3D%7Bid%3D", teamId, "%7D%22", offset, limit);
 
             Map<String, String> headers = new HashMap<>();
