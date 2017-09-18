@@ -18,15 +18,17 @@ import org.junit.Test;
 public class OctaneAgileDataIntegrationTest {
     ValueSet values = new ValueSet();
     Workspace wp=new Workspace();
+    OctaneAgileDataIntegration ori = new OctaneAgileDataIntegration();
 
     @Before public void setUp() throws Exception {
         values = CommonParameters.getDefaultValueSet();
         wp.setId("InstanceId-1");
+        ori.setUp(values, "3001");
     }
 
     @Test public void testGetBacklogItems() throws Exception {
-        OctaneAgileDataIntegration ori = new OctaneAgileDataIntegration();
-        List<AgileDataBacklogItem> bItem = ori.getBacklogItems(wp, values);
+        
+        List<AgileDataBacklogItem> bItem = ori.getBacklogItems();
         Assert.assertNotNull(bItem);
         Assert.assertTrue(bItem.size() > 0);
         for (AgileDataBacklogItem b : bItem) {
@@ -35,8 +37,7 @@ public class OctaneAgileDataIntegrationTest {
     }
 
     @Test public void testGetFeatures() throws Exception {
-        OctaneAgileDataIntegration ori = new OctaneAgileDataIntegration();
-        List<AgileDataFeature> fItem = ori.getFeatures(wp,values);
+        List<AgileDataFeature> fItem = ori.getFeatures();
         Assert.assertNotNull(fItem);
         Assert.assertTrue(fItem.size() > 0);
         for (AgileDataFeature f : fItem) {
@@ -45,8 +46,7 @@ public class OctaneAgileDataIntegrationTest {
     }
 
     @Test public void testGetReleaseTeams() throws Exception {
-        OctaneAgileDataIntegration ori = new OctaneAgileDataIntegration();
-        List<AgileDataReleaseTeam> rtItem = ori.getReleaseTeams(wp,values);
+        List<AgileDataReleaseTeam> rtItem = ori.getReleaseTeams();
         Assert.assertNotNull(rtItem);
         Assert.assertTrue(rtItem.size() > 0);
         for (AgileDataReleaseTeam b : rtItem) {
@@ -55,8 +55,7 @@ public class OctaneAgileDataIntegrationTest {
     }
 
     @Test public void testGetReleases() throws Exception {
-        OctaneAgileDataIntegration ori = new OctaneAgileDataIntegration();
-        List<AgileDataRelease> rItem = ori.getReleases(wp,values);
+        List<AgileDataRelease> rItem = ori.getReleases();
         Assert.assertNotNull(rItem);
         Assert.assertTrue(rItem.size() > 0);
         for (AgileDataRelease r : rItem) {
@@ -65,8 +64,7 @@ public class OctaneAgileDataIntegrationTest {
     }
 
     @Test public void testGetSprints() throws Exception {
-        OctaneAgileDataIntegration ori = new OctaneAgileDataIntegration();
-        List<AgileDataSprint> sItem = ori.getSprints(wp,values);
+        List<AgileDataSprint> sItem = ori.getSprints();
         Assert.assertNotNull(sItem);
         Assert.assertTrue(sItem.size() > 0);
         for (AgileDataSprint s : sItem) {
@@ -75,8 +73,7 @@ public class OctaneAgileDataIntegrationTest {
     }
 
     @Test public void testGetTeams() throws Exception {
-        OctaneAgileDataIntegration ori = new OctaneAgileDataIntegration();
-        List<com.ppm.integration.agilesdk.agiledata.AgileDataTeam> rtItem = ori.getTeams(wp,values);
+        List<com.ppm.integration.agilesdk.agiledata.AgileDataTeam> rtItem = ori.getTeams();
         Assert.assertNotNull(rtItem);
         Assert.assertTrue(rtItem.size() > 0);
         for (com.ppm.integration.agilesdk.agiledata.AgileDataTeam rt : rtItem) {
@@ -85,8 +82,7 @@ public class OctaneAgileDataIntegrationTest {
     }
 
     @Test public void testGetThemes() throws Exception {
-        OctaneAgileDataIntegration ori = new OctaneAgileDataIntegration();
-        List<AgileDataEpic> tItem = ori.getEpics(wp,values);
+        List<AgileDataEpic> tItem = ori.getEpics();
         Assert.assertNotNull(tItem);
         Assert.assertTrue(tItem.size() > 0);
         for (AgileDataEpic t : tItem) {

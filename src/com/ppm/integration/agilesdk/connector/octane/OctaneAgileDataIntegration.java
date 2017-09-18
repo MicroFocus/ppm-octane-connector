@@ -127,6 +127,12 @@ public class OctaneAgileDataIntegration extends AgileDataIntegration {
 
             backlogItem.setStatus(tempWorkItem.status);
 
+            if (!tempWorkItem.detectedInRelease.equals("") && Integer.parseInt(tempWorkItem.detectedInRelease) > 0) {
+                backlogItem.setDetectedInReleaseId(tempWorkItem.detectedInRelease);
+            } else {
+                backlogItem.setDetectedInReleaseId(null);
+            }
+            
             if (!tempWorkItem.releaseId.equals("") && Integer.parseInt(tempWorkItem.releaseId) > 0) {
                 backlogItem.setReleaseId(tempWorkItem.releaseId);
             } else {
@@ -143,6 +149,7 @@ public class OctaneAgileDataIntegration extends AgileDataIntegration {
 
             backlogItem.setAuthor(tempWorkItem.ownerName);
             backlogItem.setPriority(tempWorkItem.priority);
+            backlogItem.setSeverity(tempWorkItem.severity);
             backlogItem.setLastModified(tempWorkItem.lastModifiedTime);
             backlogItem.setNumberOfTasks(0);
             backlogItem.setDefectStatus(tempWorkItem.defectStatus);
@@ -400,27 +407,32 @@ public class OctaneAgileDataIntegration extends AgileDataIntegration {
         List<AgileDataBacklogSeverity> list = new ArrayList<AgileDataBacklogSeverity>();
         AgileDataBacklogSeverity severity1 = new AgileDataBacklogSeverity();
         severity1.setBacklogType("defect");
-        severity1.setSeverity("1");
+        severity1.setSeverity("Critical");
+        severity1.setSeverityIndex(1);
         list.add(severity1);
 
         AgileDataBacklogSeverity severity2 = new AgileDataBacklogSeverity();
         severity2.setBacklogType("defect");
-        severity2.setSeverity("2");
+        severity2.setSeverity("Very High");
+        severity2.setSeverityIndex(2);
         list.add(severity2);
 
         AgileDataBacklogSeverity severity3 = new AgileDataBacklogSeverity();
         severity3.setBacklogType("defect");
-        severity3.setSeverity("3");
+        severity3.setSeverity("High");
+        severity3.setSeverityIndex(3);
         list.add(severity3);
 
         AgileDataBacklogSeverity severity4 = new AgileDataBacklogSeverity();
         severity4.setBacklogType("defect");
-        severity4.setSeverity("4");
+        severity4.setSeverity("Medium");
+        severity4.setSeverityIndex(4);
         list.add(severity4);
 
         AgileDataBacklogSeverity severity5 = new AgileDataBacklogSeverity();
         severity5.setBacklogType("defect");
-        severity5.setSeverity("5");
+        severity5.setSeverity("Low");
+        severity5.setSeverityIndex(5);
         list.add(severity5);
 
         return list;

@@ -27,8 +27,7 @@ public class OctaneWorkPlanIntegration extends WorkPlanIntegration implements Fu
         return Arrays.asList(new Field[] {
                 new OctaneEntityDropdown(OctaneConstants.KEY_SHAREDSPACEID, "OCTANE_SHARESPACE", "block", true) {
                     @Override public List<String> getDependencies() {
-                        return Arrays.asList(new String[] {OctaneConstants.KEY_BASE_URL, OctaneConstants.KEY_PROXY_HOST,
-                                OctaneConstants.KEY_PROXY_PORT, OctaneConstants.APP_CLIENT_ID,
+                        return Arrays.asList(new String[] {OctaneConstants.KEY_BASE_URL, OctaneConstants.APP_CLIENT_ID,
                                 OctaneConstants.APP_CLIENT_SECRET,});
                     }
 

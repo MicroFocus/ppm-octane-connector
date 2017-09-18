@@ -45,6 +45,8 @@ public class ClientPublicAPI {
 
     private Proxy proxy = null;
 
+    private int retryNumber = 0;
+
     public ClientPublicAPI(String baseUrl) {
         this.baseURL = baseUrl.trim();
         if (this.baseURL.endsWith("/")) {
@@ -68,7 +70,7 @@ public class ClientPublicAPI {
     {
         String url = String.format("%s/authentication/sign_in", baseURL);
         String data =
-                String.format("{  \"client_id\":\"%s\",\"client_secret\":\"%s\",\"enable_csrf\": \"true\"}", clientId,
+                String.format("{\"client_id\":\"%s\",\"client_secret\":\"%s\",\"enable_csrf\": \"true\"}", clientId,
                         clientSecret);
         Map<String, String> headers = new HashMap<>();
         headers.put("Content-Type", MediaType.APPLICATION_JSON);
@@ -148,11 +150,7 @@ public class ClientPublicAPI {
                 if (cookies == null) {
                     this.cookies = getCookie(con);
                 }
-
-            } else if (responseCode == 403) {
-                throw new OctaneClientException("OCTANE_API", "ERROR_AUTHENTICATION_FAILED");
-            }
-            else {
+            } else {
                 InputStream inputStream = con.getErrorStream();
                 if (inputStream == null) {
                     inputStream = con.getInputStream();
@@ -170,10 +168,33 @@ public class ClientPublicAPI {
 
             String output = response.toString();
 
+            if (responseCode == 401) {
+                retryNumber = 0;
+                logger.error("OCTANE_API: HTTP 401 Error - URL:" + url + " Result: " + output);
+                throw new OctaneClientException("OCTANE_API", "ERROR_AUTHENTICATION_FAILED");
+            } else if (responseCode == 403) {
+                retryNumber = 0;
+                logger.error("OCTANE_API: HTTP 403 Error - URL:" + url + " Result: " + output);
+                throw new OctaneClientException("OCTANE_API", "ERROR_ACCESS_FAILED");
+            } else if (responseCode == 400) {
+                //sometimes there is a network issue, so we retry it again. If the retry number is great than 3,
+                //We will throw exception
+                logger.error("OCTANE_API: HTTP 400 Error - URL:" + url + " Result: " + output);
+                if (retryNumber < 3) {
+                    retryNumber += 1;
+                    logger.error("OCTANE_API: HTTP 400 Error - This is the " + retryNumber + " time to retry.");
+                    return sendRequest(url, method, data, headers);
+                } else {
+                    retryNumber = 0;
+                    throw new OctaneClientException("OCTANE_API", "ERROR_BAD_REQUEST");
+                }
+            }
+            retryNumber = 0;
             return new RestResponse(responseCode, output);
         } catch (IOException e) {
+            retryNumber = 0;
             logger.error("error in http connectivity:", e);
-            throw new OctaneClientException("AGM_APP", "error in http connectivity:", e.getMessage());
+            throw new OctaneClientException("AGM_APP", "error in http connectivity: "+ e.getMessage());
         }
     }
 
@@ -181,7 +202,7 @@ public class ClientPublicAPI {
         boolean isVerify = false;
         if (expected != result) {
             logger.error("error in access token retrieve.");
-            throw new OctaneClientException("AGM_APP", "error in access token retrieve.");
+            throw new OctaneClientException("OCTANE_API", "error in access token retrieve");
         } else {
             isVerify = true;
         }
@@ -370,7 +391,7 @@ public class ClientPublicAPI {
             int limit = 100;
             do {
                 String url =
-                        String.format("%s/api/shared_spaces/%d/workspaces/%d/teams%s%s%s?offset=%d&limit=%d", baseURL,
+                        String.format("%s/api/shared_spaces/%d/workspaces/%d/teams%s%s%s&offset=%d&limit=%d", baseURL,
                                 sharedSpaceId, workSpaceId, "?query=%22releases%3D%7Bid%3D", releaseId, "%7D%22",
                                 offset, limit);
 
@@ -439,7 +460,7 @@ public class ClientPublicAPI {
         int limit = 100;
         int memberCapacity = 0;
         do {
-            String url = String.format("%s/api/shared_spaces/%d/workspaces/%d/team_members%s%d%s?offset=%d&limit=%d",
+            String url = String.format("%s/api/shared_spaces/%d/workspaces/%d/team_members%s%d%s&offset=%d&limit=%d",
                     baseURL, sharedSpaceId, workSpaceId, "?query=%22team%3D%7Bid%3D", teamId, "%7D%22", offset, limit);
 
             RestResponse response = sendGet(url);
