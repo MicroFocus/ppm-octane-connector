@@ -202,6 +202,8 @@ public class OctaneWorkPlanIntegration extends WorkPlanIntegration implements Fu
 
         ClientPublicAPI client = ClientPublicAPI.getClient(values);
 
+        setBackwardCompatibleParameters(values);
+
         WorkplanContext wpContext = new WorkplanContext();
 
         wpContext.wpiContext = wpiContext;
@@ -370,6 +372,27 @@ public class OctaneWorkPlanIntegration extends WorkPlanIntegration implements Fu
             }
         };
 
+    }
+
+
+    /* Older versions of the Octane Connector don't have so many values ; we'll set default values when they are not set */
+    private void setBackwardCompatibleParameters(ValueSet values) {
+        if (values.get(OctaneConstants.KEY_PERCENT_COMPLETE) == null) {
+            values.put(OctaneConstants.KEY_PERCENT_COMPLETE, OctaneConstants.PERCENT_COMPLETE_WORK);
+        }
+
+        if (values.get(OctaneConstants.KEY_IMPORT_SELECTION) == null) {
+            values.put(OctaneConstants.KEY_IMPORT_SELECTION, OctaneConstants.IMPORT_SELECTION_RELEASE);
+        }
+
+        // In first versions of connector, we only import a Release ID.
+        if (values.get(OctaneConstants.KEY_IMPORT_SELECTION_DETAILS) == null) {
+            values.put(OctaneConstants.KEY_IMPORT_SELECTION_DETAILS, values.get(OctaneConstants.KEY_RELEASEID));
+        }
+
+        if(values.get(OctaneConstants.KEY_IMPORT_GROUPS) == null) {
+            values.put(OctaneConstants.KEY_IMPORT_GROUPS, OctaneConstants.GROUP_RELEASE);
+        }
     }
 
     private List<Release> getSortedReleases(Set<String> releaseIds, Map<String, Release> releasesMap) {
