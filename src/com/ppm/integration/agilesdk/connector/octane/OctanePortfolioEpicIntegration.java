@@ -3,8 +3,8 @@ package com.ppm.integration.agilesdk.connector.octane;
 import com.ppm.integration.agilesdk.ValueSet;
 import com.ppm.integration.agilesdk.connector.octane.client.ClientPublicAPI;
 import com.ppm.integration.agilesdk.connector.octane.client.OctaneClientException;
+import com.ppm.integration.agilesdk.connector.octane.client.OctaneConnectivityExceptionHandler;
 import com.ppm.integration.agilesdk.connector.octane.model.*;
-import com.ppm.integration.agilesdk.model.AgileProject;
 import com.ppm.integration.agilesdk.epic.PortfolioEpicCreationInfo;
 import com.ppm.integration.agilesdk.epic.PortfolioEpicIntegration;
 import com.ppm.integration.agilesdk.epic.PortfolioEpicSyncInfo;
@@ -41,7 +41,7 @@ public class OctanePortfolioEpicIntegration extends PortfolioEpicIntegration {
             }
             epic.setName(epicName);
             epic.setDescription(epicDescription);
-            ClientPublicAPI client = OnctaneIntegrationHelper.getClient(paramValueSet);
+            ClientPublicAPI client = ClientPublicAPI.getClient(paramValueSet);
             JSONObject workspaceJson = (JSONObject)JSONSerializer.toJSON(value);
             String workSpaceId = workspaceJson.getString(OctaneConstants.WORKSPACE_ID);
             String sharedSpaceId = workspaceJson.getString(OctaneConstants.SHARED_SPACE_ID);
@@ -71,11 +71,11 @@ public class OctanePortfolioEpicIntegration extends PortfolioEpicIntegration {
     {
         PortfolioEpicSyncInfo epic = new PortfolioEpicSyncInfo();
         try {
-            ClientPublicAPI client = OnctaneIntegrationHelper.getClient(instanceConfigurationParameters);
+            ClientPublicAPI client = ClientPublicAPI.getClient(instanceConfigurationParameters);
             JSONObject valueJson = (JSONObject)JSONSerializer.toJSON(agileProjectValue);
             int shareSpaceId = valueJson.getInt("SHARED_SPACE_ID");
             int workSpaceId = valueJson.getInt("WORKSPACE_ID");
-            String[] doneStatusIDs = client.getDoneDefinationOfUserStoryAndDefect(shareSpaceId, workSpaceId);
+            String[] doneStatusIDs = client.getDoneDefinitionOfUserStoryAndDefect(shareSpaceId, workSpaceId);
 
             WorkItemEpic epic1 = client.getEpicActualStoryPointsAndPath(shareSpaceId, workSpaceId, epicId);
             epic.setEpicName(epic1.name);

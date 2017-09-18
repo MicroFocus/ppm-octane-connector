@@ -1,7 +1,10 @@
-package com.ppm.integration.agilesdk.connector.octane;
+package com.ppm.integration.agilesdk.connector.octane.client;
 
 import com.ppm.integration.agilesdk.ValueSet;
-import com.ppm.integration.agilesdk.connector.octane.client.Client;
+import com.ppm.integration.agilesdk.connector.octane.OctaneConstants;
+import com.ppm.integration.agilesdk.connector.octane.OctaneIntegrationConnector;
+import com.ppm.integration.agilesdk.connector.octane.OctaneWorkPlanIntegration;
+import com.ppm.integration.agilesdk.connector.octane.client.UsernamePasswordClient;
 import com.ppm.integration.agilesdk.connector.octane.client.ClientPublicAPI;
 import com.ppm.integration.agilesdk.provider.Providers;
 import java.util.List;
@@ -13,11 +16,13 @@ import org.apache.log4j.Logger;
 /**
  * Created by lutian on 2016/11/9.
  */
-public class OctaneFunctionIntegration {
+public class OctaneClientHelper {
 
     public static ClientPublicAPI setupClientPublicAPI(ValueSet values) {
 
         ClientPublicAPI client = new ClientPublicAPI(values.get(OctaneConstants.KEY_BASE_URL));
+        client.setSharedSpaceId(values.get(OctaneConstants.KEY_SHAREDSPACEID));
+        client.setWorkSpaceId(values.get(OctaneConstants.KEY_WORKSPACEID));
         String proxyHost = null, proxyPort = null;
         if (values.getBoolean(OctaneConstants.KEY_USE_GLOBAL_PROXY, false)) {
 
@@ -47,7 +52,7 @@ public class OctaneFunctionIntegration {
         return client;
     }
 
-    public static Client setupClient(Client client, List<String> cookies, ValueSet values) {
+    public static UsernamePasswordClient setupClient(UsernamePasswordClient client, List<String> cookies, ValueSet values) {
         String proxyHost = null, proxyPort = null;
         if (values.getBoolean(OctaneConstants.KEY_USE_GLOBAL_PROXY, false)) {
 
@@ -85,7 +90,10 @@ public class OctaneFunctionIntegration {
         return client;
     }
 
-    public static Client setupClient(Client client, ValueSet values) {
+    /**
+     * This call is needed for verifying user identity in Timesheet integration.
+     */
+    public static UsernamePasswordClient setupClient(UsernamePasswordClient client, ValueSet values) {
         return setupClient(client, null, values);
     }
 }

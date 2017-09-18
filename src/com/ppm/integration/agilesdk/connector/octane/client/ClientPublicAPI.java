@@ -1,58 +1,45 @@
 package com.ppm.integration.agilesdk.connector.octane.client;
 
-import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.DeserializationFeature;
-import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.kintana.core.server.execution.ParseException;
-import com.ppm.integration.agilesdk.connector.octane.model.EpicAttr;
-import com.ppm.integration.agilesdk.connector.octane.model.EpicCreateEntity;
-import com.ppm.integration.agilesdk.connector.octane.model.EpicEntity;
-import com.ppm.integration.agilesdk.connector.octane.model.Release;
-import com.ppm.integration.agilesdk.connector.octane.model.ReleaseTeam;
-import com.ppm.integration.agilesdk.connector.octane.model.ReleaseTeams;
-import com.ppm.integration.agilesdk.connector.octane.model.Releases;
-import com.ppm.integration.agilesdk.connector.octane.model.SharedSpace;
-import com.ppm.integration.agilesdk.connector.octane.model.SharedSpaces;
-import com.ppm.integration.agilesdk.connector.octane.model.Sprint;
-import com.ppm.integration.agilesdk.connector.octane.model.Sprints;
-import com.ppm.integration.agilesdk.connector.octane.model.Team;
-import com.ppm.integration.agilesdk.connector.octane.model.Teams;
-import com.ppm.integration.agilesdk.connector.octane.model.TimesheetItem;
-import com.ppm.integration.agilesdk.connector.octane.model.WorkItemEpic;
-import com.ppm.integration.agilesdk.connector.octane.model.WorkItemRoot;
-import com.ppm.integration.agilesdk.connector.octane.model.WorkSpace;
-import com.ppm.integration.agilesdk.connector.octane.model.WorkSpaces;
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.OutputStreamWriter;
+import com.ppm.integration.agilesdk.ValueSet;
+import com.ppm.integration.agilesdk.connector.octane.OctaneConstants;
+import com.ppm.integration.agilesdk.connector.octane.model.*;
+import net.sf.json.JSONArray;
+import net.sf.json.JSONObject;
+import org.apache.commons.lang.StringUtils;
+import org.apache.http.HttpStatus;
+import org.apache.log4j.Logger;
+
+
+import javax.ws.rs.HttpMethod;
+import javax.ws.rs.core.MediaType;
+import java.io.*;
 import java.net.HttpURLConnection;
 import java.net.InetSocketAddress;
 import java.net.Proxy;
 import java.net.URL;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import javax.ws.rs.HttpMethod;
-import javax.ws.rs.core.MediaType;
-import org.apache.http.HttpStatus;
-import org.apache.log4j.Logger;
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
+import java.util.*;
+import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
 
+
+/**
+ * This Octane client is using the ClientID/ClientSecret authentication, and should be used wherever possible,
+ * i.e. whenever it's not mandatory to know who the end user is.
+ *
+ * workspace ID & Shared space ID will be read from the passed parameters and used whenever needed when doing REST calls ; you can also set them manually with the setters.
+ */
 public class ClientPublicAPI {
 
     private final Logger logger = Logger.getLogger(this.getClass());
 
-    protected String baseURL = "";
+    private String baseURL = "";
+
+    private Integer workSpaceId = null;
+
+    private Integer sharedSpaceId = null;
 
     private String cookies;
 
@@ -65,10 +52,20 @@ public class ClientPublicAPI {
         }
     }
 
+    public static ClientPublicAPI getClient(ValueSet values) {
+        ClientPublicAPI client = OctaneClientHelper.setupClientPublicAPI(values);
+        String clientId = values.get(OctaneConstants.APP_CLIENT_ID);
+        String clientSecret = values.get(OctaneConstants.APP_CLIENT_SECRET);
+
+        if (!client.getAccessTokenWithFormFormat(clientId, clientSecret)) {
+            throw new OctaneClientException("AGM_APP", "error when retrieving access token.");
+        }
+
+        return client;
+    }
+
     public boolean getAccessTokenWithFormFormat(String clientId, String clientSecret)
-            throws IOException, JSONException
     {
-        //http(s)://<server>:<port>/agm/oauth/token
         String url = String.format("%s/authentication/sign_in", baseURL);
         String data =
                 String.format("{  \"client_id\":\"%s\",\"client_secret\":\"%s\",\"enable_csrf\": \"true\"}", clientId,
@@ -77,16 +74,43 @@ public class ClientPublicAPI {
         headers.put("Content-Type", MediaType.APPLICATION_JSON);
         RestResponse response = sendRequest(url, HttpMethod.POST, data, headers);
         return verifyResult(HttpStatus.SC_OK, response.getStatusCode());
-
-        //return AccessToken.createFromJson(response.getData());
     }
 
     public void setProxy(String host, int port) {
         this.proxy = new Proxy(Proxy.Type.HTTP, new InetSocketAddress(host, port));
     }
 
+
+    private RestResponse sendGet(String url) {
+        return sendRequest(url, HttpMethod.GET, null);
+    }
+
+    private RestResponse sendRequest(String url, String method, String jsonData) {
+
+        Map<String, String> headers = new HashMap<>();
+
+        headers.put("Cookie", this.cookies);
+        headers.put("HPECLIENTTYPE", "HPE_MQM_UI");
+
+        if (jsonData != null ) {
+            headers.put("Content-Type", MediaType.APPLICATION_JSON);
+        }
+
+        if (!HttpMethod.GET.equals(method)) {
+            String csrf = this.getCSRF(this.cookies);
+            if (csrf != null) {
+                headers.put("HPSSO-HEADER-CSRF", csrf);
+            }
+        }
+
+        return sendRequest(url, method, jsonData, headers);
+    }
+
+    /**
+     * Use this method only when you need to have full control over the header sent, for example during authentication process.
+     * For standard REST API usage, use {@link #sendRequest(String, String, String)}, it will take care of everything for you.
+     */
     private RestResponse sendRequest(String url, String method, String data, Map<String, String> headers)
-            throws IOException
     {
         try {
             URL obj = new URL(url);
@@ -126,7 +150,7 @@ public class ClientPublicAPI {
                 }
 
             } else if (responseCode == 403) {
-            	throw new OctaneClientException("OCTANE_API", "ERROR_AUTHENTICATION_FAILED");
+                throw new OctaneClientException("OCTANE_API", "ERROR_AUTHENTICATION_FAILED");
             }
             else {
                 InputStream inputStream = con.getErrorStream();
@@ -165,17 +189,14 @@ public class ClientPublicAPI {
     }
 
     public List<TimesheetItem> getTimeSheetData(int shareSpace, String userName, String startDateStr, String endDateStr,
-            int workspaceId) throws IOException
+            int workspaceId)
     {
-        String method = "GET";
+
         String url = String.format(
                 "%s/api/shared_spaces/%d/timesheet?login_names=%s&start_date=%s&end_date=%s&workspace_ids=%d&task_level=true",
                 baseURL, shareSpace, userName, startDateStr, endDateStr, workspaceId);
 
-        Map<String, String> headers = new HashMap<>();
-        headers.put("Cookie", this.cookies);
-        headers.put("HPECLIENTTYPE", "HPE_MQM_UI");
-        RestResponse response = sendRequest(url, method, null, headers);
+        RestResponse response = sendGet(url);
 
         try {
             List<TimesheetItem> items = parseTimesheetItems(response.getData());
@@ -186,56 +207,61 @@ public class ClientPublicAPI {
         }
     }
 
-    public List<TimesheetItem> parseTimesheetItems(String json) throws IOException, JSONException, ParseException {
-        JSONObject obj = new JSONObject(json);
-        JSONArray arr = obj.getJSONArray("data");
-        List<TimesheetItem> items = new ArrayList<>();
-        for (int i = 0; i < arr.length(); i++) {
-            JSONObject rawItem = (JSONObject)arr.get(i);
-            TimesheetItem item = new TimesheetItem();
-            items.add(item);
+    private List<TimesheetItem> parseTimesheetItems(String json) {
+        try {
+            org.json.JSONObject obj = new org.json.JSONObject(json);
+
+            org.json.JSONArray arr = obj.getJSONArray("data");
+            List<TimesheetItem> items = new ArrayList<>();
+            for (int i = 0; i < arr.length(); i++) {
+                org.json.JSONObject rawItem = (org.json.JSONObject)arr.get(i);
+                TimesheetItem item = new TimesheetItem();
+                items.add(item);
                     /* see reports/timesheet topic
                     for full list of fields. */
-            int entityId = 0;
-            try {
-                entityId = Integer.parseInt(rawItem.getString("entity_id"));
-            } catch (Exception ignore) {
+                int entityId = 0;
+                try {
+                    entityId = Integer.parseInt(rawItem.getString("entity_id"));
+                } catch (Exception ignore) {
+                }
+                item.setEntityId(entityId);
+
+                item.setEntityName(rawItem.getString("entity_name"));
+                item.setEntityType(rawItem.getString("entity_type"));
+                item.setLoginName(rawItem.getString("login_name"));
+                item.setFullName(rawItem.getString("user_full_name"));
+
+                int investedHours = 0;
+                try {
+                    investedHours = Integer.parseInt(rawItem.getString("invested_hours"));
+                } catch (Exception ignore) {
+                }
+                item.setInvested(investedHours);
+
+                item.setDate(rawItem.getString("date"));
+
+                int sprintId = 0;
+                try {
+                    sprintId = Integer.parseInt(rawItem.getString("sprint_id"));
+                } catch (Exception ignore) {
+                }
+                item.setSprintId(sprintId);
+
+                item.setSprintName(rawItem.getString("sprint_name"));
+
+                int releaseId = 0;
+                try {
+                    releaseId = Integer.parseInt(rawItem.getString("release_id"));
+                } catch (Exception ignore) {
+                }
+                item.setReleaseId(releaseId);
+
+                item.setReleaseName(rawItem.getString("release_name"));
             }
-            item.setEntityId(entityId);
-
-            item.setEntityName(rawItem.getString("entity_name"));
-            item.setEntityType(rawItem.getString("entity_type"));
-            item.setLoginName(rawItem.getString("login_name"));
-            item.setFullName(rawItem.getString("user_full_name"));
-
-            int investedHours = 0;
-            try {
-                investedHours = Integer.parseInt(rawItem.getString("invested_hours"));
-            } catch (Exception ignore) {
-            }
-            item.setInvested(investedHours);
-
-            item.setDate(rawItem.getString("date"));
-
-            int sprintId = 0;
-            try {
-                sprintId = Integer.parseInt(rawItem.getString("sprint_id"));
-            } catch (Exception ignore) {
-            }
-            item.setSprintId(sprintId);
-
-            item.setSprintName(rawItem.getString("sprint_name"));
-
-            int releaseId = 0;
-            try {
-                releaseId = Integer.parseInt(rawItem.getString("release_id"));
-            } catch (Exception ignore) {
-            }
-            item.setReleaseId(releaseId);
-
-            item.setReleaseName(rawItem.getString("release_name"));
+            return items;
+        } catch (Exception e) {
+            throw new RuntimeException("Error when parsing JSON", e);
         }
-        return items;
     }
 
     private String getCookie(HttpURLConnection con)
@@ -250,15 +276,11 @@ public class ClientPublicAPI {
         return cookieVal;
     }
 
-    public List<SharedSpace> getSharedSpaces() throws IOException {
+    public List<SharedSpace> getSharedSpaces() {
 
-        String method = "GET";
         String url = String.format("%s/api/shared_spaces", baseURL);
 
-        Map<String, String> headers = new HashMap<>();
-        headers.put("Cookie", this.cookies);
-        headers.put("HPECLIENTTYPE", "HPE_MQM_UI");
-        RestResponse response = sendRequest(url, method, null, headers);
+        RestResponse response = sendGet(url);
 
         SharedSpaces tempSharedSpace = new SharedSpaces();
         try {
@@ -271,15 +293,11 @@ public class ClientPublicAPI {
         return tempSharedSpace.getCollection();
     }
 
-    public List<WorkSpace> getWorkSpaces(int sharedSpacesId) throws IOException {
+    public List<WorkSpace> getWorkSpaces(int sharedSpacesId) {
 
-        String method = "GET";
         String url = String.format("%s/api/shared_spaces/%d/workspaces", baseURL, sharedSpacesId);
 
-        Map<String, String> headers = new HashMap<>();
-        headers.put("Cookie", this.cookies);
-        headers.put("HPECLIENTTYPE", "HPE_MQM_UI");
-        RestResponse response = sendRequest(url, method, null, headers);
+        RestResponse response = sendGet(url);
 
         WorkSpaces tempWorkSpace = new WorkSpaces();
         try {
@@ -291,17 +309,13 @@ public class ClientPublicAPI {
         return tempWorkSpace.getCollection();
     }
 
-    public Release getRelease(int sharedSpacesId, int workSpaceId, int releaseId) throws IOException {
+    public Release getRelease(int sharedSpacesId, int workSpaceId, int releaseId) {
 
-        String method = "GET";
         String url =
                 String.format("%s/api/shared_spaces/%d/workspaces/%d/releases/%d", baseURL, sharedSpacesId, workSpaceId,
                         releaseId);
 
-        Map<String, String> headers = new HashMap<>();
-        headers.put("Cookie", this.cookies);
-        headers.put("HPECLIENTTYPE", "HPE_MQM_UI");
-        RestResponse response = sendRequest(url, method, null, headers);
+        RestResponse response = sendGet(url);
 
         Release tempRelease = new Release();
         try {
@@ -313,8 +327,7 @@ public class ClientPublicAPI {
         return tempRelease;
     }
 
-    public List<Release> getReleases(int sharedSpaceId, int workSpaceId) throws IOException {
-        String method = "GET";
+    public List<Release> getAllReleases() {
         List<Release> results = new LinkedList<>();
         boolean hasNext = true;
         int offset = 0;
@@ -322,11 +335,8 @@ public class ClientPublicAPI {
         do {
             String url = String.format("%s/api/shared_spaces/%d/workspaces/%d/releases?offset=%d&limit=%d", baseURL,
                     sharedSpaceId, workSpaceId, offset, limit);
-            Map<String, String> headers = new HashMap<>();
-            headers.put("Cookie", this.cookies);
-            headers.put("HPECLIENTTYPE", "HPE_MQM_UI");
 
-            RestResponse response = sendRequest(url, method, null, headers);
+            RestResponse response = sendGet(url);
 
             try {
                 Releases tempReleases = new Releases();
@@ -342,17 +352,19 @@ public class ClientPublicAPI {
                 throw new OctaneClientException("AGM_APP", "error in get Releases:", e.getMessage());
             }
         } while (hasNext);
+
+        OctaneUtils.sortReleases(results);
+
         return results;
     }
 
-    public List<ReleaseTeam> getReleaseTeams(int sharedSpaceId, int workSpaceId) throws IOException {
+    public List<ReleaseTeam> getReleaseTeams() {
         List<ReleaseTeam> releaseTeams = new LinkedList<>();
-        List<Release> releases = getReleases(sharedSpaceId, workSpaceId);
+        List<Release> releases = getAllReleases();
 
         Iterator<Release> iterator = releases.iterator();
         while (iterator.hasNext()) {
             String releaseId = iterator.next().id;
-            String method = "GET";
             boolean hasNext = true;
             int offset = 0;
             int limit = 100;
@@ -362,11 +374,7 @@ public class ClientPublicAPI {
                                 sharedSpaceId, workSpaceId, "?query=%22releases%3D%7Bid%3D", releaseId, "%7D%22",
                                 offset, limit);
 
-                Map<String, String> headers = new HashMap<>();
-                headers.put("Cookie", this.cookies);
-                headers.put("HPECLIENTTYPE", "HPE_MQM_UI");
-
-                RestResponse response = sendRequest(url, method, null, headers);
+                RestResponse response = sendGet(url);
 
                 ReleaseTeams tempReleaseTeams = new ReleaseTeams();
                 tempReleaseTeams.releaseId = releaseId;
@@ -389,8 +397,7 @@ public class ClientPublicAPI {
         return releaseTeams;
     }
 
-    public List<Team> getTeams(int sharedSpaceId, int workSpaceId) throws IOException {
-        String method = "GET";
+    public List<Team> getTeams(int sharedSpaceId, int workSpaceId) {
         List<Team> results = new LinkedList<>();
         boolean hasNext = true;
         int offset = 0;
@@ -399,11 +406,7 @@ public class ClientPublicAPI {
             String url = String.format("%s/api/shared_spaces/%d/workspaces/%d/teams?offset=%d&limit=%d", baseURL,
                     sharedSpaceId, workSpaceId, offset, limit);
 
-            Map<String, String> headers = new HashMap<>();
-            headers.put("Cookie", this.cookies);
-            headers.put("HPECLIENTTYPE", "HPE_MQM_UI");
-
-            RestResponse response = sendRequest(url, method, null, headers);
+            RestResponse response = sendGet(url);
 
             try {
                 Teams tempTeams = new Teams();
@@ -430,8 +433,7 @@ public class ClientPublicAPI {
         return results;
     }
 
-    private int getTeamMemberCapacity(int sharedSpaceId, int workSpaceId, int teamId) throws IOException {
-        String method = "GET";
+    private int getTeamMemberCapacity(int sharedSpaceId, int workSpaceId, int teamId) {
         boolean hasNext = true;
         int offset = 0;
         int limit = 100;
@@ -440,11 +442,7 @@ public class ClientPublicAPI {
             String url = String.format("%s/api/shared_spaces/%d/workspaces/%d/team_members%s%d%s?offset=%d&limit=%d",
                     baseURL, sharedSpaceId, workSpaceId, "?query=%22team%3D%7Bid%3D", teamId, "%7D%22", offset, limit);
 
-            Map<String, String> headers = new HashMap<>();
-            headers.put("Cookie", this.cookies);
-            headers.put("HPECLIENTTYPE", "HPE_MQM_UI");
-
-            RestResponse response = sendRequest(url, method, null, headers);
+            RestResponse response = sendGet(url);
             //get the sum of team member'capacity
             net.sf.json.JSONObject object = net.sf.json.JSONObject.fromObject(response.getData());
             if(object.get("data") == null){
@@ -465,40 +463,24 @@ public class ClientPublicAPI {
         return memberCapacity;
     }
 
-    public List<Sprint> getSprints(int sharedSpaceId, int workSpaceId) throws IOException {
-        String method = "GET";
-        List<Sprint> results = new LinkedList<>();
-        boolean hasNext = true;
-        int offset = 0;
-        int limit = 100;
-        do {
-            String url = String.format("%s/api/shared_spaces/%d/workspaces/%d/sprints?offset=%d&limit=%d", baseURL,
-                    sharedSpaceId, workSpaceId, offset, limit);
+    public List<Sprint> getAllSprints() {
 
-            Map<String, String> headers = new HashMap<>();
-            headers.put("Cookie", this.cookies);
-            headers.put("HPECLIENTTYPE", "HPE_MQM_UI");
+        List<JSONObject> sprintsJson = new JsonPaginatedOctaneGetter().get(
+                String.format("%s/api/shared_spaces/%d/workspaces/%d/sprints", baseURL,
+                sharedSpaceId, workSpaceId));
 
-            RestResponse response = sendRequest(url, method, null, headers);
-            try {
-                Sprints tempSprints = new Sprints();
-                tempSprints.SetCollection(response.getData());
-                if (tempSprints.getCollection().size() == limit) {
-                    offset += limit;
-                } else {
-                    hasNext = false;
-                }
-                results.addAll(tempSprints.getCollection());
-            } catch (Exception e) {
-                logger.error("error in get Sprints:", e);
-                throw new OctaneClientException("AGM_APP", "error in get Sprints:", e.getMessage());
-            }
-        } while (hasNext);
+        List<Sprint> results = new ArrayList<>(sprintsJson.size());
+
+        for (JSONObject sprintJson : sprintsJson) {
+            Sprint sprint = new Sprint();
+            sprint.ParseJsonData(sprintJson);
+            results.add(sprint);
+        }
+
         return results;
     }
 
-    public WorkItemRoot getWorkItemRoot(int sharedSpaceId, int workSpaceId) throws IOException {
-        String method = "GET";
+    public WorkItemRoot getWorkItemRoot(int sharedSpaceId, int workSpaceId) {
         WorkItemRoot tempWorkItemRoot = new WorkItemRoot();
         boolean hasNext = true;
         int offset = 0;
@@ -507,11 +489,7 @@ public class ClientPublicAPI {
             String url = String.format("%s/api/shared_spaces/%d/workspaces/%d/work_items?offset=%d&limit=%d", baseURL,
                     sharedSpaceId, workSpaceId, offset, limit);
 
-            Map<String, String> headers = new HashMap<>();
-            headers.put("Cookie", this.cookies);
-            headers.put("HPECLIENTTYPE", "HPE_MQM_UI");
-
-            RestResponse response = sendRequest(url, method, null, headers);
+            RestResponse response = sendGet(url);
 
             try {
                 tempWorkItemRoot.GetTempParseData(response.getData(), true);
@@ -529,38 +507,6 @@ public class ClientPublicAPI {
         return tempWorkItemRoot;
     }
 
-    public WorkItemRoot getWorkItemRoot(int sharedSpaceId, int workSpaceId, int releaseId) throws IOException {
-        String method = "GET";
-        WorkItemRoot tempWorkItemRoot = new WorkItemRoot();
-        boolean hasNext = true;
-        int offset = 0;
-        int limit = 200;
-        do {
-            String url = String.format("%s/api/shared_spaces/%d/workspaces/%d/work_items?offset=%d&limit=%d", baseURL,
-                    sharedSpaceId, workSpaceId, offset, limit);
-
-            Map<String, String> headers = new HashMap<>();
-            headers.put("Cookie", this.cookies);
-            headers.put("HPECLIENTTYPE", "HPE_MQM_UI");
-
-            RestResponse response = sendRequest(url, method, null, headers);
-
-            try {
-                tempWorkItemRoot.GetTempParseData(response.getData(), true);
-                if (tempWorkItemRoot.length == limit) {
-                    offset += limit;
-                } else {
-                    hasNext = false;
-                }
-            } catch (Exception e) {
-                logger.error("error in get WorkItemRoot:", e);
-                throw new OctaneClientException("AGM_APP", "error in get WorkItemRoot:", e.getMessage());
-            }
-        } while (hasNext);
-        tempWorkItemRoot.ParseDataIntoDetail(String.valueOf(releaseId));
-        return tempWorkItemRoot;
-    }
-
     /*
     example request:
     http://XXX.asiapacific.hpqcorp.net:8080/api/shared_spaces/2001/workspaces/1002/epics/2001?fields=path,actual_story_points
@@ -574,16 +520,12 @@ public class ClientPublicAPI {
        "id":"2001"
     }
     * */
-    public WorkItemEpic getEpicActualStoryPointsAndPath(int sharedSpaceId, int workSpaceId, String epicId) throws IOException {
+    public WorkItemEpic getEpicActualStoryPointsAndPath(int sharedSpaceId, int workSpaceId, String epicId) {
 
-        String method = "GET";
         String url = String.format("%s/api/shared_spaces/%d/workspaces/%d/epics/%s?fields=name,path,actual_story_points",
                 baseURL, sharedSpaceId, workSpaceId, epicId);
 
-        Map<String, String> headers = new HashMap<>();
-        headers.put("Cookie", this.cookies);
-        headers.put("HPECLIENTTYPE", "HPE_MQM_UI");
-        RestResponse response = sendRequest(url, method, null, headers);
+        RestResponse response = sendGet(url);
 
         WorkItemEpic epic = new WorkItemEpic();
         try {
@@ -738,19 +680,18 @@ public class ClientPublicAPI {
     }
 * */
 
-    public String[] getDoneDefinationOfUserStoryAndDefect(int sharedSpaceId, int workSpaceId) throws IOException {
-        String method = "GET";
+    /**
+     * @return The phase ID for work items that is considered as "DONE".
+     */
+    public String[] getDoneDefinitionOfUserStoryAndDefect(int sharedSpaceId, int workSpaceId) {
         String url = String.format("%s/api/shared_spaces/%d/workspaces/%d/phases?query=\"(entity='defect'||entity='story'||"
                 + "entity='quality_story');metaphase={logical_name='metaphase.work_item.done'}\"", baseURL, sharedSpaceId, workSpaceId);
-        Map<String, String> headers = new HashMap<>();
-        headers.put("Cookie", this.cookies);
-//        headers.put("HPECLIENTTYPE", "HPE_MQM_UI");
-        RestResponse response = sendRequest(url, method, null, headers);
+        RestResponse response = sendGet(url);
 
         ArrayList<String> ids = new ArrayList();
         try {
             if(response.getStatusCode() != 200) {
-                throw new OctaneClientException("AGM_APP", "error of get getDoneDefinationOfUserStoryAndDefect and path: [http status code, error message]:" + response.getStatusCode() + "," + response.getData());
+                throw new OctaneClientException("AGM_APP", "error of get getDoneDefinitionOfUserStoryAndDefect and path: [http status code, error message]:" + response.getStatusCode() + "," + response.getData());
             }
             net.sf.json.JSONObject jsonResponse = net.sf.json.JSONObject.fromObject(response.getData());
             net.sf.json.JSONArray jsonData = jsonResponse.getJSONArray("data");
@@ -761,58 +702,15 @@ public class ClientPublicAPI {
                 }
             }
         } catch (Exception e) {
-            logger.error("error in getDoneDefinationOfUserStoryAndDefect:", e);
-            throw new OctaneClientException("AGM_APP", "error in getDoneDefinationOfUserStoryAndDefect:", e.getMessage());
+            logger.error("error in getDoneDefinitionOfUserStoryAndDefect:", e);
+            throw new OctaneClientException("AGM_APP", "error in getDoneDefinitionOfUserStoryAndDefect:", e.getMessage());
         }
         return ids.toArray(new String[]{});
     }
 
-/*
-    example request:
-    http://XXX.asiapacific.hpqcorp.net:8080/api/shared_spaces/2001/workspaces/1002/work_items/groups?group_by=phase&query="path='0000000001OT*';
-        (subtype='defect'||subtype='story'||subtype='quality_story');(phase={id=1030}||phase={id=1033}||phase={id=1004})"
-    example result 1:
 
-    {"groups":[],"groupsTotalCount":0}
+    public WorkItemEpic getEpicDoneStoryPoints(int sharedSpaceId, int workSpaceId, String epicPath, String[] doneStatusIDs)  {
 
-    example result 2:
-    {
-       "groups":[
-          {
-             "count":1,
-             "value":{
-                "type":"phase",
-                "logical_name":"phase.defect.closed",
-                "name":"Closed",
-                "index":3,
-                "id":"1004"
-             },
-             "aggregatedData":{
-                "story_points":99
-             },
-             "groups":null
-          },
-          {
-             "count":1,
-             "value":{
-                "type":"phase",
-                "logical_name":"phase.story.done",
-                "name":"Done",
-                "index":3,
-                "id":"1030"
-             },
-             "aggregatedData":{
-                "story_points":12
-             },
-             "groups":null
-          }
-       ],
-       "groupsTotalCount":2
-    }
-    * */
-    public WorkItemEpic getEpicDoneStoryPoints(int sharedSpaceId, int workSpaceId, String epicPath, String[] doneStatusIDs) throws IOException {
-
-        String method = "GET";
         //example:
         // (phase={id=1030}||phase={id=1033}||phase={id=1004})
         StringBuffer statusStr = new StringBuffer();
@@ -840,15 +738,12 @@ public class ClientPublicAPI {
                         + "path='%s*';(subtype='defect'||subtype='story'||subtype='quality_story');%s\"", baseURL,
                 sharedSpaceId, workSpaceId, epicPath, statusStr);
 
-        Map<String, String> headers = new HashMap<>();
-        headers.put("Cookie", this.cookies);
-        //headers.put("HPECLIENTTYPE", "HPE_MQM_UI");
-        RestResponse response = sendRequest(url, method, null, headers);
+        RestResponse response = sendGet(url);
 
         WorkItemEpic epic = new WorkItemEpic();
         try {
             if(response.getStatusCode() != 200) {
-                throw new OctaneClientException("AGM_APP", "error of get getDoneDefinationOfUserStoryAndDefect and path: [http status code, error message]:" + response.getStatusCode() + "," + response.getData());
+                throw new OctaneClientException("AGM_APP", "error of get getDoneDefinitionOfUserStoryAndDefect and path: [http status code, error message]:" + response.getStatusCode() + "," + response.getData());
             }
             net.sf.json.JSONObject jsonResponse = net.sf.json.JSONObject.fromObject(response.getData());
             net.sf.json.JSONArray jsonData = jsonResponse.getJSONArray("groups");
@@ -870,21 +765,10 @@ public class ClientPublicAPI {
         return epic;
     }
 
-    public List<EpicEntity> createEpicInWorkspace(String sharedspaceId, String workspaceId, EpicCreateEntity epicCreateEntity) throws JsonProcessingException, IOException, JSONException {
+    public List<EpicEntity> createEpicInWorkspace(String sharedspaceId, String workspaceId, EpicCreateEntity epicCreateEntity)  {
         String url = String.format("%s/api/shared_spaces/%s/workspaces/%s/epics", baseURL, sharedspaceId, workspaceId);
-        Map<String, String> headers = new HashMap<>();
-        
-        headers.put("Cookie", this.cookies);
-        headers.put("HPECLIENTTYPE", "HPE_MQM_UI");
-  //    	headers.put("HPECLIENTTYPE", "HPE_SWAGGER_API");
-  //    	headers.put("Cookie", this.cookies.replace("OCTANE_USER", "S_OCTANE_USER"));
-        headers.put("Content-Type", MediaType.APPLICATION_JSON);
-        String csrf = this.getCSRF(this.cookies);
-        if (csrf != null) {
-          headers.put("HPSSO-HEADER-CSRF", csrf);
-        }
-        
-        RestResponse response = sendRequest(url, HttpMethod.POST, this.getJsonStrFromObject(epicCreateEntity), headers);
+
+        RestResponse response = sendRequest(url, HttpMethod.POST, this.getJsonStrFromObject(epicCreateEntity));
         if (HttpStatus.SC_CREATED != response.getStatusCode()) {
           this.logger.error("Error occurs when creating epic in Octane: Response code = " + response.getStatusCode());
           throw new OctaneClientException("AGM_APP", "ERROR_HTTP_CONNECTIVITY_ERROR", new String[] { response.getData() });
@@ -892,34 +776,40 @@ public class ClientPublicAPI {
         return (List<EpicEntity>) getDataContent(response.getData(), new TypeReference<List<EpicEntity>>(){});
     }
 
-    public List<EpicAttr> getEpicPhase(final String sharedspaceId, final String workspaceId, final String phaseLogicName) throws JsonProcessingException, IOException, JSONException {
+    public List<EpicAttr> getEpicPhase(final String sharedspaceId, final String workspaceId, final String phaseLogicName) {
         String url = String.format("%s/api/shared_spaces/%s/workspaces/%s/phases?fields=id&query=%s%s%s",
-            baseURL, sharedspaceId, workspaceId, "%22logical_name%3D'", phaseLogicName, "'%22");
-        Map<String, String> headers = new HashMap<>();
-        headers.put("Cookie", this.cookies);
-        headers.put("HPECLIENTTYPE", "HPE_MQM_UI");
-        RestResponse response = sendRequest(url, HttpMethod.GET, null, headers);
-        
+                baseURL, sharedspaceId, workspaceId, "%22logical_name%3D'", phaseLogicName, "'%22");
+        RestResponse response = sendGet(url);
+
+        return (List<EpicAttr>)getDataContent(response.getData(), new TypeReference<List<EpicAttr>>(){});
+    }
+
+    public List<EpicAttr> getAllEpics() {
+        String url = String.format("%s/api/shared_spaces/%d/workspaces/%d/epics?fields=id,name",
+                baseURL, sharedSpaceId, workSpaceId);
+        RestResponse response = sendGet(url);
+
         return (List<EpicAttr>)getDataContent(response.getData(), new TypeReference<List<EpicAttr>>(){});
     }
     
-    public List<EpicAttr> getEpicParent(final String sharedspaceId, final String workspaceId, final String workitemSubtype) throws JsonProcessingException, IOException, JSONException {
+    public List<EpicAttr> getEpicParent(final String sharedspaceId, final String workspaceId, final String workitemSubtype) {
         String url = String.format("%s/api/shared_spaces/%s/workspaces/%s/work_items?fields=id&query=%s%s%s",
             baseURL, sharedspaceId, workspaceId, "%22subtype%3D'", workitemSubtype, "'%22");
-        Map<String, String> headers = new HashMap<>();
-        headers.put("Cookie", this.cookies);
-        headers.put("HPECLIENTTYPE", "HPE_MQM_UI");
-        RestResponse response = sendRequest(url, HttpMethod.GET, null, headers);
+        RestResponse response = sendGet(url);
     	
         return (List<EpicAttr>)getDataContent(response.getData(), new TypeReference<List<EpicAttr>>(){});
     }
     
-    public String getJsonStrFromObject(Object sourceObj) throws JsonProcessingException {
+    private String getJsonStrFromObject(Object sourceObj)  {
     	ObjectMapper objectMapper = new ObjectMapper();
-    	return objectMapper.writeValueAsString(sourceObj);
+        try {
+            return objectMapper.writeValueAsString(sourceObj);
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException("Error when generating JSon String from object", e);
+        }
     }
     
-    public String getCSRF(final String cookies) {
+    private String getCSRF(final String cookies) {
         String csrf = null;
         int csrfStart = cookies.indexOf("HPSSO_COOKIE_CSRF=");
         if (csrfStart > -1) {
@@ -929,19 +819,188 @@ public class ClientPublicAPI {
         return csrf;
     }
     
-    private List<?> getDataContent(String jsonData, TypeReference<?> typeRef)
-        throws JSONException, JsonParseException, JsonMappingException, IOException {
-        ObjectMapper mapper = new ObjectMapper();
-        mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
-        JSONObject obj = new JSONObject(jsonData);
-        Object dataObj = obj.get("data");
-        if(dataObj != null) {
-            String arrayStr = dataObj.toString();			
-            if(arrayStr.length() > 2){
-                return mapper.readValue(arrayStr, typeRef);
+    private List<?> getDataContent(String jsonData, TypeReference<?> typeRef) {
+        try {
+            ObjectMapper mapper = new ObjectMapper();
+
+            mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+            org.json.JSONObject obj = new org.json.JSONObject(jsonData);
+            Object dataObj = obj.get("data");
+            if (dataObj != null) {
+                String arrayStr = dataObj.toString();
+                if (arrayStr.length() > 2) {
+                    return mapper.readValue(arrayStr, typeRef);
+                }
             }
+            return null;
+        } catch (Exception e) {
+            logger.error("Error when parsing JSon Data: " + jsonData, e);
+            throw new OctaneClientException("AGM_APP", "Error when reading JSon data from Octane: "+ e.getMessage());
         }
-        return null;
+    }
+
+    public List<GenericWorkItem> getEpicWorkItems(int epicId) {
+
+        List<JSONObject> workItemsJson = getWorkItems(String.format("id=%d||parent={id=%d}||parent={parent={id=%d}}", epicId, epicId, epicId));
+
+        List<GenericWorkItem> results = new ArrayList<>(workItemsJson.size());
+
+        for (JSONObject workItemJson : workItemsJson) {
+            GenericWorkItem wi = new GenericWorkItem(workItemJson);
+            results.add(wi);
+        }
+
+        return results;
+    }
+
+    public List<GenericWorkItem> getReleaseWorkItems(int releaseId) {
+        List<JSONObject> workItemsJson = getWorkItems(String.format("release={id=%d}", releaseId));
+
+        List<GenericWorkItem> results = new ArrayList<>(workItemsJson.size());
+
+        for (JSONObject workItemJson : workItemsJson) {
+            GenericWorkItem wi = new GenericWorkItem(workItemJson);
+            results.add(wi);
+        }
+
+        return results;
+    }
+
+    private List<JSONObject> getWorkItems(String queryFilter) {
+
+        String url = String.format("%s/api/shared_spaces/%d/workspaces/%d/work_items?" +
+                "fields=id,name,phase,estimated_hours,invested_hours,remaining_hours,subtype,release,sprint,creation_time,last_modified,owner,parent,story_points,actual_story_points"
+                        , baseURL, sharedSpaceId, workSpaceId);
+        if (!StringUtils.isBlank(queryFilter)) {
+            url += "&query=\""+queryFilter+"\"";
+        }
+
+        return new JsonPaginatedOctaneGetter().get(url);
+    }
+
+    public void setWorkSpaceId(String workSpaceId) {
+        if (!StringUtils.isBlank(workSpaceId)) {
+            this.workSpaceId = Integer.parseInt(workSpaceId);
+        }
+    }
+
+    public void setSharedSpaceId(String sharedSpaceId) {
+        if (!StringUtils.isBlank(sharedSpaceId)) {
+            this.sharedSpaceId = Integer.parseInt(sharedSpaceId);
+        }
+    }
+
+    public Map<String, String> getAllPhases() {
+
+
+        List<JSONObject> phasesJson = new JsonPaginatedOctaneGetter().get(
+                String.format("%s/api/shared_spaces/%d/workspaces/%d/phases", baseURL,
+                        sharedSpaceId, workSpaceId));
+
+        Map<String, String> phases = new HashMap<>(phasesJson.size());
+
+        for (JSONObject phaseJson : phasesJson) {
+            phases.put(phaseJson.getString("id"), phaseJson.getString("name"));
+        }
+
+        return phases;
+    }
+
+    public Map<String,String> getAllWorkspaceUsers() {
+
+        List<JSONObject> usersJson = new JsonPaginatedOctaneGetter().get(
+                String.format("%s/api/shared_spaces/%d/workspaces/%d/workspace_users?fields=email,id", baseURL,
+                        sharedSpaceId, workSpaceId));
+
+        Map<String, String> users = new HashMap<>(usersJson.size());
+
+        for (JSONObject userJson : usersJson) {
+            users.put(userJson.getString("id"), userJson.getString("email"));
+        }
+
+        return users;
 
     }
+
+    public List<GenericWorkItem> getWorkItemsByIds(Set<String> ids) {
+        String query = "id%20IN%20" + StringUtils.join(ids, ",");
+        List<JSONObject> workItemsJson = getWorkItems(query);
+
+        List<GenericWorkItem> results = new ArrayList<>(workItemsJson.size());
+
+        for (JSONObject workItemJson : workItemsJson) {
+            GenericWorkItem wi = new GenericWorkItem(workItemJson);
+            results.add(wi);
+        }
+
+        return results;
+    }
+
+    /**
+     * This class is in charge of retrieving data from Octane REST API in a paginated way.
+     *
+     * Default page size is 1000 records.
+     *
+     */
+    private class JsonPaginatedOctaneGetter {
+
+        private int limit = 1000;
+
+        public JsonPaginatedOctaneGetter() {}
+
+        public JsonPaginatedOctaneGetter(int pageSize) {
+            if (pageSize > 0) {
+                limit = pageSize;
+            }
+        }
+
+        public List<JSONObject> get(String url) {
+
+            List<JSONObject> results = null;
+
+            int offset = 0 ;
+            int totalCount = 0;
+
+            boolean first = true;
+
+            do {
+                if (first) {
+                    first = false;
+                } else {
+                    offset += limit;
+                }
+
+                String paginatedUrl = url;
+                if (!url.contains("?")) {
+                    paginatedUrl += "?";
+                } else {
+                    paginatedUrl += "&";
+                }
+
+                paginatedUrl += "offset=" +offset + "&limit="+limit;
+
+                String responseString = sendGet(paginatedUrl).getData();
+
+                JSONObject response = JSONObject.fromObject(responseString);
+
+                totalCount = response.getInt("total_count");
+
+                JSONArray data = (JSONArray)(response.get("data"));
+
+                if (results == null) {
+                    results = new ArrayList<>(totalCount);
+                }
+
+                // Add results
+                for (int i = 0 ; i < data.size() ; i++) {
+                    results.add(data.getJSONObject(i));
+                }
+
+            } while (offset + limit < totalCount);
+
+            return results;
+        }
+    }
+
+    // https://mqast010pngx.saas.hpe.com/api/shared_spaces/22001/workspaces/1002/work_items?fields=sprint,owner,name,invested_hours,phase,release,remaining_hours,estimated_hours,story_points,subtype&query=%22id%20%3D%2059004%20%7C%7C%20parent%20%3D%20%7Bid%20%3D%2059004%7D%20%7C%7C%20parent%20%3D%20%7Bparent%20%3D%20%7Bid%20%3D%2059004%7D%7D%22
 }

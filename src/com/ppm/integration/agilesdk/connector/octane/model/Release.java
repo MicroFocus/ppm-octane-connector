@@ -1,7 +1,9 @@
 package com.ppm.integration.agilesdk.connector.octane.model;
 
-import com.ppm.integration.agilesdk.connector.octane.client.Client;
+import com.ppm.integration.agilesdk.connector.octane.client.DateUtils;
+import com.ppm.integration.agilesdk.connector.octane.client.UsernamePasswordClient;
 import java.util.Date;
+
 import net.sf.json.JSONObject;
 
 /**
@@ -26,8 +28,8 @@ public class Release extends SimpleEntity {
 
             this.startDate = (String)tempObj.get("start_date");
             this.endDate = (String)tempObj.get("end_date");
-            this.startDatetime = Client.convertDateTime(startDate);
-            this.endDatetime = Client.convertDateTime(endDate);
+            this.startDatetime = DateUtils.convertDateTime(startDate);
+            this.endDatetime = DateUtils.convertDateTime(endDate);
         }catch(Exception e) {}
 
     }

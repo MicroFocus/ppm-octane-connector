@@ -3,6 +3,7 @@ package com.ppm.integration.agilesdk.connector.octane;
 import com.hp.ppm.tm.model.TimeSheet;
 import com.ppm.integration.agilesdk.ValueSet;
 import com.ppm.integration.agilesdk.connector.octane.client.ClientPublicAPI;
+import com.ppm.integration.agilesdk.connector.octane.client.OctaneClientHelper;
 import com.ppm.integration.agilesdk.connector.octane.model.EpicAttr;
 import com.ppm.integration.agilesdk.connector.octane.model.EpicCreateEntity;
 import com.ppm.integration.agilesdk.connector.octane.model.EpicEntity;
@@ -17,7 +18,7 @@ import com.ppm.integration.agilesdk.connector.octane.model.WorkItemFeature;
 import com.ppm.integration.agilesdk.connector.octane.model.WorkItemRoot;
 import com.ppm.integration.agilesdk.connector.octane.model.WorkItemStory;
 import com.ppm.integration.agilesdk.connector.octane.model.WorkSpace;
-import java.io.IOException;
+
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -52,7 +53,7 @@ public class ClientPublicAPITest {
 
     @Test public void testGetAccessTokenWithFormFormat() throws Exception {
 
-        ClientPublicAPI client = OctaneFunctionIntegration.setupClientPublicAPI(values);
+        ClientPublicAPI client = OctaneClientHelper.setupClientPublicAPI(values);
 
         String clientId = values.get(OctaneConstants.APP_CLIENT_ID);
         String clientSecret = values.get(OctaneConstants.APP_CLIENT_SECRET);
@@ -61,7 +62,7 @@ public class ClientPublicAPITest {
     }
 
     @Test public void testGetTimeSheetData() throws Exception {
-        ClientPublicAPI client = OctaneFunctionIntegration.setupClientPublicAPI(values);
+        ClientPublicAPI client = OctaneClientHelper.setupClientPublicAPI(values);
         TestTimeSheetIntegrationContext context = new TestTimeSheetIntegrationContext();
         TimeSheet timeSheet = context.currentTimeSheet();
 
@@ -125,7 +126,7 @@ public class ClientPublicAPITest {
     }
 
     @Test public void testGetSharedSpaces() throws Exception {
-        ClientPublicAPI client = OctaneFunctionIntegration.setupClientPublicAPI(values);
+        ClientPublicAPI client = OctaneClientHelper.setupClientPublicAPI(values);
 
         String clientId = values.get(OctaneConstants.APP_CLIENT_ID);
         String clientSecret = values.get(OctaneConstants.APP_CLIENT_SECRET);
@@ -140,7 +141,7 @@ public class ClientPublicAPITest {
     }
 
     @Test public void testGetWorkSpaces() throws Exception {
-        ClientPublicAPI client = OctaneFunctionIntegration.setupClientPublicAPI(values);
+        ClientPublicAPI client = OctaneClientHelper.setupClientPublicAPI(values);
 
         String clientId = values.get(OctaneConstants.APP_CLIENT_ID);
         String clientSecret = values.get(OctaneConstants.APP_CLIENT_SECRET);
@@ -155,7 +156,7 @@ public class ClientPublicAPITest {
     }
 
     @Test public void testGetRelease() throws Exception {
-        ClientPublicAPI client = OctaneFunctionIntegration.setupClientPublicAPI(values);
+        ClientPublicAPI client = OctaneClientHelper.setupClientPublicAPI(values);
 
         String clientId = values.get(OctaneConstants.APP_CLIENT_ID);
         String clientSecret = values.get(OctaneConstants.APP_CLIENT_SECRET);
@@ -169,14 +170,13 @@ public class ClientPublicAPITest {
     }
 
     @Test public void testGetReleases() throws Exception {
-        ClientPublicAPI client = OctaneFunctionIntegration.setupClientPublicAPI(values);
+        ClientPublicAPI client = OctaneClientHelper.setupClientPublicAPI(values);
 
         String clientId = values.get(OctaneConstants.APP_CLIENT_ID);
         String clientSecret = values.get(OctaneConstants.APP_CLIENT_SECRET);
         boolean isGetAccess = client.getAccessTokenWithFormFormat(clientId, clientSecret);
         Assert.assertTrue(isGetAccess);
-        List<Release> releases = client.getReleases(values.getInteger(OctaneConstants.KEY_SHAREDSPACEID, 1001),
-                values.getInteger(OctaneConstants.KEY_WORKSPACEID, 1002));
+        List<Release> releases = client.getAllReleases();
         Assert.assertNotNull(releases);
         Assert.assertTrue(releases.size() > 0);
         for (Release d : releases) {
@@ -185,15 +185,14 @@ public class ClientPublicAPITest {
     }
 
     @Test public void testGetReleaseTeams() throws Exception {
-        ClientPublicAPI client = OctaneFunctionIntegration.setupClientPublicAPI(values);
+        ClientPublicAPI client = OctaneClientHelper.setupClientPublicAPI(values);
 
         String clientId = values.get(OctaneConstants.APP_CLIENT_ID);
         String clientSecret = values.get(OctaneConstants.APP_CLIENT_SECRET);
         boolean isGetAccess = client.getAccessTokenWithFormFormat(clientId, clientSecret);
         Assert.assertTrue(isGetAccess);
         List<ReleaseTeam> releaseTeams =
-                client.getReleaseTeams(values.getInteger(OctaneConstants.KEY_SHAREDSPACEID, 1001),
-                        values.getInteger(OctaneConstants.KEY_WORKSPACEID, 1002));
+                client.getReleaseTeams();
         Assert.assertNotNull(releaseTeams);
         Assert.assertTrue(releaseTeams.size() > 0);
         for (ReleaseTeam d : releaseTeams) {
@@ -202,7 +201,7 @@ public class ClientPublicAPITest {
     }
 
     @Test public void testGetTeams() throws Exception {
-        ClientPublicAPI client = OctaneFunctionIntegration.setupClientPublicAPI(values);
+        ClientPublicAPI client = OctaneClientHelper.setupClientPublicAPI(values);
         String clientId = values.get(OctaneConstants.APP_CLIENT_ID);
         String clientSecret = values.get(OctaneConstants.APP_CLIENT_SECRET);
         boolean isGetAccess = client.getAccessTokenWithFormFormat(clientId, clientSecret);
@@ -217,14 +216,13 @@ public class ClientPublicAPITest {
     }
 
     @Test public void testGetSprints() throws Exception {
-        ClientPublicAPI client = OctaneFunctionIntegration.setupClientPublicAPI(values);
+        ClientPublicAPI client = OctaneClientHelper.setupClientPublicAPI(values);
 
         String clientId = values.get(OctaneConstants.APP_CLIENT_ID);
         String clientSecret = values.get(OctaneConstants.APP_CLIENT_SECRET);
         boolean isGetAccess = client.getAccessTokenWithFormFormat(clientId, clientSecret);
         Assert.assertTrue(isGetAccess);
-        List<Sprint> sprints = client.getSprints(values.getInteger(OctaneConstants.KEY_SHAREDSPACEID, 1001),
-                values.getInteger(OctaneConstants.KEY_WORKSPACEID, 1002));
+        List<Sprint> sprints = client.getAllSprints();
         Assert.assertNotNull(sprints);
         Assert.assertTrue(sprints.size() > 0);
         for (Sprint d : sprints) {
@@ -233,7 +231,7 @@ public class ClientPublicAPITest {
     }
 
     @Test public void testGetWorkItemRoot() throws Exception {
-        ClientPublicAPI client = OctaneFunctionIntegration.setupClientPublicAPI(values);
+        ClientPublicAPI client = OctaneClientHelper.setupClientPublicAPI(values);
 
         String clientId = values.get(OctaneConstants.APP_CLIENT_ID);
         String clientSecret = values.get(OctaneConstants.APP_CLIENT_SECRET);
@@ -264,52 +262,17 @@ public class ClientPublicAPITest {
         }
     }
 
-    @Test public void testGetWorkItemRootWithReleaseId() throws Exception {
-        ClientPublicAPI client = OctaneFunctionIntegration.setupClientPublicAPI(values);
-
-        String clientId = values.get(OctaneConstants.APP_CLIENT_ID);
-        String clientSecret = values.get(OctaneConstants.APP_CLIENT_SECRET);
-        boolean isGetAccess = client.getAccessTokenWithFormFormat(clientId, clientSecret);
-        Assert.assertTrue(isGetAccess);
-        WorkItemRoot workItemRoot = client.getWorkItemRoot(values.getInteger(OctaneConstants.KEY_SHAREDSPACEID, 1001),
-                values.getInteger(OctaneConstants.KEY_WORKSPACEID, 1002),
-                values.getInteger(OctaneConstants.KEY_RELEASEID, 1001));
-        Assert.assertNotNull(workItemRoot);
-        System.out.println("backlog------------------------");
-        for (WorkItemStory d : workItemRoot.storyList) {
-            System.out.println("name=" + d.name + ", id=" + d.id + ", type=" + d.subType);
-        }
-        Set<String> keySet = workItemRoot.epicList.keySet();
-        for (String key : keySet) {
-            WorkItemEpic tempEpic = workItemRoot.epicList.get(key);
-            System.out.println("                        ");
-            System.out.println("name=" + tempEpic.name + ", id=" + tempEpic.id + ", type=" + tempEpic.subType);
-            System.out.println("------------------------");
-            Set<String> keySetFeature = tempEpic.featureList.keySet();
-            for (String keyFeature : keySetFeature) {
-                WorkItemFeature tempFeature = tempEpic.featureList.get(keyFeature);
-                System.out.println(
-                        "name=" + tempFeature.name + ", id=" + tempFeature.id + ", type=" + tempFeature.subType);
-                System.out.println("--------------");
-                for (WorkItemStory d : tempFeature.storyList) {
-                    System.out.println("name=" + d.name + ", id=" + d.id + ", type=" + d.subType);
-                }
-            }
-        }
-    }
-
-
 
     @Test public void testGetEpicDoneStoryPoints() throws
             Exception{
-        ClientPublicAPI client = OctaneFunctionIntegration.setupClientPublicAPI(values);
+        ClientPublicAPI client = OctaneClientHelper.setupClientPublicAPI(values);
 
         String clientId = values.get(OctaneConstants.APP_CLIENT_ID);
         String clientSecret = values.get(OctaneConstants.APP_CLIENT_SECRET);
         boolean isGetAccess = client.getAccessTokenWithFormFormat(clientId, clientSecret);
         Assert.assertTrue(isGetAccess);
 
-        String[] doneStatusIDs = client.getDoneDefinationOfUserStoryAndDefect(
+        String[] doneStatusIDs = client.getDoneDefinitionOfUserStoryAndDefect(
                 values.getInteger(OctaneConstants.KEY_SHAREDSPACEID, 1001),
                 values.getInteger(OctaneConstants.KEY_WORKSPACEID, 1002));
         Assert.assertNotNull(doneStatusIDs);
@@ -332,7 +295,7 @@ public class ClientPublicAPITest {
 
     
     @Test public void testCreateEpicInWorkspace() throws Exception {
-    	ClientPublicAPI client = OctaneFunctionIntegration.setupClientPublicAPI(values);
+    	ClientPublicAPI client = OctaneClientHelper.setupClientPublicAPI(values);
     	String clientId = values.get(OctaneConstants.APP_CLIENT_ID);
     	String clientSecret = values.get(OctaneConstants.APP_CLIENT_SECRET);
     	boolean isGetAccess = client.getAccessTokenWithFormFormat(clientId, clientSecret);
@@ -363,7 +326,7 @@ public class ClientPublicAPITest {
     }
     
     @Test public void testGetEpicPhase() throws Exception {
-    	ClientPublicAPI client = OctaneFunctionIntegration.setupClientPublicAPI(values);
+    	ClientPublicAPI client = OctaneClientHelper.setupClientPublicAPI(values);
     	String clientId = values.get(OctaneConstants.APP_CLIENT_ID);
     	String clientSecret = values.get(OctaneConstants.APP_CLIENT_SECRET);
     	boolean isGetAccess = client.getAccessTokenWithFormFormat(clientId, clientSecret);
@@ -377,7 +340,7 @@ public class ClientPublicAPITest {
     }
     
     @Test public void testGetEpicParent() throws Exception {
-    	ClientPublicAPI client = OctaneFunctionIntegration.setupClientPublicAPI(values);
+    	ClientPublicAPI client = OctaneClientHelper.setupClientPublicAPI(values);
     	String clientId = values.get(OctaneConstants.APP_CLIENT_ID);
     	String clientSecret = values.get(OctaneConstants.APP_CLIENT_SECRET);
     	boolean isGetAccess = client.getAccessTokenWithFormFormat(clientId, clientSecret);

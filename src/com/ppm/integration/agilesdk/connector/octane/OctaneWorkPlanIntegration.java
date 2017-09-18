@@ -2,54 +2,25 @@ package com.ppm.integration.agilesdk.connector.octane;
 
 import com.ppm.integration.agilesdk.FunctionIntegration;
 import com.ppm.integration.agilesdk.ValueSet;
+import com.ppm.integration.agilesdk.connector.octane.client.OctaneEntityDropdown;
+import com.ppm.integration.agilesdk.connector.octane.model.*;
+import com.ppm.integration.agilesdk.connector.octane.model.workplan.*;
 import com.ppm.integration.agilesdk.pm.LinkedTaskAgileEntityInfo;
 import com.ppm.integration.agilesdk.connector.octane.client.ClientPublicAPI;
-import com.ppm.integration.agilesdk.connector.octane.model.Release;
-import com.ppm.integration.agilesdk.connector.octane.client.OctaneClientException;
-import com.ppm.integration.agilesdk.connector.octane.model.SharedSpace;
-import com.ppm.integration.agilesdk.connector.octane.model.Sprint;
-import com.ppm.integration.agilesdk.connector.octane.model.WorkItemEpic;
-import com.ppm.integration.agilesdk.connector.octane.model.WorkItemFeature;
-import com.ppm.integration.agilesdk.connector.octane.model.WorkItemRoot;
-import com.ppm.integration.agilesdk.connector.octane.model.WorkItemStory;
-import com.ppm.integration.agilesdk.connector.octane.model.WorkSpace;
 import com.ppm.integration.agilesdk.pm.ExternalTask;
-import com.ppm.integration.agilesdk.pm.ExternalTask.TaskStatus;
 import com.ppm.integration.agilesdk.pm.ExternalWorkPlan;
 import com.ppm.integration.agilesdk.pm.WorkPlanIntegration;
 import com.ppm.integration.agilesdk.pm.WorkPlanIntegrationContext;
-import com.ppm.integration.agilesdk.ui.Field;
-import com.ppm.integration.agilesdk.ui.LineBreaker;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Set;
+import com.ppm.integration.agilesdk.provider.Providers;
+import com.ppm.integration.agilesdk.ui.*;
+
+import java.util.*;
+
 import org.apache.log4j.Logger;
-import org.json.JSONException;
 
 public class OctaneWorkPlanIntegration extends WorkPlanIntegration implements FunctionIntegration {
 
     private final Logger logger = Logger.getLogger(this.getClass());
-
-    protected ClientPublicAPI getClient(ValueSet values) {
-        ClientPublicAPI client = OctaneFunctionIntegration.setupClientPublicAPI(values);
-        String clientId = values.get(OctaneConstants.APP_CLIENT_ID);
-        String clientSecret = values.get(OctaneConstants.APP_CLIENT_SECRET);
-        try {
-            if (!client.getAccessTokenWithFormFormat(clientId, clientSecret)) {
-                throw new OctaneClientException("AGM_APP", "error in access token retrieve.");
-            }
-        } catch (IOException e) {
-            logger.error(e.getMessage());
-        } catch (JSONException e) {
-            logger.error(e.getMessage());
-        }
-        return client;
-    }
 
     @Override public List<Field> getMappingConfigurationFields(WorkPlanIntegrationContext context, ValueSet values) {
 
@@ -62,7 +33,7 @@ public class OctaneWorkPlanIntegration extends WorkPlanIntegration implements Fu
                     }
 
                     @Override public List<Option> fetchDynamicalOptions(ValueSet values) {
-                        ClientPublicAPI client = getClient(values);
+                        ClientPublicAPI client = ClientPublicAPI.getClient(values);
                         if (!values.isAllSet(OctaneConstants.APP_CLIENT_ID, OctaneConstants.APP_CLIENT_SECRET,
                                 OctaneConstants.KEY_BASE_URL)) {
                             return null;
@@ -75,210 +46,379 @@ public class OctaneWorkPlanIntegration extends WorkPlanIntegration implements Fu
                                 options.add(new Option(sd.id, sd.name));
                             }
                             return options;
-                        } catch (IOException e) {
-                            logger.error(e.getMessage());
+                        } catch (Exception e) {
+                            logger.error("Error occured when getting Mapping config fields, returning null", e);
                         }
                         return null;
                     }
-                }, new OctaneEntityDropdown(OctaneConstants.KEY_WORKSPACEID, "OCTANE_WORKSPACE", "block", true) {
-            @Override public List<String> getDependencies() {
-                return Arrays.asList(new String[] {OctaneConstants.KEY_BASE_URL, OctaneConstants.APP_CLIENT_ID,
-                        OctaneConstants.APP_CLIENT_SECRET, OctaneConstants.KEY_SHAREDSPACEID});
-            }
-
-            @Override public List<Option> fetchDynamicalOptions(ValueSet values) {
-
-                ClientPublicAPI client = getClient(values);
-                if (!values.isAllSet(OctaneConstants.KEY_SHAREDSPACEID)) {
-                    return null;
-                }
-                List<WorkSpace> workSpaces;
-                try {
-                    workSpaces = client.getWorkSpaces(Integer.parseInt(values.get(OctaneConstants.KEY_SHAREDSPACEID)));
-                    List<Option> options = new ArrayList<Option>(workSpaces.size());
-                    for (WorkSpace w : workSpaces) {
-                        options.add(new Option(w.id, w.name));
-                    }
-                    return options;
-                } catch (NumberFormatException e) {
-                    logger.error(e.getMessage());
-                } catch (IOException e) {
-                    logger.error(e.getMessage());
-                }//();
-                return null;
-
-            }
-        },
-
-                new OctaneEntityDropdown(OctaneConstants.KEY_RELEASEID, "RELEASE", "block", true) {
-
+                },
+                new OctaneEntityDropdown(OctaneConstants.KEY_WORKSPACEID, "OCTANE_WORKSPACE", "block", true) {
                     @Override public List<String> getDependencies() {
                         return Arrays.asList(new String[] {OctaneConstants.KEY_BASE_URL, OctaneConstants.APP_CLIENT_ID,
-                                OctaneConstants.APP_CLIENT_SECRET, OctaneConstants.KEY_SHAREDSPACEID,
-                                OctaneConstants.KEY_WORKSPACEID});
+                                OctaneConstants.APP_CLIENT_SECRET, OctaneConstants.KEY_SHAREDSPACEID});
                     }
 
                     @Override public List<Option> fetchDynamicalOptions(ValueSet values) {
 
-                        ClientPublicAPI client = getClient(values);
-                        if (!values.isAllSet(OctaneConstants.KEY_SHAREDSPACEID, OctaneConstants.KEY_WORKSPACEID)) {
+                        ClientPublicAPI client = ClientPublicAPI.getClient(values);
+                        if (!values.isAllSet(OctaneConstants.KEY_SHAREDSPACEID)) {
                             return null;
                         }
-                        List<Release> releases;
+                        List<WorkSpace> workSpaces;
                         try {
-                            releases =
-                                    client.getReleases(Integer.parseInt(values.get(OctaneConstants.KEY_SHAREDSPACEID)),
-                                            Integer.parseInt((values.get(OctaneConstants.KEY_WORKSPACEID))));
-                            List<Option> options = new ArrayList<Option>(releases.size());
-                            for (Release r : releases) {
-                                options.add(new Option(r.id, r.name));
+                            workSpaces = client.getWorkSpaces(Integer.parseInt(values.get(OctaneConstants.KEY_SHAREDSPACEID)));
+                            List<Option> options = new ArrayList<Option>(workSpaces.size());
+                            for (WorkSpace w : workSpaces) {
+                                options.add(new Option(w.id, w.name));
                             }
                             return options;
-
-                        } catch (NumberFormatException | IOException e) {
-                            logger.error(e.getMessage());
+                        } catch (Exception e) {
+                            logger.error("Error occured when getting Mapping config fields, returning null", e);
                         }
                         return null;
+
                     }
-                }, new LineBreaker(),});
+                },
 
-    }
+                new LineBreaker(),
+                new LineBreaker(),
 
-    public boolean linkTaskWithExternal(WorkPlanIntegrationContext context, ValueSet values) {
-        return false;
+
+                new DynamicDropdown(OctaneConstants.KEY_IMPORT_SELECTION, "IMPORT_SELECTION",
+                        OctaneConstants.IMPORT_SELECTION_RELEASE, "", true) {
+
+                    @Override
+                    public List<String> getDependencies() {
+                        return new ArrayList<String>();
+                    }
+
+                    @Override
+                    public List<Option> getDynamicalOptions(ValueSet values) {
+
+                        List<Option> optionList = new ArrayList<>();
+
+                        Option option1 = new Option(OctaneConstants.IMPORT_SELECTION_EPIC, "One Epic");
+                        Option option2 = new Option(OctaneConstants.IMPORT_SELECTION_RELEASE, "One Release");
+
+                        optionList.add(option1);
+                        optionList.add(option2);
+
+                        return optionList;
+                    }
+
+                },
+                new DynamicDropdown(OctaneConstants.KEY_IMPORT_SELECTION_DETAILS, "IMPORT_SELECTION_DETAILS", "", true) {
+
+                    @Override
+                    public List<String> getDependencies() {
+
+                        return Arrays.asList(
+                                new String[] {OctaneConstants.KEY_SHAREDSPACEID, OctaneConstants.KEY_WORKSPACEID, OctaneConstants.KEY_IMPORT_SELECTION});
+                    }
+
+                    @Override
+                    public List<Option> getDynamicalOptions(ValueSet values) {
+
+                        String importSelection = values.get(OctaneConstants.KEY_IMPORT_SELECTION);
+
+                        ClientPublicAPI client = ClientPublicAPI.getClient(values);
+
+                        List<Option> options = new ArrayList<>();
+                        switch (importSelection) {
+                            case OctaneConstants.IMPORT_SELECTION_EPIC:
+                                List<EpicAttr> epics =
+                                        client.getAllEpics();
+                                options = new ArrayList<Option>(epics.size());
+                                for (EpicAttr epic : epics) {
+                                    options.add(new Option(epic.getId(), epic.getName()));
+                                }
+                                return options;
+                            case OctaneConstants.IMPORT_SELECTION_RELEASE:
+                                List<Release> releases =
+                                        client.getAllReleases();
+                                options = new ArrayList<Option>(releases.size());
+                                for (Release r : releases) {
+                                    options.add(new Option(r.id, r.name));
+                                }
+                                return options;
+                        }
+                        return options;
+                    }
+                },
+                new LineBreaker(),
+                new LineBreaker(),
+
+                new DynamicDropdown(OctaneConstants.KEY_IMPORT_GROUPS, "IMPORT_GROUPS",
+                        OctaneConstants.GROUP_RELEASE, "", true) {
+
+                    @Override
+                    public List<String> getDependencies() {
+                        return new ArrayList<String>();
+                    }
+
+                    @Override
+                    public List<Option> getDynamicalOptions(ValueSet values) {
+
+                        List<Option> optionList = new ArrayList<>();
+
+                        Option option1 = new Option(OctaneConstants.GROUP_RELEASE, "Release / Sprint");
+                        Option option2 = new Option(OctaneConstants.GROUP_BACKLOG_STRUCTURE, "Backlog / Epic / Feature");
+
+                        optionList.add(option1);
+                        optionList.add(option2);
+
+                        return optionList;
+                    }
+
+                },
+                new DynamicDropdown(OctaneConstants.KEY_PERCENT_COMPLETE, "PERCENT_COMPLETE_CHOICE",
+                        OctaneConstants.PERCENT_COMPLETE_STORY_POINTS, "", true) {
+
+                    @Override
+                    public List<String> getDependencies() {
+                        return new ArrayList<String>();
+                    }
+
+                    @Override
+                    public List<Option> getDynamicalOptions(ValueSet values) {
+
+                        List<Option> optionList = new ArrayList<>();
+
+                        Option option1 = new Option(OctaneConstants.PERCENT_COMPLETE_WORK, "% Work Complete");
+                        Option option2 = new Option(OctaneConstants.PERCENT_COMPLETE_STORY_POINTS, "% Story Points Done");
+
+                        optionList.add(option1);
+                        optionList.add(option2);
+
+                        return optionList;
+                    }
+
+                },
+                new LineBreaker()
+        });
     }
 
     @Override
-    public ExternalWorkPlan getExternalWorkPlan(WorkPlanIntegrationContext context, ValueSet values) {
-        final List<ExternalTask> sprintTasks = new ArrayList<>();
-        ClientPublicAPI client = getClient(values);
-        try {
-            final Release release = client.getRelease(Integer.parseInt(values.get(OctaneConstants.KEY_SHAREDSPACEID)),
-                    Integer.parseInt(values.get(OctaneConstants.KEY_WORKSPACEID)),
-                    Integer.parseInt(values.get(OctaneConstants.KEY_RELEASEID)));
-            if (release == null || release.id == null) {
-                //release dont exist anymore
-                return null;
-            }
-            List<Sprint> sprints = client.getSprints(Integer.parseInt(values.get(OctaneConstants.KEY_SHAREDSPACEID)),
-                    Integer.parseInt(values.get(OctaneConstants.KEY_WORKSPACEID)));
+    public ExternalWorkPlan getExternalWorkPlan(WorkPlanIntegrationContext wpiContext, ValueSet values) {
 
-            WorkItemRoot workItemRoot = client.getWorkItemRoot(Integer.parseInt(values.get(OctaneConstants.KEY_SHAREDSPACEID)),
-                    Integer.parseInt(values.get(OctaneConstants.KEY_WORKSPACEID)),
-                    Integer.parseInt(values.get(OctaneConstants.KEY_RELEASEID)));
+        ClientPublicAPI client = ClientPublicAPI.getClient(values);
 
-            if (sprints != null && sprints.size() > 0) {
-                for (Sprint spt: sprints) {
-                    if(release.id.equals(spt.releaseId)) {
-                        OctaneSprintIExternalTask octaneSprint =
-                                createOctaneIExternalTask(release, spt);
-                        //user story?
-                        if(workItemRoot != null && workItemRoot.workItemStories.size() > 0) {
-                            for(WorkItemStory us : workItemRoot.workItemStories) {
-                                if(spt.id.equals(us.sprintId) && OctaneConstants.SUB_TYPE_STORY.equals(us.subType)) {
-                                    OctaneUSIExternalTask octaneUS =
-                                            createOctaneIExternalTask(release, us);
-                                    octaneSprint.getChildren().add(octaneUS);
-                                }
+        WorkplanContext wpContext = new WorkplanContext();
+
+        wpContext.wpiContext = wpiContext;
+
+        wpContext.percentComplete = values.get(OctaneConstants.KEY_PERCENT_COMPLETE);
+
+        wpContext.phases = client.getAllPhases();
+
+        wpContext.usersEmails = client.getAllWorkspaceUsers();
+
+
+        // Get the backlog data. It's either one Epic or one Release
+
+        final List<GenericWorkItem> workItems = new ArrayList<>();
+
+        switch(values.get(OctaneConstants.KEY_IMPORT_SELECTION)) {
+
+            case OctaneConstants.IMPORT_SELECTION_RELEASE:
+                workItems.addAll(client.getReleaseWorkItems(Integer.parseInt(values.get(OctaneConstants.KEY_IMPORT_SELECTION_DETAILS))));
+                break;
+
+            case OctaneConstants.IMPORT_SELECTION_EPIC:
+                workItems.addAll(client.getEpicWorkItems(Integer.parseInt(values.get(OctaneConstants.KEY_IMPORT_SELECTION_DETAILS))));
+                break;
+        }
+
+
+        final List<ExternalTask> rootTasks = new ArrayList<>();
+
+        List<Sprint> sprints = client.getAllSprints();
+
+        wpContext.setSprints(sprints);
+
+        switch(values.get(OctaneConstants.KEY_IMPORT_GROUPS)) {
+            case OctaneConstants.GROUP_RELEASE:
+
+                // Group by Release / Sprint / Type
+
+                List<Release> releases = client.getAllReleases();
+
+                Map<String,Release> releasesMap = new HashMap<>();
+
+                for (Release release : releases) {
+                    releasesMap.put(release.getId(), release);
+                }
+
+                Map<String,Sprint> sprintsMap = new HashMap<>();
+
+                for (Sprint sprint : sprints) {
+                    sprintsMap.put(sprint.getId(), sprint);
+                }
+
+                // We're building a data structure that will mimic work plan, minus work item types (we'll do that later).
+                final Map<String, Map<String, List<GenericWorkItem>>> workItemsPerReleaseIdAndSprintId = new HashMap<>();
+
+                for (GenericWorkItem wi : workItems) {
+                    String releaseId = wi.getReleaseId();
+                    String sprintId = wi.getSprintId();
+
+                    Map<String, List<GenericWorkItem>> sprintWorkItems = workItemsPerReleaseIdAndSprintId.get(releaseId);
+
+                    if (sprintWorkItems == null) {
+                        sprintWorkItems = new HashMap<>();
+                        workItemsPerReleaseIdAndSprintId.put(releaseId, sprintWorkItems);
+                    }
+
+                    List<GenericWorkItem> itemsInSprint = sprintWorkItems.get(sprintId);
+
+                    if (itemsInSprint == null) {
+                        itemsInSprint = new ArrayList<>();
+                        sprintWorkItems.put(sprintId, itemsInSprint);
+                    }
+
+                    itemsInSprint.add(wi);
+                }
+
+                // First level is Release
+                List <Release> sortedReleases = getSortedReleases(workItemsPerReleaseIdAndSprintId.keySet(), releasesMap);
+
+                for (Release release : sortedReleases) {
+                    rootTasks.add(WorkDrivenPercentCompleteExternalTask.forSummaryTask(new OctaneReleaseExternalTask(release, workItemsPerReleaseIdAndSprintId.get(release.getId()), wpContext)));
+                }
+
+                break;
+            case OctaneConstants.GROUP_BACKLOG_STRUCTURE:
+
+                // Group by Backlog / Epic / Feature / Type
+
+                // We need to first retrieve the missing Epics & Features, if any.
+                Set<String> retrievedIds = new HashSet<>();
+                for (GenericWorkItem wi : workItems) {
+                    retrievedIds.add(wi.getId());
+                }
+
+                Set<String> missingIds = new HashSet<>();
+                for (GenericWorkItem wi : workItems) {
+                    if (!retrievedIds.contains(wi.getParentId()) && !wi.isInBacklog()) {
+                        missingIds.add(wi.getParentId());
+                    }
+                }
+
+                workItems.addAll(client.getWorkItemsByIds(missingIds));
+
+                Map<String, List<GenericWorkItem>> epicsFeatures = new HashMap<>();
+
+                Map<String, List<GenericWorkItem>> featuresItems = new HashMap<>();
+
+                List<GenericWorkItem> featuresInBacklog = new ArrayList<>();
+
+                List<GenericWorkItem> itemsInBacklog = new ArrayList<>();
+
+                List<GenericWorkItem> epics = new ArrayList<>();
+
+                for (GenericWorkItem wi : workItems) {
+                    if (wi.isEpic()) {
+                        epics.add(wi);
+                    } else if (wi.isFeature()) {
+                        if (wi.isInBacklog()) {
+                            featuresInBacklog.add(wi);
+                        } else {
+                            List<GenericWorkItem> features = epicsFeatures.get(wi.getParentId());
+                            if (features == null) {
+                                features = new ArrayList<>();
+                                epicsFeatures.put(wi.getParentId(), features);
                             }
-                            //sort User Story by Id
-                            Collections.sort(octaneSprint.getChildren(), new Comparator<ExternalTask>() {
-                                @Override public int compare(ExternalTask us1, ExternalTask us2)
-                                {
-                                    return us1.getId().compareTo(us2.getId());
-                                }
-                            });
+                            features.add(wi);
                         }
-                        sprintTasks.add(octaneSprint);
+                    } else {
+                        // Backlog Item
+                        if (wi.isInBacklog()) {
+                            itemsInBacklog.add(wi);
+                        } else {
+                            List<GenericWorkItem> items = featuresItems.get(wi.getParentId());
+                            if (items == null) {
+                                items = new ArrayList<>();
+                                featuresItems.put(wi.getParentId(), items);
+                            }
+                            items.add(wi);
+                        }
                     }
                 }
+
+                // We always start with Backlog tasks
+                if (!featuresInBacklog.isEmpty() || !itemsInBacklog.isEmpty()) {
+                    rootTasks.add(WorkDrivenPercentCompleteExternalTask.forSummaryTask(new OctaneRootBacklogExternalTask(featuresInBacklog, itemsInBacklog, featuresItems, wpContext)));
+                }
+
+                // Then the Epics / Features / Backlog Items hierarchy.
+
+                OctaneUtils.sortWorkItemsByName(epics);
+
+                for (GenericWorkItem epic : epics) {
+                    rootTasks.add(WorkDrivenPercentCompleteExternalTask.forSummaryTask(new OctaneEpicExternalTask(epic, epicsFeatures.get(epic.getId()), featuresItems, wpContext)));
+                }
+
+                break;
+        }
+
+
+
+        return new ExternalWorkPlan() {
+
+            @Override
+            public List<ExternalTask> getRootTasks() {
+                return rootTasks;
             }
-
-            return new ExternalWorkPlan() {
-                @Override public List<ExternalTask> getRootTasks() {
-                    if (sprintTasks.size() == 0) {
-                        return new ArrayList<ExternalTask>();
-                    }
-                    return sprintTasks;
-                }
-            };
-
-        } catch (NumberFormatException | IOException e) {
-            logger.error(e.getMessage());
-        }
-        return null;
+        };
 
     }
 
-    public boolean unlinkTaskWithExternal(WorkPlanIntegrationContext context, ValueSet values) {
-        return false;
-    }
+    private List<Release> getSortedReleases(Set<String> releaseIds, Map<String, Release> releasesMap) {
+        List<Release> releases = new LinkedList<>();
 
-    public OctaneSprintIExternalTask createOctaneIExternalTask(Release release, Sprint spt)
-    {
-        OctaneTaskData tempData = new OctaneTaskData();
-        tempData.AddDataToFieldDict("id", spt.id);
-        tempData.AddDataToFieldDict("name", spt.name);
-        tempData.AddDataToFieldDict("subtype", spt.type);
-        //TODO format to yyyy-MM-dd
-        tempData.AddDataToFieldDict("releaseStartDate", release.startDate);
-        tempData.AddDataToFieldDict("releaseEndDate", release.endDate);
-        tempData.AddDataToFieldDict("sprintStartDate", spt.sprintStartDate);
-        tempData.AddDataToFieldDict("sprintEndDate", spt.sprintEndDate);
+        boolean needsToCreateNullRelease = false;
 
-        return new OctaneSprintIExternalTask(tempData);
-    }
+        for (String releaseId : releaseIds) {
 
-    public OctaneUSIExternalTask createOctaneIExternalTask(Release release, WorkItemStory tempStory)
-    {
-        OctaneTaskData tempStoryTask = new OctaneTaskData();
-        tempStoryTask.AddDataToFieldDict("id", tempStory.id);
-        tempStoryTask.AddDataToFieldDict("name", tempStory.name);
-        tempStoryTask.AddDataToFieldDict("subType", tempStory.subType);
-        tempStoryTask.AddDataToFieldDict("ownerId", tempStory.ownerId);
-        tempStoryTask.AddDataToFieldDict("ownerName", tempStory.ownerName);
-        tempStoryTask.AddDataToFieldDict("releaseId", tempStory.releaseId);
-        //TODO format to yyyy-MM-dd
-        tempStoryTask.AddDataToFieldDict("sprintStartDate", tempStory.sprintStartDate);
-        tempStoryTask.AddDataToFieldDict("sprintEndDate", tempStory.sprintEndDate);
-        tempStoryTask.AddDataToFieldDict("releaseStartDate", release.startDate);
-        tempStoryTask.AddDataToFieldDict("releaseEndDate", release.endDate);
-        tempStoryTask.AddDataToFieldDict("creationTime", tempStory.creationTime);
-        tempStoryTask.AddDataToFieldDict("lastModifiedTime", tempStory.lastModifiedTime);
+            Release release = releasesMap.get(releaseId);
 
-        tempStoryTask.AddDataToFieldDict("investedHours", String.valueOf(tempStory.investedHours));
-        tempStoryTask.AddDataToFieldDict("remainingHours", String.valueOf(tempStory.remainingHours));
-        tempStoryTask.AddDataToFieldDict("estimatedHours", String.valueOf(tempStory.estimatedHours));
-        TaskStatus status = TaskStatus.READY;
-        switch (tempStory.status) {
-            case "New":
-                status = TaskStatus.READY;
-                break;
-            case "In Progress":
-            case "In Testing":
-                status = TaskStatus.IN_PROGRESS;
-                break;
-            case "Done":
-                status = TaskStatus.COMPLETED;
-                break;
+            if (release == null) {
+                needsToCreateNullRelease = true;
+            } else {
+                releases.add(release);
+            }
         }
 
-        OctaneUSIExternalTask octaneStory = new OctaneUSIExternalTask(tempStoryTask, status);
-        return octaneStory;
-    }
+        if (needsToCreateNullRelease) {
+            Release nullRelease = new Release();
+            nullRelease.setName(Providers.getLocalizationProvider(OctaneIntegrationConnector.class).getConnectorText("WORKPLAN_NO_RELEASE_DEFINED_TASK_NAME"));
+            releases.add(0, nullRelease);
+        }
 
-    @Override public String getCustomDetailPage() {
-        return null;
+        OctaneUtils.sortReleases(releases);
+
+        return releases;
     }
 
     public LinkedTaskAgileEntityInfo getAgileEntityInfoFromMappingConfiguration(ValueSet values) {
         LinkedTaskAgileEntityInfo info = new LinkedTaskAgileEntityInfo();
+
         if (values != null) {
-            String releaseId = (String)(values.get("releaseId"));
-            String projectId = (String)(values.get("workSpaceId"));
-            info.setReleaseId(releaseId);
-            info.setProjectId(projectId);
+
+            info.setProjectId(values.get(OctaneConstants.KEY_WORKSPACEID));
+
+            String importSelection = values.get(OctaneConstants.KEY_IMPORT_SELECTION);
+            String importSelectionDetails = values.get(OctaneConstants.KEY_IMPORT_SELECTION_DETAILS);
+            switch (importSelection) {
+                case OctaneConstants.IMPORT_SELECTION_EPIC:
+                    info.setEpicId(importSelectionDetails);
+                    break;
+                case OctaneConstants.IMPORT_SELECTION_RELEASE:
+                    info.setReleaseId(importSelectionDetails);
+                    break;
+            }
         }
+
         return info;
     }
 }

@@ -76,4 +76,17 @@ public class OctaneConstants {
     public static final String GET_EPIC_PHASE_JSONDATA = "get the epic phase json data";
 
     public static final String GET_EPIC_PARENT_JSONDATA = "get the epic parent json data";
+    public static final String KEY_IMPORT_SELECTION = "import_selection";
+    public static final String IMPORT_SELECTION_RELEASE = "import_selection_release";
+    public static final String IMPORT_SELECTION_EPIC = "import_selection_epic";
+    public static final String KEY_IMPORT_SELECTION_DETAILS = "import_selection_details";
+
+    public static final String KEY_IMPORT_GROUPS = "import_groups";
+    public static final String GROUP_BACKLOG_STRUCTURE = "group_backlog_structure";
+    public static final String GROUP_RELEASE = "group_release_sprint";
+
+    public static final String KEY_PERCENT_COMPLETE = "percent_complete";
+    public static final String PERCENT_COMPLETE_WORK = "percent_complete_work";
+    public static final String PERCENT_COMPLETE_STORY_POINTS = "percent_complete_story_points";
+    public static final String LABEL_ISSUES_TO_IMPORT = "label_issues_to_import";
 }
