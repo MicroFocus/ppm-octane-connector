@@ -84,12 +84,12 @@ public class OctaneTimeSheetIntegration extends TimeSheetIntegration {
             final String startDate = convertDate(currentTimeSheet.getPeriodStartDate().toGregorianCalendar().getTime());
             final String endDate = convertDate(currentTimeSheet.getPeriodEndDate().toGregorianCalendar().getTime());
 
-            ClientPublicAPI clientP = OctaneFunctionIntegration.setupClientPublicAPI(values);
+            ClientPublicAPI clientP = OctaneClientHelper.setupClientPublicAPI(values);
             
-            String clientid = values.get(OctaneConstants.APP_CLIENT_ID);
-            String clientScrete = values.get(OctaneConstants.APP_CLIENT_SECRET);
+            String clientId = values.get(OctaneConstants.APP_CLIENT_ID);
+            String clientSecret = values.get(OctaneConstants.APP_CLIENT_SECRET);
 
-            if (clientP.getAccessTokenWithFormFormat(clientid, clientScrete) && passAuth) {
+            if (clientP.getAccessTokenWithFormFormat(clientId, clientSecret) && passAuth) {
                 List<SharedSpace> shareSpaces = clientP.getSharedSpaces();
                 List<WorkSpace> workspacesAll = new ArrayList<WorkSpace>();
                 for (SharedSpace shareSpace : shareSpaces) {
