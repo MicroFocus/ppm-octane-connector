@@ -9,7 +9,6 @@ import com.ppm.integration.agilesdk.connector.octane.model.Release;
 import com.ppm.integration.agilesdk.connector.octane.model.Releases;
 import com.ppm.integration.agilesdk.connector.octane.model.SharedSpace;
 import com.ppm.integration.agilesdk.connector.octane.model.SharedSpaces;
-import com.ppm.integration.agilesdk.connector.octane.model.WorkItemRoot;
 import com.ppm.integration.agilesdk.connector.octane.model.WorkSpace;
 import com.ppm.integration.agilesdk.connector.octane.model.WorkSpaces;
 import java.net.URI;
@@ -32,30 +31,28 @@ import org.apache.wink.client.RestClient;
 import org.apache.wink.client.handlers.ClientHandler;
 import org.apache.wink.client.handlers.HandlerContext;
 
-public class Client {
+/**
+ * This Octane client will use Username + Password for authentication. You should NOT use it except if you have a good reason.<br>
+ *     Current uses are:
+ *     <ul>
+ *         <li>Authenticate user in Timesheet Integration page to ensure they are who they claim they are.</li>
+ *         <li>Authenticate user in Work plan task mapping page to only retrieve the list of workspaces they have access to.</li>
+ *     </ul>
+ */
+public class UsernamePasswordClient {
     public static final String AUTHORIZATION_SIGN_IN_URL = "/authentication/sign_in";
 
     public static final String AUTHORIZATION_SIGN_OUT_URL = "/authentication/sign_out";
 
-    protected static final Logger logger = LogManager.getLogger(Client.class);
-
-    public boolean isGetDefect = false;
+    protected static final Logger logger = LogManager.getLogger(UsernamePasswordClient.class);
 
     protected String baseURL = "";
-
-    private User _currentUser = null;
 
     private List<String> cookie = null;
 
     private ClientConfig config;
 
-    public Client(String baseURL) {
-        try {
-            Context ctx = ContextFactory.getThreadContext();
-            _currentUser = (User)ctx.get(Context.USER);
-        } catch (Exception ex) {
-            // if error, do nothing
-        }
+    public UsernamePasswordClient(String baseURL) {
 
         this.baseURL = baseURL.trim();
         if (this.baseURL.endsWith("/")) {
@@ -67,15 +64,12 @@ public class Client {
             @Override public ClientResponse handle(ClientRequest req, HandlerContext context) throws Exception {
 
                 req.getHeaders().add("Content-Type", "application/json");
-                //req.getHeaders().add("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8");
 
                 URI origURI = req.getURI();
                 if (!isAuthURI(origURI)) {
                     req.getHeaders().put("Cookie", cookie);
                     req.getHeaders().add("HPECLIENTTYPE", "HPE_MQM_UI");
                 }
-
-                debug(req.getURI().toString());
 
                 return context.doChain(req);
             }
@@ -88,34 +82,21 @@ public class Client {
         });
     }
 
-    public void setCurrentUser(User user) {
-        _currentUser = user;
-    }
-
-    protected void debug(String agmURL) {
-        StringBuffer sb = new StringBuffer();
-        if (_currentUser != null) {
-            sb.append("(user ID=");
-            sb.append(_currentUser.getUserId());
-            sb.append("; user name=");
-            sb.append(_currentUser.getUsername());
-            sb.append(")");
-        }
-
-        sb.append(agmURL);
-        logger.error(sb.toString());
-    }
-
-    public Client proxy(String host, int port) {
+    public UsernamePasswordClient proxy(String host, int port) {
         this.config.proxyHost(host).proxyPort(port);
         return this;
     }
 
-    public Client auth(String username, String password) {
+    public UsernamePasswordClient auth(String username, String password) {
 
-        JSONObject json = CredentialJson.toJSONObject(username, password);
+        return auth(username, password, false);
+    }
 
-        ClientResponse resp = null;
+    public UsernamePasswordClient auth(String username, String password, boolean enable_csrf) {
+
+        JSONObject json = enable_csrf ? CredentialJson.toJSONObject(username, password, enable_csrf) : CredentialJson.toJSONObject(username, password);
+
+        ClientResponse resp;
         Resource rsc = this.oneResource(AUTHORIZATION_SIGN_IN_URL);
         resp = rsc.post(json.toString());
 
@@ -127,23 +108,7 @@ public class Client {
         return this;
     }
 
-    public Client auth(String username, String password, boolean enable_csrf) {
-
-        JSONObject json = CredentialJson.toJSONObject(username, password, enable_csrf);
-
-        ClientResponse resp = null;
-        Resource rsc = this.oneResource(AUTHORIZATION_SIGN_IN_URL);
-        resp = rsc.post(json.toString());
-
-        if (resp.getStatusCode() != 200) {
-            throw new OctaneClientException("AGM_API", "ERROR_AUTHENTICATION_FAILED");
-        }
-
-        this.cookie = resp.getHeaders().get("Set-Cookie");
-        return this;
-    }
-
-    public Client auth(List<String> cookies) {
+    public UsernamePasswordClient auth(List<String> cookies) {
         this.cookie = cookies;
         return this;
     }
@@ -152,19 +117,19 @@ public class Client {
         return this.cookie;
     }
 
-    protected String getURLParamNameForFieldQuery() {
+    private String getURLParamNameForFieldQuery() {
         return "query";
     }
 
-    protected String getURLParamNameForVisibleFields() {
+    private String getURLParamNameForVisibleFields() {
         return "fields";
     }
 
-    public Resource oneResource(String url, FieldQuery... queries) {
+    private Resource oneResource(String url, FieldQuery... queries) {
         return oneResource(url, null, queries);
     }
 
-    public Resource oneResource(String url, String[] fields, FieldQuery... queries) {
+    private Resource oneResource(String url, String[] fields, FieldQuery... queries) {
 
         Resource rsc = new RestClient(this.config).resource(baseURL + url);
 
@@ -193,8 +158,10 @@ public class Client {
         return rsc;
     }
 
-    protected boolean isAuthURI(URI uri) {
-        //        return false;
+    /**
+     * @return true if the URL is the url of sign in or sign out.
+     */
+    private boolean isAuthURI(URI uri) {
         String path = uri.getPath();
         return AUTHORIZATION_SIGN_IN_URL.equals(path) || AUTHORIZATION_SIGN_OUT_URL.equals(path);
     }
@@ -218,67 +185,5 @@ public class Client {
         return tempWorkSpace.getCollection();
     }
 
-    public List<Release> getReleases(String sharedSpaceId, String workSpaceId) {
-        List<Release> results = new ArrayList<>();
-        boolean hasNext = true;
-        int offset = 0;
-        int limit = 100;
-        do {
-            ClientResponse response = oneResource(
-                    String.format("/api/shared_spaces/%s/workspaces/%s/releases?offset=%d&limit=%d", sharedSpaceId,
-                            workSpaceId, offset, limit)).accept(MediaType.APPLICATION_JSON).get(ClientResponse.class);
-            Releases tempReleases = new Releases();
-            tempReleases.SetCollection(response.getEntity(String.class));
-            results.addAll(tempReleases.getCollection());
-            if (tempReleases.getCollection().size() == limit) {
-                offset += limit;
-            } else {
-                hasNext = false;
-            }
-        } while (hasNext);
-        return results;
-    }
-
-    public Release getRelease(String sharedSpaceId, String workSpaceId, String releaseId) {
-        ClientResponse response = oneResource(
-                String.format("/api/shared_spaces/%s/workspaces/%s/releases/%s", sharedSpaceId, workSpaceId, releaseId))
-                .accept(MediaType.APPLICATION_JSON).get(ClientResponse.class);
-        Release tempRelease = new Release();
-        tempRelease.ParseData(response.getEntity(String.class));
-        return tempRelease;
-    }
-
-    public WorkItemRoot getWorkItems(String sharedSpaceId, String workSpaceId, String releaseId) {
-        WorkItemRoot tempWorkItemRoot = new WorkItemRoot();
-        boolean hasNext = true;
-        int offset = 0;
-        int limit = 200;
-        isGetDefect = false;
-        do {
-            ClientResponse response = oneResource(
-                    String.format("/api/shared_spaces/%s/workspaces/%s/work_items?offset=%d&limit=%d", sharedSpaceId,
-                            workSpaceId, offset, limit)).accept(MediaType.APPLICATION_JSON).get(ClientResponse.class);
-            tempWorkItemRoot.GetTempParseData(response.getEntity(String.class), isGetDefect);
-            if (tempWorkItemRoot.length == limit) {
-                offset += limit;
-            } else {
-                hasNext = false;
-            }
-        } while (hasNext);
-        tempWorkItemRoot.ParseDataIntoDetail(releaseId);
-        return tempWorkItemRoot;
-    }
-
-    //Octane used datetime format
-    public static final String dateFormat =  "yyyy-MM-dd'T'HH:mm:ss";
-
-    public static Date convertDateTime(String dateStr) {
-        try {
-            return new SimpleDateFormat(dateFormat).parse(dateStr);
-        } catch (ParseException e) {
-            logger.error("Exception when parsing date string '" + dateStr + "', returning new date()", e);
-        }
-        return new Date();
-    }
 
 }

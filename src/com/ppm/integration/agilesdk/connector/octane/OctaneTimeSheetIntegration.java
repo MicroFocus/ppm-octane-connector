@@ -2,9 +2,7 @@ package com.ppm.integration.agilesdk.connector.octane;
 
 import com.hp.ppm.tm.model.TimeSheet;
 import com.ppm.integration.agilesdk.ValueSet;
-import com.ppm.integration.agilesdk.connector.octane.client.Client;
-import com.ppm.integration.agilesdk.connector.octane.client.ClientPublicAPI;
-import com.ppm.integration.agilesdk.connector.octane.client.OctaneClientException;
+import com.ppm.integration.agilesdk.connector.octane.client.*;
 import com.ppm.integration.agilesdk.connector.octane.model.SharedSpace;
 import com.ppm.integration.agilesdk.connector.octane.model.TimesheetItem;
 import com.ppm.integration.agilesdk.connector.octane.model.WorkSpace;
@@ -15,7 +13,7 @@ import com.ppm.integration.agilesdk.tm.TimeSheetIntegrationContext;
 import com.ppm.integration.agilesdk.ui.Field;
 import com.ppm.integration.agilesdk.ui.PasswordText;
 import com.ppm.integration.agilesdk.ui.PlainText;
-import java.io.IOException;
+
 import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -33,7 +31,6 @@ import java.util.List;
 import java.util.Map;
 import org.apache.log4j.Logger;
 import org.apache.wink.client.ClientRuntimeException;
-import org.json.JSONException;
 
 public class OctaneTimeSheetIntegration extends TimeSheetIntegration {
     private final Logger logger = Logger.getLogger(this.getClass());
@@ -76,23 +73,23 @@ public class OctaneTimeSheetIntegration extends TimeSheetIntegration {
         try {
 
             boolean passAuth = false;
-            final Client simpleClient =
-                    OctaneFunctionIntegration.setupClient(new Client(values.get(OctaneConstants.KEY_BASE_URL)), values);
+            final UsernamePasswordClient simpleClient =
+                    OctaneClientHelper.setupClient(new UsernamePasswordClient(values.get(OctaneConstants.KEY_BASE_URL)), values);
             if (simpleClient.getCookies() != null || simpleClient.getCookies().equals("")) {
                 passAuth = true;
             }
-            //the auth is in this method: setupClient(new Client(values.get(AgmConstants.KEY_BASE_URL)),values);
+            //the auth is in this method: setupClient(new UsernamePasswordClient(values.get(AgmConstants.KEY_BASE_URL)),values);
 
             TimeSheet currentTimeSheet = context.currentTimeSheet();
             final String startDate = convertDate(currentTimeSheet.getPeriodStartDate().toGregorianCalendar().getTime());
             final String endDate = convertDate(currentTimeSheet.getPeriodEndDate().toGregorianCalendar().getTime());
 
-            ClientPublicAPI clientP = OctaneFunctionIntegration.setupClientPublicAPI(values);
+            ClientPublicAPI clientP = OctaneClientHelper.setupClientPublicAPI(values);
             
-            String clientid = values.get(OctaneConstants.APP_CLIENT_ID);
-            String clientScrete = values.get(OctaneConstants.APP_CLIENT_SECRET);
+            String clientId = values.get(OctaneConstants.APP_CLIENT_ID);
+            String clientSecret = values.get(OctaneConstants.APP_CLIENT_SECRET);
 
-            if (clientP.getAccessTokenWithFormFormat(clientid, clientScrete) && passAuth) {
+            if (clientP.getAccessTokenWithFormFormat(clientId, clientSecret) && passAuth) {
                 List<SharedSpace> shareSpaces = clientP.getSharedSpaces();
                 List<WorkSpace> workspacesAll = new ArrayList<WorkSpace>();
                 for (SharedSpace shareSpace : shareSpaces) {
@@ -132,14 +129,6 @@ public class OctaneTimeSheetIntegration extends TimeSheetIntegration {
             new OctaneConnectivityExceptionHandler()
                     .uncaughtException(Thread.currentThread(), e, OctaneTimeSheetIntegration.class);
         } catch (RuntimeException e) {
-            logger.error("", e);
-            new OctaneConnectivityExceptionHandler()
-                    .uncaughtException(Thread.currentThread(), e, OctaneTimeSheetIntegration.class);
-        } catch (JSONException e) {
-            logger.error("", e);
-            new OctaneConnectivityExceptionHandler()
-                    .uncaughtException(Thread.currentThread(), e, OctaneTimeSheetIntegration.class);
-        } catch (IOException e) {
             logger.error("", e);
             new OctaneConnectivityExceptionHandler()
                     .uncaughtException(Thread.currentThread(), e, OctaneTimeSheetIntegration.class);

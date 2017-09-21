@@ -1,7 +1,9 @@
 package com.ppm.integration.agilesdk.connector.octane.model;
 
-import com.ppm.integration.agilesdk.connector.octane.client.Client;
+import com.ppm.integration.agilesdk.connector.octane.client.DateUtils;
+import com.ppm.integration.agilesdk.connector.octane.client.UsernamePasswordClient;
 import java.util.Date;
+
 import net.sf.json.JSONObject;
 
 /**
@@ -33,14 +35,14 @@ public class Sprint extends SimpleEntity{
         this.releaseId = WorkItem.getSubObjectItem("release", "id", tempObj);
 
         this.creationTime = (String)tempObj.get("creation_time");
-        this.creationDateTime = Client.convertDateTime(creationTime);
+        this.creationDateTime = DateUtils.convertDateTime(creationTime);
         this.lastModifiedTime = (String)tempObj.get("last_modified");
-        this.lastModifiedDateTime = Client.convertDateTime(lastModifiedTime);
+        this.lastModifiedDateTime = DateUtils.convertDateTime(lastModifiedTime);
 
         this.sprintStartDate = (String)tempObj.get("start_date");
         this.sprintEndDate = (String)tempObj.get("end_date");
-        this.sprintStart = Client.convertDateTime(sprintStartDate);
-        this.sprintEnd = Client.convertDateTime(sprintEndDate);
+        this.sprintStart = DateUtils.convertDateTime(sprintStartDate);
+        this.sprintEnd = DateUtils.convertDateTime(sprintEndDate);
     }
 
 }

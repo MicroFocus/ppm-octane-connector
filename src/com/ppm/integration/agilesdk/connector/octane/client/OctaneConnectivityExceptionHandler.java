@@ -1,6 +1,7 @@
-package com.ppm.integration.agilesdk.connector.octane;
+package com.ppm.integration.agilesdk.connector.octane.client;
 
 import com.ppm.integration.IntegrationException;
+import com.ppm.integration.agilesdk.connector.octane.OctaneIntegrationConnector;
 import com.ppm.integration.agilesdk.connector.octane.client.OctaneClientException;
 import java.lang.Thread.UncaughtExceptionHandler;
 import org.apache.wink.client.ClientRuntimeException;

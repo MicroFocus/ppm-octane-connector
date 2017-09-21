@@ -4,6 +4,7 @@ import com.ppm.integration.agilesdk.FunctionIntegration;
 import com.ppm.integration.agilesdk.IntegrationConnector;
 import com.ppm.integration.agilesdk.ValueSet;
 import com.ppm.integration.agilesdk.connector.octane.client.ClientPublicAPI;
+import com.ppm.integration.agilesdk.connector.octane.client.OctaneConnectivityExceptionHandler;
 import com.ppm.integration.agilesdk.connector.octane.model.SharedSpace;
 import com.ppm.integration.agilesdk.connector.octane.model.WorkSpace;
 import com.ppm.integration.agilesdk.model.AgileProject;
@@ -67,7 +68,7 @@ public class OctaneIntegrationConnector extends IntegrationConnector {
     @Override public List<AgileProject> getAgileProjects(ValueSet paramValueSet) {
         List<AgileProject> agileProjectList = new ArrayList();
         try {
-            ClientPublicAPI client = OnctaneIntegrationHelper.getClient(paramValueSet);
+            ClientPublicAPI client = ClientPublicAPI.getClient(paramValueSet);
             List<SharedSpace> sharedSpacesList = client.getSharedSpaces();
             for (SharedSpace sharedSpace : sharedSpacesList) {
                 //workspace

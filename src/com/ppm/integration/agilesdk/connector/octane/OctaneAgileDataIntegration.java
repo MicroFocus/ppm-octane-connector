@@ -7,7 +7,6 @@ import com.ppm.integration.agilesdk.connector.octane.model.*;
 import net.sf.json.JSONObject;
 import net.sf.json.JSONSerializer;
 import org.apache.log4j.Logger;
-import org.json.JSONException;
 
 import java.io.IOException;
 import java.util.*;
@@ -39,24 +38,6 @@ public class OctaneAgileDataIntegration extends AgileDataIntegration {
 
     List<AgileDataEpic> releaseEpics = null;
 
-    Map<Integer, List<WorkSpace>> workSpacesWithSharedSpaceMap = null;
-
-    protected ClientPublicAPI getClient(ValueSet paramValueSet) {
-        ClientPublicAPI client = OctaneFunctionIntegration.setupClientPublicAPI(paramValueSet);
-        String clientId = paramValueSet.get(OctaneConstants.APP_CLIENT_ID);
-        String clientSecret = paramValueSet.get(OctaneConstants.APP_CLIENT_SECRET);
-        try {
-            if (!client.getAccessTokenWithFormFormat(clientId, clientSecret)) {
-                return null;
-            }
-        } catch (IOException e) {
-            logger.error(e.getMessage());
-        } catch (JSONException e) {
-            logger.error(e.getMessage());
-        }
-        return client;
-    }
-
     @Override
     public void setUp(ValueSet paramValueSet, String projectId) {
 
@@ -77,7 +58,7 @@ public class OctaneAgileDataIntegration extends AgileDataIntegration {
         Map<Integer, List<WorkSpace>> workSpacesWithSharedSpaceMap = null;
         try {
             boolean found = false;
-            client = getClient(paramValueSet);
+            client = ClientPublicAPI.getClient(paramValueSet);
             workSpacesWithSharedSpaceMap = new HashMap<>();
             List<SharedSpace> sharedSpacesList = client.getSharedSpaces();
             for (int i = 0, sizei = sharedSpacesList.size(); i < sizei; i++) {
@@ -88,6 +69,9 @@ public class OctaneAgileDataIntegration extends AgileDataIntegration {
                 workSpacesWithSharedSpaceMap.put(sharedSpaceId, workSpaces);
                 for (int j = 0, sizej = workSpaces.size(); j < sizej; j++) {
                     String strWorkSpaceId = workSpaces.get(j).id;
+
+                    client.setSharedSpaceId(strSharedSpaceId);
+                    client.setWorkSpaceId(strWorkSpaceId);
 
                     if(!projectId.equals(strWorkSpaceId)){
                         // This is not the workspace we're looking for
@@ -107,9 +91,9 @@ public class OctaneAgileDataIntegration extends AgileDataIntegration {
                         tempProgram.setName(sharedSpacesList.get(i).name);
                         this.releasePrograms.add(tempProgram);
 
-                        SetUpReleaseTeams(client, sharedSpaceId, workSpaceId);
-                        SetUpReleases(client, sharedSpaceId, workSpaceId);
-                        SetUpSprints(client, sharedSpaceId, workSpaceId);
+                        SetUpReleaseTeams(client);
+                        SetUpReleases(client);
+                        SetUpSprints(client);
                         SetUpTeams(client, sharedSpaceId, workSpaceId);
                         SetUpEpicFeatureBacklogItems(client, sharedSpaceId, workSpaceId);
 
@@ -250,8 +234,8 @@ public class OctaneAgileDataIntegration extends AgileDataIntegration {
         }
     }
 
-    protected void SetUpReleaseTeams(ClientPublicAPI client, int sharedSpaceId, int workSpaceId) throws IOException {
-        List<ReleaseTeam> releaseTeams = client.getReleaseTeams(sharedSpaceId, workSpaceId);
+    protected void SetUpReleaseTeams(ClientPublicAPI client) throws IOException {
+        List<ReleaseTeam> releaseTeams = client.getReleaseTeams();
         if (releaseTeams != null && releaseTeams.size() > 0) {
             Iterator<ReleaseTeam> iterator = releaseTeams.iterator();
             while (iterator.hasNext()) {
@@ -265,8 +249,8 @@ public class OctaneAgileDataIntegration extends AgileDataIntegration {
         }
     }
 
-    protected void SetUpReleases(ClientPublicAPI client, int sharedSpaceId, int workSpaceId) throws IOException {
-        List<Release> releases = client.getReleases(sharedSpaceId, workSpaceId);
+    protected void SetUpReleases(ClientPublicAPI client) throws IOException {
+        List<Release> releases = client.getAllReleases();
         if (releases != null && releases.size() > 0) {
             Iterator<Release> iterator = releases.iterator();
             while (iterator.hasNext()) {
@@ -279,8 +263,8 @@ public class OctaneAgileDataIntegration extends AgileDataIntegration {
         }
     }
     
-    protected void SetUpSprints(ClientPublicAPI client, int sharedSpaceId, int workSpaceId) throws IOException {
-        List<Sprint> releases = client.getSprints(sharedSpaceId, workSpaceId);
+    protected void SetUpSprints(ClientPublicAPI client) throws IOException {
+        List<Sprint> releases = client.getAllSprints();
         if (releases != null && releases.size() > 0) {
             Iterator<Sprint> iterator = releases.iterator();
             while (iterator.hasNext()) {
