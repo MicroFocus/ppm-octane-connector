@@ -171,16 +171,16 @@ public abstract class BaseOctaneExternalTask extends ExternalTask {
             }
 
             if (!defects.isEmpty()) {
-                children.add(WorkDrivenPercentCompleteExternalTask.forSummaryTask(new OctaneWorkItemTypeExternalTask("defect", defects, context)));
+                children.add(new OctaneWorkItemTypeExternalTask("defect", defects, context).toWorkDrivenPercentCompleteExternalTask());
             }
             if (!stories.isEmpty()) {
-                children.add(WorkDrivenPercentCompleteExternalTask.forSummaryTask(new OctaneWorkItemTypeExternalTask("story", stories, context)));
+                children.add(new OctaneWorkItemTypeExternalTask("story", stories, context).toWorkDrivenPercentCompleteExternalTask());
             }
             if (!qualityStories.isEmpty()) {
-                children.add(WorkDrivenPercentCompleteExternalTask.forSummaryTask(new OctaneWorkItemTypeExternalTask("quality_story", qualityStories, context)));
+                children.add(new OctaneWorkItemTypeExternalTask("quality_story", qualityStories, context).toWorkDrivenPercentCompleteExternalTask());
             }
             if (!others.isEmpty()) {
-                children.add(WorkDrivenPercentCompleteExternalTask.forSummaryTask(new OctaneWorkItemTypeExternalTask("other", others, context)));
+                children.add(new OctaneWorkItemTypeExternalTask("other", others, context).toWorkDrivenPercentCompleteExternalTask());
             }
 
             return children;
