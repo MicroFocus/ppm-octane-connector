@@ -89,4 +89,11 @@ public class OctaneConstants {
     public static final String PERCENT_COMPLETE_WORK = "percent_complete_work";
     public static final String PERCENT_COMPLETE_STORY_POINTS = "percent_complete_story_points";
     public static final String LABEL_ISSUES_TO_IMPORT = "label_issues_to_import";
+
+    public static final String KEY_IS_CREATE_RELEASE = "is_create_release";
+    public static final String KEY_NEW_RELEASE_NAME = "new_release_name";
+    public static final String KEY_NEW_RELEASE_DESCRIPTION = "new_release_description";
+    public static final String KEY_NEW_RELEASE_START_DATE = "new_release_start_date";
+    public static final String KEY_NEW_RELEASE_END_DATE = "new_release_end_date";
+    public static final String KEY_NEW_RELEASE_SPRINT_DURATION = "new_release_sprint_duration";
 }
