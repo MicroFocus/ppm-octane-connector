@@ -820,6 +820,14 @@ public class ClientPublicAPI {
     	
         return (List<EpicAttr>)getDataContent(response.getData(), new TypeReference<List<EpicAttr>>(){});
     }
+
+    public List<FieldInfo> getEntityFields(final String sharedspaceId, final String workspaceId, final String entityName) {
+        String url = String.format("%s/api/shared_spaces/%s/workspaces/%s/metadata/fields?query=%s%s%s",
+                baseURL, sharedspaceId, workspaceId, "%22entity_name%20EQ%20'", entityName, "'%22");
+        RestResponse response = sendGet(url);
+
+        return (List<FieldInfo>)getDataContent(response.getData(), new TypeReference<List<FieldInfo>>(){});
+    }
     
     private String getJsonStrFromObject(Object sourceObj)  {
     	ObjectMapper objectMapper = new ObjectMapper();
