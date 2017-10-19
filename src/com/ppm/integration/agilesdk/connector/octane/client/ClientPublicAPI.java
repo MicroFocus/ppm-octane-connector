@@ -21,8 +21,8 @@ import java.net.HttpURLConnection;
 import java.net.InetSocketAddress;
 import java.net.Proxy;
 import java.net.URL;
+import java.text.SimpleDateFormat;
 import java.util.*;
-import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
 
 
 /**
@@ -32,6 +32,8 @@ import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
  * workspace ID & Shared space ID will be read from the passed parameters and used whenever needed when doing REST calls ; you can also set them manually with the setters.
  */
 public class ClientPublicAPI {
+
+    private static final String JSON_TIME_SUFFIX = "T12:00:00Z";
 
     private final Logger logger = Logger.getLogger(this.getClass());
 
@@ -786,6 +788,68 @@ public class ClientPublicAPI {
         return epic;
     }
 
+    /**
+     * @param sprintDays number of days per sprint (including week ends). If null, will use kanban release.
+     */
+    public Release createRelease(String releaseName, String releaseDescription, Date startDate, Date endDate, Integer sprintDays) {
+
+        // First, let's retrieve the nodeList ids for release type: sprint or kanban
+        String releaseTypeNodeListId = null;
+        if (sprintDays == null || sprintDays.intValue() == 0) {
+            // Kanban
+            releaseTypeNodeListId = getListNodeIdForLogicalName("list_node.release_agile_type.kanban");
+        } else {
+            // Scrum
+            releaseTypeNodeListId = getListNodeIdForLogicalName("list_node.release_agile_type.scrum");
+        }
+
+        String url = String.format("%s/api/shared_spaces/%s/workspaces/%s/releases", baseURL, sharedSpaceId, workSpaceId);
+
+        JSONObject createReleasePayload = new JSONObject();
+        JSONArray data = new JSONArray();
+        JSONObject releaseData = new JSONObject();
+        releaseData.put("description", releaseDescription);
+        releaseData.put("name", releaseName);
+        releaseData.put("sprint_duration", sprintDays == null ? 14 : (sprintDays));
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+        releaseData.put("start_date", sdf.format(startDate)+JSON_TIME_SUFFIX);
+        releaseData.put("end_date", sdf.format(endDate)+JSON_TIME_SUFFIX);
+        JSONObject agileType = new JSONObject();
+        agileType.put("type", "list_node");
+        agileType.put("id", releaseTypeNodeListId);
+        releaseData.put("agile_type", agileType);
+
+        data.add(releaseData);
+        createReleasePayload.put("data", data);
+
+        RestResponse response = sendRequest(url, HttpMethod.POST, createReleasePayload.toString());
+        if (HttpStatus.SC_CREATED != response.getStatusCode()) {
+            this.logger.error("Error occured when creating release in Octane. Response code = " + response.getStatusCode());
+            throw new OctaneClientException("AGM_APP", "ERROR_HTTP_CONNECTIVITY_ERROR", new String[] { response.getData() });
+        }
+
+        Releases tempReleases = new Releases();
+        tempReleases.SetCollection(response.getData());
+        return tempReleases.getCollection().get(0);
+    }
+
+    private String getListNodeIdForLogicalName(String nodeListLogicalName) {
+        String url = String.format("%s/api/shared_spaces/%s/workspaces/%s/list_nodes?fields=id&query=\"logical_name=^%s^\"",
+                baseURL, sharedSpaceId, workSpaceId, nodeListLogicalName);
+        RestResponse response = sendGet(url);
+
+        Releases tempReleases = new Releases();
+        tempReleases.SetCollection(response.getData());
+        List<Release> releases = tempReleases.getCollection();
+
+        if (releases.size() != 1) {
+            return null;
+        }
+
+        return releases.get(0).getId();
+
+    }
+
     public List<EpicEntity> createEpicInWorkspace(String sharedspaceId, String workspaceId, EpicCreateEntity epicCreateEntity)  {
         String url = String.format("%s/api/shared_spaces/%s/workspaces/%s/epics", baseURL, sharedspaceId, workspaceId);
 
@@ -857,7 +921,7 @@ public class ClientPublicAPI {
             Object dataObj = obj.get("data");
             if (dataObj != null) {
                 String arrayStr = dataObj.toString();
-                if (arrayStr.length() > 2) {
+                if (arrayStr.length() >= 2) {
                     return mapper.readValue(arrayStr, typeRef);
                 }
             }
@@ -868,9 +932,9 @@ public class ClientPublicAPI {
         }
     }
 
-    public List<GenericWorkItem> getEpicWorkItems(int epicId) {
+    public List<GenericWorkItem> getEpicWorkItems(int epicId, Set<String> itemTypes) {
 
-        List<JSONObject> workItemsJson = getWorkItems(String.format("id=%d||parent={id=%d}||parent={parent={id=%d}}", epicId, epicId, epicId));
+        List<JSONObject> workItemsJson = getWorkItems(String.format("id=%d||parent={id=%d}||parent={parent={id=%d}};subtype%%20IN%%20%s", epicId, epicId, epicId, StringUtils.join(itemTypes, ",")));
 
         List<GenericWorkItem> results = new ArrayList<>(workItemsJson.size());
 
@@ -882,8 +946,8 @@ public class ClientPublicAPI {
         return results;
     }
 
-    public List<GenericWorkItem> getReleaseWorkItems(int releaseId) {
-        List<JSONObject> workItemsJson = getWorkItems(String.format("release={id=%d}", releaseId));
+    public List<GenericWorkItem> getReleaseWorkItems(int releaseId, Set<String> itemTypes) {
+        List<JSONObject> workItemsJson = getWorkItems(String.format("release={id=%d};subtype%%20IN%%20%s", releaseId, StringUtils.join(itemTypes, ",")));
 
         List<GenericWorkItem> results = new ArrayList<>(workItemsJson.size());
 
@@ -952,6 +1016,11 @@ public class ClientPublicAPI {
     }
 
     public List<GenericWorkItem> getWorkItemsByIds(Set<String> ids) {
+
+        if (ids == null || ids.isEmpty()) {
+            return new ArrayList<>(0);
+        }
+
         String query = "id%20IN%20" + StringUtils.join(ids, ",");
         List<JSONObject> workItemsJson = getWorkItems(query);
 

@@ -12,7 +12,7 @@ public class OctaneConstants {
     public static final String APP_CLIENT_ID = "clientId";
 
     public static final String APP_CLIENT_SECRET = "clientSecret";
-    
+
     public static final String PROJECT_ID = "ProjectId";
 
     public static final String KEY_USERNAME = "username";
@@ -34,23 +34,23 @@ public class OctaneConstants {
     public static final String KEY_WORKSPACEID = "workSpaceId";
 
     public static final String KEY_WORKITEM_SUBTYPE = "workitemSubtype";
-    
+
     public static final String KEY_WORKITEM_PARENT_ID = "workitemSubtypeId";
-    
+
     public static final String KEY_WORKITEM_PARENT_TYPE = "workitemSubtypeType";
-    
+
     public static final String KEY_PHASE_LOGICNAME = "phaseLogicName";
-    
+
     public static final String KEY_PHASE_LOGICNAME_ID = "phaseLogicId";
-    
+
     public static final String KEY_PHASE_LOGICNAME_TYPE = "phaseLogicType";
-    
+
     public static final String KEY_EPIC_ENTITY_ID = "epicEntityId";
-    
+
     public static final String KEY_EPIC_ENTITY_NAME = "epicEntityName";
-    
+
     public static final String KEY_EPIC_ENTITY_TYPE = "epic";
-    
+
     public static final String KEY_RELEASEID = "releaseId";
 
     public static final String SUB_TYPE_WORK_ITEM_ROOT = "work_item_root";
@@ -62,14 +62,10 @@ public class OctaneConstants {
     public static final String SUB_TYPE_STORY = "story";
 
     public static final String SUB_TYPE_DEFECT = "defect";
-	
-	public static final String WORKSPACE_GROUP_SYCN_LABEL = "sync";    
-	
-	public static final String LABEL_LINK_CONFIGURE_WORKSPACE  = "LABEL_LINK_CONFIGURE_WORKSPACE";
 
-	public static final String WORKSPACE_ID = "WORKSPACE_ID";
+    public static final String WORKSPACE_ID = "WORKSPACE_ID";
 
-	public static final String SHARED_SPACE_ID = "SHARED_SPACE_ID";
+    public static final String SHARED_SPACE_ID = "SHARED_SPACE_ID";
 
     public static final String CREATE_EPIC_IN_WORKSPACE_RESPONSE_JSONDATA = "the response json data when create epic in workspace";
 
@@ -88,5 +84,17 @@ public class OctaneConstants {
     public static final String KEY_PERCENT_COMPLETE = "percent_complete";
     public static final String PERCENT_COMPLETE_WORK = "percent_complete_work";
     public static final String PERCENT_COMPLETE_STORY_POINTS = "percent_complete_story_points";
-    public static final String LABEL_ISSUES_TO_IMPORT = "label_issues_to_import";
+
+    public static final String KEY_IS_CREATE_RELEASE = "is_create_release";
+    public static final String KEY_NEW_RELEASE_NAME = "new_release_name";
+    public static final String KEY_NEW_RELEASE_DESCRIPTION = "new_release_description";
+    public static final String KEY_NEW_RELEASE_START_DATE = "new_release_start_date";
+    public static final String KEY_NEW_RELEASE_END_DATE = "new_release_end_date";
+    public static final String KEY_NEW_RELEASE_SPRINT_DURATION = "new_release_sprint_duration";
+    public static final String KEY_IMPORT_ITEM_STORIES = "import_item_stories";
+    public static final String KEY_IMPORT_ITEM_DEFECTS = "import_item_defects";
+    public static final String KEY_IMPORT_ITEM_QUALITY_STORIES = "import_item_quality_stories";
+    public static final String KEY_SHOW_ITEMS_AS_TASKS = "show_items_as_tasks";
+
+
 }

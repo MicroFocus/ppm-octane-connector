@@ -1,5 +1,14 @@
 package com.ppm.integration.agilesdk.connector.octane.model.workplan;
 
+import com.hp.itg.pm.dao.impl.WorkplanDAOImpl;
+import com.kintana.core.arch.Home;
+import com.kintana.core.region.bean.Region;
+import com.mercury.itg.core.calendar.dao.ITGCalendarDAO;
+import com.mercury.itg.core.calendar.model.CalendarWorkingDayCache;
+import com.mercury.itg.pm.service.WorkPlanService;
+import com.mercury.itg.pm.service.impl.PMServiceFactory;
+import com.mercury.itg.pm.service.util.PMServiceHelper;
+import com.mercury.itg.util.HibernateUtil;
 import com.ppm.integration.agilesdk.connector.octane.OctaneIntegrationConnector;
 import com.ppm.integration.agilesdk.connector.octane.model.Sprint;
 import com.ppm.integration.agilesdk.pm.ExternalTask;
@@ -8,14 +17,16 @@ import com.ppm.integration.agilesdk.provider.LocalizationProvider;
 import com.ppm.integration.agilesdk.provider.Providers;
 import com.ppm.integration.agilesdk.provider.UserProvider;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * Class used to store context information during work plan generation.
  */
 public class WorkplanContext {
+
+    private CalendarWorkingDayCache workingDayCache = null;
+
+    private boolean isWorkingDayCacheInit = false;
 
     private List<Sprint> sprints;
 
@@ -32,6 +43,8 @@ public class WorkplanContext {
     public String percentComplete;
 
     public Map<String, String> usersEmails = new HashMap<>();
+
+    public boolean showItemsAsTasks;
 
     public List<Sprint> getSprints() {
         return sprints;
@@ -91,4 +104,36 @@ public class WorkplanContext {
         return sprintsMap.get(sprintId);
     }
 
+    public Date moveToNextWorkingDay(Date date) {
+        synchronized (this) {
+            if (this.isWorkingDayCacheInit == false) {
+
+                try {
+                    workingDayCache = new WorkplanDAOImpl().getWorkPlanById(wpiContext.currentTask().getWorkplanId()).getCalendar().getWorkingDayCache();
+                } catch (Exception e) {
+                    // Too bad, we won't adjust working days, this may result in tasks with zero duration if occuring during week ends.
+                    workingDayCache = null;
+                }
+
+                isWorkingDayCacheInit = true;
+            }
+        }
+
+        if (this.workingDayCache == null) {
+            return date;
+        }
+
+        if (workingDayCache.isWorkDay(date)) {
+            return date;
+        }
+
+        do {
+            Calendar c = new GregorianCalendar();
+            c.setTime(date);
+            c.add(Calendar.DATE, 1);
+            date = c.getTime();
+        } while (!workingDayCache.isWorkDay(date));
+
+        return date;
+    }
 }

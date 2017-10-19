@@ -1,5 +1,12 @@
 package com.ppm.integration.agilesdk.connector.octane;
 
+import com.hp.ppm.integration.model.WorkplanMapping;
+import com.hp.ppm.user.service.api.UserService;
+import com.kintana.core.util.mlu.DateFormatter;
+import com.mercury.itg.core.ContextFactory;
+import com.mercury.itg.core.impl.SpringContainerFactory;
+import com.mercury.itg.core.model.Context;
+import com.mercury.itg.core.user.impl.UserImpl;
 import com.ppm.integration.agilesdk.FunctionIntegration;
 import com.ppm.integration.agilesdk.ValueSet;
 import com.ppm.integration.agilesdk.connector.octane.client.OctaneEntityDropdown;
@@ -14,15 +21,26 @@ import com.ppm.integration.agilesdk.pm.WorkPlanIntegrationContext;
 import com.ppm.integration.agilesdk.provider.Providers;
 import com.ppm.integration.agilesdk.ui.*;
 
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.*;
 
+import net.sf.json.JSONArray;
+import net.sf.json.JSONObject;
+import net.sf.json.JSONSerializer;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.log4j.Logger;
 
 public class OctaneWorkPlanIntegration extends WorkPlanIntegration implements FunctionIntegration {
 
     private final Logger logger = Logger.getLogger(this.getClass());
 
+    protected static final UserService userService = ((UserService) SpringContainerFactory.getBean("userAdminService"));
+
     @Override public List<Field> getMappingConfigurationFields(WorkPlanIntegrationContext context, ValueSet values) {
+
+        GregorianCalendar start = context.currentTask().getSchedule().getScheduledStart().toGregorianCalendar();
+        GregorianCalendar finish = context.currentTask().getSchedule().getScheduledEnd().toGregorianCalendar();
 
         return Arrays.asList(new Field[] {
                 new OctaneEntityDropdown(OctaneConstants.KEY_SHAREDSPACEID, "OCTANE_SHARESPACE", "block", true) {
@@ -80,6 +98,7 @@ public class OctaneWorkPlanIntegration extends WorkPlanIntegration implements Fu
                 },
 
                 new LineBreaker(),
+                new LineHr(),
                 new LineBreaker(),
 
 
@@ -89,6 +108,16 @@ public class OctaneWorkPlanIntegration extends WorkPlanIntegration implements Fu
                     @Override
                     public List<String> getDependencies() {
                         return new ArrayList<String>();
+                    }
+
+                    @Override
+                    public List<String> getStyleDependencies() {
+                        return Arrays.asList(new String[] { OctaneConstants.KEY_IS_CREATE_RELEASE });
+                    }
+
+                    @Override
+                    public FieldAppearance getFieldAppearance(ValueSet values) {
+                        return getCreateReleaseUnusedFieldsAppearance(values);
                     }
 
                     @Override
@@ -106,13 +135,23 @@ public class OctaneWorkPlanIntegration extends WorkPlanIntegration implements Fu
                     }
 
                 },
-                new DynamicDropdown(OctaneConstants.KEY_IMPORT_SELECTION_DETAILS, "IMPORT_SELECTION_DETAILS", "", true) {
+                new DynamicDropdown(OctaneConstants.KEY_IMPORT_SELECTION_DETAILS, "IMPORT_SELECTION_DETAILS", "", false) {
 
                     @Override
                     public List<String> getDependencies() {
 
                         return Arrays.asList(
                                 new String[] {OctaneConstants.KEY_SHAREDSPACEID, OctaneConstants.KEY_WORKSPACEID, OctaneConstants.KEY_IMPORT_SELECTION});
+                    }
+
+                    @Override
+                    public FieldAppearance getFieldAppearance(ValueSet values) {
+                        return getCreateReleaseUnusedFieldsAppearance(values);
+                    }
+
+                    @Override
+                    public List<String> getStyleDependencies() {
+                        return Arrays.asList(new String[] { OctaneConstants.KEY_IS_CREATE_RELEASE });
                     }
 
                     @Override
@@ -144,16 +183,94 @@ public class OctaneWorkPlanIntegration extends WorkPlanIntegration implements Fu
                         return options;
                     }
                 },
+
                 new LineBreaker(),
+                new LineHr(),
+                new LineBreaker(),
+
+                // Release Creation
+                new CheckBox(OctaneConstants.KEY_IS_CREATE_RELEASE,"IS_CREATE_RELEASE","block",false),
+                new LineBreaker(),
+                new PlainText(OctaneConstants.KEY_NEW_RELEASE_NAME,"NEW_RELEASE_NAME",context.currentTask().getName(),"block",false)
+                {
+                    @Override
+                    public List<String> getStyleDependencies() {
+                        return Arrays.asList(new String[] { OctaneConstants.KEY_IS_CREATE_RELEASE });
+                    }
+
+                    @Override
+                    public FieldAppearance getFieldAppearance(ValueSet values) {
+                        return getCreateReleaseRequiredFieldsAppearance(values);
+
+                    }
+
+                },
+                new PlainText(OctaneConstants.KEY_NEW_RELEASE_DESCRIPTION,"NEW_RELEASE_DESCRIPTION","","block",false)
+                {
+                    @Override
+                    public List<String> getStyleDependencies() {
+                        return Arrays.asList(new String[] { OctaneConstants.KEY_IS_CREATE_RELEASE });
+                    }
+
+                    @Override
+                    public FieldAppearance getFieldAppearance(ValueSet values) {
+                        return getCreateReleaseNotRequiredFieldsAppearance(values);
+
+                    }
+                },
+                new LineBreaker(),
+                new DatePicker(OctaneConstants.KEY_NEW_RELEASE_START_DATE,"NEW_RELEASE_START_DATE",new SimpleDateFormat(getUserDateformat()).format(start.getTime()),"block",false)
+                {
+                    @Override
+                    public List<String> getStyleDependencies() {
+                        return Arrays.asList(new String[] { OctaneConstants.KEY_IS_CREATE_RELEASE });
+                    }
+
+                    @Override
+                    public FieldAppearance getFieldAppearance(ValueSet values) {
+                        return getCreateReleaseRequiredFieldsAppearance(values);
+
+                    }
+                },
+                new DatePicker(OctaneConstants.KEY_NEW_RELEASE_END_DATE,"NEW_RELEASE_END_DATE",new SimpleDateFormat(getUserDateformat()).format(finish.getTime()),"block",false)
+                {
+                    @Override
+                    public List<String> getStyleDependencies() {
+                        return Arrays.asList(new String[] { OctaneConstants.KEY_IS_CREATE_RELEASE });
+                    }
+
+                    @Override
+                    public FieldAppearance getFieldAppearance(ValueSet values) {
+                        return getCreateReleaseRequiredFieldsAppearance(values);
+
+                    }
+                },
+                new NumberText(OctaneConstants.KEY_NEW_RELEASE_SPRINT_DURATION,"NEW_RELEASE_SPRINT_DURATION","14","block",false)
+                {
+                    @Override
+                    public List<String> getStyleDependencies() {
+                        return Arrays.asList(new String[] { OctaneConstants.KEY_IS_CREATE_RELEASE });
+                    }
+
+                    @Override
+                    public FieldAppearance getFieldAppearance(ValueSet values) {
+                        return getCreateReleaseNotRequiredFieldsAppearance(values);
+                    }
+                },
+
+
+                new LineBreaker(),
+                new LineHr(),
                 new LineBreaker(),
 
                 new DynamicDropdown(OctaneConstants.KEY_IMPORT_GROUPS, "IMPORT_GROUPS",
-                        OctaneConstants.GROUP_RELEASE, "", true) {
+                        OctaneConstants.GROUP_BACKLOG_STRUCTURE, "", true) {
 
                     @Override
                     public List<String> getDependencies() {
                         return new ArrayList<String>();
                     }
+
 
                     @Override
                     public List<Option> getDynamicalOptions(ValueSet values) {
@@ -193,8 +310,161 @@ public class OctaneWorkPlanIntegration extends WorkPlanIntegration implements Fu
                     }
 
                 },
+
+
+                new LineBreaker(),
+                new CheckBox(OctaneConstants.KEY_IMPORT_ITEM_STORIES,"IMPORT_ITEM_STORIES","block",true),
+                new CheckBox(OctaneConstants.KEY_IMPORT_ITEM_DEFECTS,"IMPORT_ITEM_DEFECTS","block",true),
+                new CheckBox(OctaneConstants.KEY_IMPORT_ITEM_QUALITY_STORIES,"IMPORT_ITEM_QUALITY_STORIES","block",false),
+                new LineBreaker(),
+                new CheckBox(OctaneConstants.KEY_SHOW_ITEMS_AS_TASKS,"SHOW_ITEMS_AS_TASKS","block",false),
                 new LineBreaker()
         });
+    }
+
+    private String getUserDateformat(){
+        try {
+            Context ctx = ContextFactory.getThreadContext();
+            UserImpl currentUser = (UserImpl)ctx.get(Context.USER);
+            Long userID=currentUser.getUserId();
+            if(userID!=null){
+                return userService.findUserRegionalById(userID.intValue()).getShortDateFormat();
+            }
+        } catch (Exception e) {
+            logger.error("Create new Release getUserDateformt fail:", e);
+        }
+        return null;
+    }
+
+    private FieldAppearance getCreateReleaseRequiredFieldsAppearance(ValueSet values)
+    {
+        String isCreateRelease = values.get(OctaneConstants.KEY_IS_CREATE_RELEASE);
+        if ("false".equals(isCreateRelease)) {
+            return new FieldAppearance("disabled", "required");
+        } else if ("true".equals(isCreateRelease)) {
+            return new FieldAppearance("required", "disabled");
+        }
+
+        return null;
+
+    }
+
+    private FieldAppearance getCreateReleaseNotRequiredFieldsAppearance(ValueSet values)
+    {
+        String isCreateRelease = values.get(OctaneConstants.KEY_IS_CREATE_RELEASE);
+        if ("false".equals(isCreateRelease)) {
+            return new FieldAppearance("disabled", "");
+        } else if ("true".equals(isCreateRelease)) {
+            return new FieldAppearance("", "disabled");
+        }
+
+        return null;
+    }
+
+    private FieldAppearance getCreateReleaseUnusedFieldsAppearance(ValueSet values)
+    {
+        String isCreateRelease = values.get(OctaneConstants.KEY_IS_CREATE_RELEASE);
+        if ("false".equals(isCreateRelease)) {
+            return new FieldAppearance("", "disabled");
+        } else if ("true".equals(isCreateRelease)) {
+            return new FieldAppearance("disabled", "");
+        }
+
+        return null;
+    }
+
+
+    @Override
+    public WorkplanMapping linkTaskWithExternal(WorkPlanIntegrationContext context, WorkplanMapping workplanMapping, ValueSet values) {
+
+        // If needed, We must create the new release in Octane and update the configuration with the ID.
+
+        boolean isCreateRelease = values.getBoolean(OctaneConstants.KEY_IS_CREATE_RELEASE, false);
+
+        if (isCreateRelease) {
+
+            // Let's create the new release in Octane and update the config with new release info.
+            ClientPublicAPI client = ClientPublicAPI.getClient(values);
+
+            Date startDate, endDate = null;
+
+            try {
+                startDate = DateFormatter.parseDateTime(values.get(OctaneConstants.KEY_NEW_RELEASE_START_DATE));
+                endDate = DateFormatter.parseDateTime(values.get(OctaneConstants.KEY_NEW_RELEASE_END_DATE));
+            } catch (ParseException e) {
+                throw new RuntimeException("Error while parsing date value", e);
+            }
+
+            String daysPerSprint = values.get(OctaneConstants.KEY_NEW_RELEASE_SPRINT_DURATION);
+
+            Release release = client.createRelease(values.get(OctaneConstants.KEY_NEW_RELEASE_NAME), values.get(OctaneConstants.KEY_NEW_RELEASE_DESCRIPTION), startDate, endDate, (StringUtils.isBlank(daysPerSprint) ? null : Integer.parseInt(daysPerSprint)));
+
+            updateNewReleaseInformationInWorkplanMapping(workplanMapping, release);
+        }
+
+        return removeNewReleaseInfoFromWorkplanMapping(workplanMapping, isCreateRelease);
+    }
+
+    private WorkplanMapping removeNewReleaseInfoFromWorkplanMapping(WorkplanMapping workplanMapping, boolean isCreateRelease) {
+        String displayConfigJson = workplanMapping.getConfigDisplayJson();
+        if(displayConfigJson != null) {
+            JSONObject json = (JSONObject) JSONSerializer.toJSON(displayConfigJson);
+            JSONArray oldConfig = json.getJSONArray("config");
+            JSONArray newConfig = new JSONArray();
+            for (int i = 0 ; i < oldConfig.size() ; i++) {
+                JSONObject entry = oldConfig.getJSONObject(i);
+                String label = entry.getString("label");
+
+                if (OctaneConstants.KEY_NEW_RELEASE_START_DATE.equalsIgnoreCase(label)
+                        || OctaneConstants.KEY_NEW_RELEASE_START_DATE.equalsIgnoreCase(label)
+                        || OctaneConstants.KEY_NEW_RELEASE_END_DATE.equalsIgnoreCase(label)
+                        || OctaneConstants.KEY_NEW_RELEASE_SPRINT_DURATION.equalsIgnoreCase(label)
+                        || OctaneConstants.KEY_NEW_RELEASE_DESCRIPTION.equalsIgnoreCase(label)) {
+                    continue;
+                }
+
+                if (!isCreateRelease && (OctaneConstants.KEY_NEW_RELEASE_NAME.equalsIgnoreCase(label) || OctaneConstants.KEY_IS_CREATE_RELEASE.equalsIgnoreCase(label))) {
+                    // Removing release name & decision to create a new release only if not creating new release
+                    continue;
+                }
+
+                newConfig.add(entry);
+            }
+
+            json.put("config", newConfig);
+            workplanMapping.setConfigDisplayJson(json.toString());
+        }
+
+        return workplanMapping;
+    }
+
+    private void updateNewReleaseInformationInWorkplanMapping(WorkplanMapping workplanMapping, Release newRelease) {
+
+        //update mapping Release in ConfigJson & ConfigDisplayJson: We must select the newly created release info.
+        String configJson = workplanMapping.getConfigJson();
+        if(configJson != null) {
+            JSONObject json = (JSONObject) JSONSerializer.toJSON(configJson);
+            json.put(OctaneConstants.KEY_IMPORT_SELECTION, OctaneConstants.IMPORT_SELECTION_RELEASE);
+            json.put(OctaneConstants.KEY_IMPORT_SELECTION_DETAILS, newRelease.getId());
+            workplanMapping.setConfigJson(json.toString());
+        }
+        String displayConfigJson = workplanMapping.getConfigDisplayJson();
+        if(displayConfigJson != null) {
+            JSONObject json = (JSONObject) JSONSerializer.toJSON(displayConfigJson);
+            JSONArray config = json.getJSONArray("config");
+            for (int i = 0 ; i < config.size() ; i++) {
+                JSONObject entry = config.getJSONObject(i);
+                String label = entry.getString("label");
+                if (OctaneConstants.KEY_IMPORT_SELECTION.equalsIgnoreCase(label)) {
+                    entry.put("text", OctaneConstants.IMPORT_SELECTION_RELEASE);
+                } else if (OctaneConstants.KEY_IMPORT_SELECTION_DETAILS.equalsIgnoreCase(label)) {
+                    entry.put("text", newRelease.getId());
+                } else if (OctaneConstants.KEY_NEW_RELEASE_NAME.equalsIgnoreCase(label)) {
+                    entry.put("text", newRelease.getName());
+                }
+            }
+            workplanMapping.setConfigDisplayJson(json.toString());
+        }
     }
 
     @Override
@@ -214,19 +484,39 @@ public class OctaneWorkPlanIntegration extends WorkPlanIntegration implements Fu
 
         wpContext.usersEmails = client.getAllWorkspaceUsers();
 
+        wpContext.showItemsAsTasks = values.getBoolean(OctaneConstants.KEY_SHOW_ITEMS_AS_TASKS, false);
+
 
         // Get the backlog data. It's either one Epic or one Release
 
         final List<GenericWorkItem> workItems = new ArrayList<>();
 
+        Set<String> itemTypes = new HashSet<>(3);
+
+        if (values.getBoolean(OctaneConstants.KEY_IMPORT_ITEM_STORIES, false)) {
+            itemTypes.add("^story^");
+        }
+        if (values.getBoolean(OctaneConstants.KEY_IMPORT_ITEM_DEFECTS, false)) {
+            itemTypes.add("^defect^");
+        }
+        if (values.getBoolean(OctaneConstants.KEY_IMPORT_ITEM_QUALITY_STORIES, false)) {
+            itemTypes.add("^quality_story^");
+        }
+
+        if (OctaneConstants.GROUP_BACKLOG_STRUCTURE.equals(values.get(OctaneConstants.KEY_IMPORT_GROUPS))) {
+            itemTypes.add("^feature^");
+            itemTypes.add("^epic^");
+        }
+
+
         switch(values.get(OctaneConstants.KEY_IMPORT_SELECTION)) {
 
             case OctaneConstants.IMPORT_SELECTION_RELEASE:
-                workItems.addAll(client.getReleaseWorkItems(Integer.parseInt(values.get(OctaneConstants.KEY_IMPORT_SELECTION_DETAILS))));
+                workItems.addAll(client.getReleaseWorkItems(Integer.parseInt(values.get(OctaneConstants.KEY_IMPORT_SELECTION_DETAILS)), itemTypes));
                 break;
 
             case OctaneConstants.IMPORT_SELECTION_EPIC:
-                workItems.addAll(client.getEpicWorkItems(Integer.parseInt(values.get(OctaneConstants.KEY_IMPORT_SELECTION_DETAILS))));
+                workItems.addAll(client.getEpicWorkItems(Integer.parseInt(values.get(OctaneConstants.KEY_IMPORT_SELECTION_DETAILS)), itemTypes));
                 break;
         }
 
@@ -390,8 +680,19 @@ public class OctaneWorkPlanIntegration extends WorkPlanIntegration implements Fu
             values.put(OctaneConstants.KEY_IMPORT_SELECTION_DETAILS, values.get(OctaneConstants.KEY_RELEASEID));
         }
 
+        // Old connector was grouping stuff by release/sprint, so we keep this as default.
         if(values.get(OctaneConstants.KEY_IMPORT_GROUPS) == null) {
             values.put(OctaneConstants.KEY_IMPORT_GROUPS, OctaneConstants.GROUP_RELEASE);
+        }
+
+        if (!values.getBoolean(OctaneConstants.KEY_IMPORT_ITEM_STORIES, false) && !values.getBoolean(OctaneConstants.KEY_IMPORT_ITEM_DEFECTS, false) && !values.getBoolean(OctaneConstants.KEY_IMPORT_ITEM_QUALITY_STORIES, false)) {
+            // You shouldn't import nothing, doesn't make sense. Let's import at least User stories, it's the default now & only way in the old connector.
+            values.put(OctaneConstants.KEY_IMPORT_ITEM_STORIES, "true");
+        }
+
+        if (StringUtils.isBlank(values.get(OctaneConstants.KEY_SHOW_ITEMS_AS_TASKS))) {
+            // If this parameter was not set (in old plugin), default value was to insert stories as tasks in the work plan.
+            values.put(OctaneConstants.KEY_SHOW_ITEMS_AS_TASKS, "true");
         }
     }
 
