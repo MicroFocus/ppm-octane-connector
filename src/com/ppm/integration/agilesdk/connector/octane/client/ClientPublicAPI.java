@@ -924,9 +924,9 @@ public class ClientPublicAPI {
         }
     }
 
-    public List<GenericWorkItem> getEpicWorkItems(int epicId) {
+    public List<GenericWorkItem> getEpicWorkItems(int epicId, Set<String> itemTypes) {
 
-        List<JSONObject> workItemsJson = getWorkItems(String.format("id=%d||parent={id=%d}||parent={parent={id=%d}}", epicId, epicId, epicId));
+        List<JSONObject> workItemsJson = getWorkItems(String.format("id=%d||parent={id=%d}||parent={parent={id=%d}};subtype%%20IN%%20%s", epicId, epicId, epicId, StringUtils.join(itemTypes, ",")));
 
         List<GenericWorkItem> results = new ArrayList<>(workItemsJson.size());
 
@@ -938,8 +938,8 @@ public class ClientPublicAPI {
         return results;
     }
 
-    public List<GenericWorkItem> getReleaseWorkItems(int releaseId) {
-        List<JSONObject> workItemsJson = getWorkItems(String.format("release={id=%d}", releaseId));
+    public List<GenericWorkItem> getReleaseWorkItems(int releaseId, Set<String> itemTypes) {
+        List<JSONObject> workItemsJson = getWorkItems(String.format("release={id=%d};subtype%%20IN%%20%s", releaseId, StringUtils.join(itemTypes, ",")));
 
         List<GenericWorkItem> results = new ArrayList<>(workItemsJson.size());
 

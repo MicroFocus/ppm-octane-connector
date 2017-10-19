@@ -11,7 +11,7 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
-public class OctaneWorkItemExternalTask extends ExternalTask {
+public class OctaneWorkItemExternalTask extends BaseOctaneExternalTask {
 
     private GenericWorkItem workItem;
 
@@ -69,7 +69,7 @@ public class OctaneWorkItemExternalTask extends ExternalTask {
         }
 
         // No sprint defined? We don't know when this will finish, so let's make it end on the same day it was created.
-        return adjustFinishDateTime(getScheduledStart());
+        return context.moveToNextWorkingDay(adjustFinishDateTime(getScheduledStart()));
     }
 
     @Override

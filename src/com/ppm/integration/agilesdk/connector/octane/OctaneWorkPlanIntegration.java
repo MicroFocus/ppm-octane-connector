@@ -312,6 +312,12 @@ public class OctaneWorkPlanIntegration extends WorkPlanIntegration implements Fu
                 },
 
 
+                new LineBreaker(),
+                new CheckBox(OctaneConstants.KEY_IMPORT_ITEM_STORIES,"IMPORT_ITEM_STORIES","block",true),
+                new CheckBox(OctaneConstants.KEY_IMPORT_ITEM_DEFECTS,"IMPORT_ITEM_DEFECTS","block",true),
+                new CheckBox(OctaneConstants.KEY_IMPORT_ITEM_QUALITY_STORIES,"IMPORT_ITEM_QUALITY_STORIES","block",false),
+                new LineBreaker(),
+                new CheckBox(OctaneConstants.KEY_SHOW_ITEMS_AS_TASKS,"SHOW_ITEMS_AS_TASKS","block",false),
                 new LineBreaker()
         });
     }
@@ -396,10 +402,10 @@ public class OctaneWorkPlanIntegration extends WorkPlanIntegration implements Fu
             updateNewReleaseInformationInWorkplanMapping(workplanMapping, release);
         }
 
-        return removeNewReleaseInfoFromWorkplanMapping(workplanMapping);
+        return removeNewReleaseInfoFromWorkplanMapping(workplanMapping, isCreateRelease);
     }
 
-    private WorkplanMapping removeNewReleaseInfoFromWorkplanMapping(WorkplanMapping workplanMapping) {
+    private WorkplanMapping removeNewReleaseInfoFromWorkplanMapping(WorkplanMapping workplanMapping, boolean isCreateRelease) {
         String displayConfigJson = workplanMapping.getConfigDisplayJson();
         if(displayConfigJson != null) {
             JSONObject json = (JSONObject) JSONSerializer.toJSON(displayConfigJson);
@@ -408,16 +414,18 @@ public class OctaneWorkPlanIntegration extends WorkPlanIntegration implements Fu
             for (int i = 0 ; i < oldConfig.size() ; i++) {
                 JSONObject entry = oldConfig.getJSONObject(i);
                 String label = entry.getString("label");
+
                 if (OctaneConstants.KEY_NEW_RELEASE_START_DATE.equalsIgnoreCase(label)
                         || OctaneConstants.KEY_NEW_RELEASE_START_DATE.equalsIgnoreCase(label)
                         || OctaneConstants.KEY_NEW_RELEASE_END_DATE.equalsIgnoreCase(label)
+                        || OctaneConstants.KEY_NEW_RELEASE_SPRINT_DURATION.equalsIgnoreCase(label)
                         || OctaneConstants.KEY_NEW_RELEASE_DESCRIPTION.equalsIgnoreCase(label)) {
                     continue;
                 }
-                if (OctaneConstants.KEY_NEW_RELEASE_NAME.equalsIgnoreCase(label)) {
-                    if (StringUtils.isBlank(entry.getString("text"))) {
-                        continue;
-                    }
+
+                if (!isCreateRelease && (OctaneConstants.KEY_NEW_RELEASE_NAME.equalsIgnoreCase(label) || OctaneConstants.KEY_IS_CREATE_RELEASE.equalsIgnoreCase(label))) {
+                    // Removing release name & decision to create a new release only if not creating new release
+                    continue;
                 }
 
                 newConfig.add(entry);
@@ -476,19 +484,39 @@ public class OctaneWorkPlanIntegration extends WorkPlanIntegration implements Fu
 
         wpContext.usersEmails = client.getAllWorkspaceUsers();
 
+        wpContext.showItemsAsTasks = values.getBoolean(OctaneConstants.KEY_SHOW_ITEMS_AS_TASKS, false);
+
 
         // Get the backlog data. It's either one Epic or one Release
 
         final List<GenericWorkItem> workItems = new ArrayList<>();
 
+        Set<String> itemTypes = new HashSet<>(3);
+
+        if (values.getBoolean(OctaneConstants.KEY_IMPORT_ITEM_STORIES, false)) {
+            itemTypes.add("^story^");
+        }
+        if (values.getBoolean(OctaneConstants.KEY_IMPORT_ITEM_DEFECTS, false)) {
+            itemTypes.add("^defect^");
+        }
+        if (values.getBoolean(OctaneConstants.KEY_IMPORT_ITEM_QUALITY_STORIES, false)) {
+            itemTypes.add("^quality_story^");
+        }
+
+        if (OctaneConstants.GROUP_BACKLOG_STRUCTURE.equals(values.get(OctaneConstants.KEY_IMPORT_GROUPS))) {
+            itemTypes.add("^feature^");
+            itemTypes.add("^epic^");
+        }
+
+
         switch(values.get(OctaneConstants.KEY_IMPORT_SELECTION)) {
 
             case OctaneConstants.IMPORT_SELECTION_RELEASE:
-                workItems.addAll(client.getReleaseWorkItems(Integer.parseInt(values.get(OctaneConstants.KEY_IMPORT_SELECTION_DETAILS))));
+                workItems.addAll(client.getReleaseWorkItems(Integer.parseInt(values.get(OctaneConstants.KEY_IMPORT_SELECTION_DETAILS)), itemTypes));
                 break;
 
             case OctaneConstants.IMPORT_SELECTION_EPIC:
-                workItems.addAll(client.getEpicWorkItems(Integer.parseInt(values.get(OctaneConstants.KEY_IMPORT_SELECTION_DETAILS))));
+                workItems.addAll(client.getEpicWorkItems(Integer.parseInt(values.get(OctaneConstants.KEY_IMPORT_SELECTION_DETAILS)), itemTypes));
                 break;
         }
 
@@ -652,8 +680,19 @@ public class OctaneWorkPlanIntegration extends WorkPlanIntegration implements Fu
             values.put(OctaneConstants.KEY_IMPORT_SELECTION_DETAILS, values.get(OctaneConstants.KEY_RELEASEID));
         }
 
+        // Old connector was grouping stuff by release/sprint, so we keep this as default.
         if(values.get(OctaneConstants.KEY_IMPORT_GROUPS) == null) {
             values.put(OctaneConstants.KEY_IMPORT_GROUPS, OctaneConstants.GROUP_RELEASE);
+        }
+
+        if (!values.getBoolean(OctaneConstants.KEY_IMPORT_ITEM_STORIES, false) && !values.getBoolean(OctaneConstants.KEY_IMPORT_ITEM_DEFECTS, false) && !values.getBoolean(OctaneConstants.KEY_IMPORT_ITEM_QUALITY_STORIES, false)) {
+            // You shouldn't import nothing, doesn't make sense. Let's import at least User stories, it's the default now & only way in the old connector.
+            values.put(OctaneConstants.KEY_IMPORT_ITEM_STORIES, "true");
+        }
+
+        if (StringUtils.isBlank(values.get(OctaneConstants.KEY_SHOW_ITEMS_AS_TASKS))) {
+            // If this parameter was not set (in old plugin), default value was to insert stories as tasks in the work plan.
+            values.put(OctaneConstants.KEY_SHOW_ITEMS_AS_TASKS, "true");
         }
     }
 
