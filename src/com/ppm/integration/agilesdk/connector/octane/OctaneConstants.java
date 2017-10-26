@@ -96,5 +96,13 @@ public class OctaneConstants {
     public static final String KEY_IMPORT_ITEM_QUALITY_STORIES = "import_item_quality_stories";
     public static final String KEY_SHOW_ITEMS_AS_TASKS = "show_items_as_tasks";
 
+    public static final String SUB_TYPE_LIST_NODE = "list_node";
+    public static final String KEY_LOGICAL_NAME = "logical_name";
+    public static final String KEY_FIELD_ID = "id";
+    public static final String KEY_FIELD_NAME = "name";
+    public static final String KEY_FIELD_LABEL = "label";
+    public static final String KEY_FIELD_TYPE_DATA = "field_type_data";
+    public static final String KEY_FIELD_TARGETS = "targets";
+    public static final String KEY_FIELD_TYPE = "type";
 
 }
