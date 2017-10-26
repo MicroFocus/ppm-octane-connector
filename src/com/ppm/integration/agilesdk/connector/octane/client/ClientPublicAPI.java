@@ -7,6 +7,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ppm.integration.agilesdk.ValueSet;
 import com.ppm.integration.agilesdk.connector.octane.OctaneConstants;
 import com.ppm.integration.agilesdk.connector.octane.model.*;
+import com.ppm.integration.agilesdk.dm.FieldValue;
 import net.sf.json.JSONArray;
 import net.sf.json.JSONObject;
 import org.apache.commons.lang.StringUtils;
@@ -887,10 +888,38 @@ public class ClientPublicAPI {
 
     public List<FieldInfo> getEntityFields(final String sharedspaceId, final String workspaceId, final String entityName) {
         String url = String.format("%s/api/shared_spaces/%s/workspaces/%s/metadata/fields?query=%s%s%s",
-                baseURL, sharedspaceId, workspaceId, "%22entity_name%20EQ%20'", entityName, "'%22");
+                baseURL, sharedspaceId, workspaceId, "%22entity_name%20EQ%20'", entityName, "';visible_in_ui%20EQ%20true%22");
+        List fieldsList = new ArrayList();
         RestResponse response = sendGet(url);
+        JSONObject dataObj = JSONObject.fromObject(response.getData());
+        if (dataObj != null) {
+            JSONArray fieldsArray = dataObj.getJSONArray("data");
+            for(int i = 0; i < fieldsArray.size(); i++) {
+                JSONObject data = fieldsArray.getJSONObject(i);
+                FieldInfo info = new FieldInfo(data);
+                fieldsList.add(info);
+            }
+        }
+        return fieldsList;
+    }
 
-        return (List<FieldInfo>)getDataContent(response.getData(), new TypeReference<List<FieldInfo>>(){});
+    public List<FieldValue> getEntityFieldValueList(final String sharedspaceId, final String workspaceId, final String logicalName) {
+        String url = String.format("%s/api/shared_spaces/%s/workspaces/%s/list_nodes?query=%s%s%s",
+                baseURL, sharedspaceId, workspaceId, "%22logical_name%20EQ%20^", logicalName, ".*^%22");
+        RestResponse response = sendGet(url);
+        List valueList = new ArrayList();
+        JSONObject dataObj = JSONObject.fromObject(response.getData());
+        if (dataObj != null) {
+            JSONArray fieldsArray = dataObj.getJSONArray("data");
+            for(int i = 0; i < fieldsArray.size(); i++) {
+                JSONObject data = fieldsArray.getJSONObject(i);
+                FieldValue value = new FieldValue();
+                value.setKey(data.getString("id"));
+                value.setValue(data.getString("name"));
+                valueList.add(value);
+            }
+        }
+        return valueList;
     }
     
     private String getJsonStrFromObject(Object sourceObj)  {

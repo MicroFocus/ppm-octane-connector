@@ -3,9 +3,10 @@ package com.ppm.integration.agilesdk.connector.octane;
 import com.ppm.integration.agilesdk.ValueSet;
 import com.ppm.integration.agilesdk.connector.octane.client.ClientPublicAPI;
 import com.ppm.integration.agilesdk.connector.octane.model.FieldInfo;
-import com.ppm.integration.agilesdk.dm.AgileEntityMap;
 import com.ppm.integration.agilesdk.dm.AgileEntityFieldInfo;
 import com.ppm.integration.agilesdk.dm.AgileEntityInfo;
+import com.ppm.integration.agilesdk.dm.AgileEntityMap;
+import com.ppm.integration.agilesdk.dm.FieldValue;
 import com.ppm.integration.agilesdk.dm.RequestIntegration;
 import java.util.ArrayList;
 import java.util.List;
@@ -44,11 +45,26 @@ public class OctaneRequestIntegration extends RequestIntegration {
         List<FieldInfo> fields = client.getEntityFields(sharedSpaceId, workSpaceId, entityType);
         for (FieldInfo field : fields) {
             AgileEntityFieldInfo info = new AgileEntityFieldInfo();
-            info.setLabel(field.getLabel());
-            info.setKey(field.getName());
+            info.setDisplayName(field.getLabel());
+            info.setListType(field.getListType());
+            JSONObject valueObj = new JSONObject();
+            valueObj.put(OctaneConstants.KEY_NAME, field.getName());
+            valueObj.put(OctaneConstants.KEY_LOGICAL_NAME, field.getLogicalName());
+            info.setValue(valueObj.toString());
             fieldList.add(info);
         }
         return fieldList;
+    }
+
+    public List<FieldValue> getAgileEntityFieldValueList(final String agileProjectValue, final String fieldInfo, final ValueSet instanceConfigurationParameters) {
+        ClientPublicAPI client = ClientPublicAPI.getClient(instanceConfigurationParameters);
+        JSONObject workspaceJson = (JSONObject)JSONSerializer.toJSON(agileProjectValue);
+        String workSpaceId = workspaceJson.getString(OctaneConstants.WORKSPACE_ID);
+        String sharedSpaceId = workspaceJson.getString(OctaneConstants.SHARED_SPACE_ID);
+
+        JSONObject fieldObj = (JSONObject)JSONSerializer.toJSON(fieldInfo);
+        String logicalName = fieldObj.getString(OctaneConstants.KEY_LOGICAL_NAME);
+        return client.getEntityFieldValueList(sharedSpaceId, workSpaceId, logicalName);
     }
 
     @Override

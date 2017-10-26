@@ -1,5 +1,10 @@
 package com.ppm.integration.agilesdk.connector.octane.model;
 
+import com.ppm.integration.agilesdk.connector.octane.OctaneConstants;
+import com.ppm.integration.agilesdk.connector.octane.client.OctaneClientException;
+import net.sf.json.JSONArray;
+import net.sf.json.JSONObject;
+
 /**
  * {@code FieldInfo} description
  * <p/>
@@ -10,7 +15,12 @@ package com.ppm.integration.agilesdk.connector.octane.model;
 public class FieldInfo {
     private String label;
     private String name;
-    private String field_type;
+    private String logicalName;
+    private Boolean listType = false;
+
+    public FieldInfo(JSONObject jsonObject) {
+        parseData(jsonObject);
+    }
 
     public String getLabel() {
         return label;
@@ -28,11 +38,42 @@ public class FieldInfo {
         this.name = name;
     }
 
-    public String getField_type() {
-        return field_type;
+    public String getLogicalName() {
+        return logicalName;
     }
 
-    public void setField_type(String field_type) {
-        this.field_type = field_type;
+    public void setLogicalName(String logicalName) {
+        this.logicalName = logicalName;
+    }
+
+    public Boolean getListType() {
+        return listType;
+    }
+
+    public void setListType(Boolean listType) {
+        this.listType = listType;
+    }
+
+
+
+    private void parseData(final JSONObject dataObj) {
+        try {
+            label = dataObj.getString("label");
+            name = dataObj.getString("name");
+            if (dataObj.containsKey("field_type_data")) {
+                JSONObject typeData = dataObj.getJSONObject("field_type_data");
+                JSONArray targets = typeData.getJSONArray("targets");
+                for (int i = 0; i < targets.size(); i++) {
+                    JSONObject target = targets.getJSONObject(i);
+                    if (OctaneConstants.SUB_TYPE_LIST_NODE.equals(target.getString("type"))) {
+                        listType = true;
+                        logicalName = target.getString("logical_name");
+                        break;
+                    }
+                }
+            }
+        } catch (Exception e) {
+            throw new OctaneClientException("AGM_APP", "Error when reading JSon data from Octane: "+ e.getMessage());
+        }
     }
 }
