@@ -914,8 +914,8 @@ public class ClientPublicAPI {
             for(int i = 0; i < fieldsArray.size(); i++) {
                 JSONObject data = fieldsArray.getJSONObject(i);
                 FieldValue value = new FieldValue();
-                value.setKey(data.getString("id"));
-                value.setValue(data.getString("name"));
+                value.setKey(data.getString(OctaneConstants.KEY_FIELD_ID));
+                value.setValue(data.getString(OctaneConstants.KEY_FIELD_NAME));
                 valueList.add(value);
             }
         }

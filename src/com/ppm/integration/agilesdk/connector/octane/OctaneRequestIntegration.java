@@ -48,7 +48,7 @@ public class OctaneRequestIntegration extends RequestIntegration {
             info.setDisplayName(field.getLabel());
             info.setListType(field.getListType());
             JSONObject valueObj = new JSONObject();
-            valueObj.put(OctaneConstants.KEY_NAME, field.getName());
+            valueObj.put(OctaneConstants.KEY_FIELD_NAME, field.getName());
             valueObj.put(OctaneConstants.KEY_LOGICAL_NAME, field.getLogicalName());
             info.setValue(valueObj.toString());
             fieldList.add(info);

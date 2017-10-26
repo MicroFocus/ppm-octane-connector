@@ -58,16 +58,16 @@ public class FieldInfo {
 
     private void parseData(final JSONObject dataObj) {
         try {
-            label = dataObj.getString("label");
-            name = dataObj.getString("name");
-            if (dataObj.containsKey("field_type_data")) {
-                JSONObject typeData = dataObj.getJSONObject("field_type_data");
-                JSONArray targets = typeData.getJSONArray("targets");
+            label = dataObj.getString(OctaneConstants.KEY_FIELD_LABEL);
+            name = dataObj.getString(OctaneConstants.KEY_FIELD_NAME);
+            if (dataObj.containsKey(OctaneConstants.KEY_FIELD_TYPE_DATA)) {
+                JSONObject typeData = dataObj.getJSONObject(OctaneConstants.KEY_FIELD_TYPE_DATA);
+                JSONArray targets = typeData.getJSONArray(OctaneConstants.KEY_FIELD_TARGETS);
                 for (int i = 0; i < targets.size(); i++) {
                     JSONObject target = targets.getJSONObject(i);
-                    if (OctaneConstants.SUB_TYPE_LIST_NODE.equals(target.getString("type"))) {
+                    if (OctaneConstants.SUB_TYPE_LIST_NODE.equals(target.getString(OctaneConstants.KEY_FIELD_TYPE))) {
                         listType = true;
-                        logicalName = target.getString("logical_name");
+                        logicalName = target.getString(OctaneConstants.KEY_LOGICAL_NAME);
                         break;
                     }
                 }
