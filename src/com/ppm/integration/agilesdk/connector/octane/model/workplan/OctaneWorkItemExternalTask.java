@@ -83,7 +83,7 @@ public class OctaneWorkItemExternalTask extends BaseOctaneExternalTask {
 
             @Override
             public Date getActualStart() {
-                if (getPercentComplete() >= 0) {
+                if (getPercentComplete() > 0.0d) {
                     return getScheduledStart();
                 } else {
                     return null;
