@@ -106,7 +106,7 @@ public class OctaneWorkPlanIntegration extends WorkPlanIntegration implements Fu
 
 
                 new DynamicDropdown(OctaneConstants.KEY_IMPORT_SELECTION, "IMPORT_SELECTION",
-                        OctaneConstants.IMPORT_SELECTION_RELEASE, "", true) {
+                        OctaneConstants.IMPORT_SELECTION_RELEASE, "", false) {
 
                     @Override
                     public List<String> getDependencies() {
@@ -120,7 +120,7 @@ public class OctaneWorkPlanIntegration extends WorkPlanIntegration implements Fu
 
                     @Override
                     public FieldAppearance getFieldAppearance(ValueSet values) {
-                        return getCreateReleaseUnusedFieldsAppearance(values);
+                        return getCreateReleaseImportSelectionFieldsAppearance(values);
                     }
 
                     @Override
@@ -149,7 +149,7 @@ public class OctaneWorkPlanIntegration extends WorkPlanIntegration implements Fu
 
                     @Override
                     public FieldAppearance getFieldAppearance(ValueSet values) {
-                        return getCreateReleaseUnusedFieldsAppearance(values);
+                        return getCreateReleaseImportSelectionFieldsAppearance(values);
                     }
 
                     @Override
@@ -364,13 +364,13 @@ public class OctaneWorkPlanIntegration extends WorkPlanIntegration implements Fu
         return null;
     }
 
-    private FieldAppearance getCreateReleaseUnusedFieldsAppearance(ValueSet values)
+    private FieldAppearance getCreateReleaseImportSelectionFieldsAppearance(ValueSet values)
     {
         String isCreateRelease = values.get(OctaneConstants.KEY_IS_CREATE_RELEASE);
         if ("false".equals(isCreateRelease)) {
-            return new FieldAppearance("", "disabled");
+            return new FieldAppearance("required", "disabled");
         } else if ("true".equals(isCreateRelease)) {
-            return new FieldAppearance("disabled", "");
+            return new FieldAppearance("disabled", "required");
         }
 
         return null;

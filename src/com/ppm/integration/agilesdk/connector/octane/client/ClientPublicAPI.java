@@ -826,7 +826,7 @@ public class ClientPublicAPI {
         RestResponse response = sendRequest(url, HttpMethod.POST, createReleasePayload.toString());
         if (HttpStatus.SC_CREATED != response.getStatusCode()) {
             this.logger.error("Error occured when creating release in Octane. Response code = " + response.getStatusCode());
-            throw new OctaneClientException("AGM_APP", "ERROR_HTTP_CONNECTIVITY_ERROR", new String[] { response.getData() });
+            throw new OctaneClientException("AGM_APP", "An error occurred when creating the release. Make sure a release with this name doesn't already exist.", new String[] { response.getData() });
         }
 
         Releases tempReleases = new Releases();
