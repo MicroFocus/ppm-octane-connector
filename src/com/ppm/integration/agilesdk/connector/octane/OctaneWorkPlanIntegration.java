@@ -18,6 +18,7 @@ import com.ppm.integration.agilesdk.pm.ExternalTask;
 import com.ppm.integration.agilesdk.pm.ExternalWorkPlan;
 import com.ppm.integration.agilesdk.pm.WorkPlanIntegration;
 import com.ppm.integration.agilesdk.pm.WorkPlanIntegrationContext;
+import com.ppm.integration.agilesdk.provider.LocalizationProvider;
 import com.ppm.integration.agilesdk.provider.Providers;
 import com.ppm.integration.agilesdk.ui.*;
 
@@ -41,6 +42,8 @@ public class OctaneWorkPlanIntegration extends WorkPlanIntegration implements Fu
 
         GregorianCalendar start = context.currentTask().getSchedule().getScheduledStart().toGregorianCalendar();
         GregorianCalendar finish = context.currentTask().getSchedule().getScheduledEnd().toGregorianCalendar();
+
+        final LocalizationProvider l10n = Providers.getLocalizationProvider(OctaneIntegrationConnector.class);
 
         return Arrays.asList(new Field[] {
                 new OctaneEntityDropdown(OctaneConstants.KEY_SHAREDSPACEID, "OCTANE_SHARESPACE", "block", true) {
@@ -125,8 +128,8 @@ public class OctaneWorkPlanIntegration extends WorkPlanIntegration implements Fu
 
                         List<Option> optionList = new ArrayList<>();
 
-                        Option option1 = new Option(OctaneConstants.IMPORT_SELECTION_EPIC, "One Epic");
-                        Option option2 = new Option(OctaneConstants.IMPORT_SELECTION_RELEASE, "One Release");
+                        Option option1 = new Option(OctaneConstants.IMPORT_SELECTION_EPIC, l10n.getConnectorText("IMPORT_SELECTION_EPIC"));
+                        Option option2 = new Option(OctaneConstants.IMPORT_SELECTION_RELEASE, l10n.getConnectorText("IMPORT_SELECTION_RELEASE"));
 
                         optionList.add(option1);
                         optionList.add(option2);
@@ -277,8 +280,8 @@ public class OctaneWorkPlanIntegration extends WorkPlanIntegration implements Fu
 
                         List<Option> optionList = new ArrayList<>();
 
-                        Option option1 = new Option(OctaneConstants.GROUP_RELEASE, "Release / Sprint");
-                        Option option2 = new Option(OctaneConstants.GROUP_BACKLOG_STRUCTURE, "Backlog / Epic / Feature");
+                        Option option1 = new Option(OctaneConstants.GROUP_RELEASE, l10n.getConnectorText("GROUP_RELEASE"));
+                        Option option2 = new Option(OctaneConstants.GROUP_BACKLOG_STRUCTURE, l10n.getConnectorText("GROUP_BACKLOG_STRUCTURE"));
 
                         optionList.add(option1);
                         optionList.add(option2);
@@ -300,8 +303,8 @@ public class OctaneWorkPlanIntegration extends WorkPlanIntegration implements Fu
 
                         List<Option> optionList = new ArrayList<>();
 
-                        Option option1 = new Option(OctaneConstants.PERCENT_COMPLETE_WORK, "% Work Complete");
-                        Option option2 = new Option(OctaneConstants.PERCENT_COMPLETE_STORY_POINTS, "% Story Points Done");
+                        Option option1 = new Option(OctaneConstants.PERCENT_COMPLETE_WORK, l10n.getConnectorText("PERCENT_COMPLETE_WORK"));
+                        Option option2 = new Option(OctaneConstants.PERCENT_COMPLETE_STORY_POINTS, l10n.getConnectorText("PERCENT_COMPLETE_STORY_POINTS"));
 
                         optionList.add(option1);
                         optionList.add(option2);
@@ -400,12 +403,73 @@ public class OctaneWorkPlanIntegration extends WorkPlanIntegration implements Fu
             Release release = client.createRelease(values.get(OctaneConstants.KEY_NEW_RELEASE_NAME), values.get(OctaneConstants.KEY_NEW_RELEASE_DESCRIPTION), startDate, endDate, (StringUtils.isBlank(daysPerSprint) ? null : Integer.parseInt(daysPerSprint)));
 
             updateNewReleaseInformationInWorkplanMapping(workplanMapping, release);
+
+        } else {
+            removeNewReleaseInfoFromWorkplanMapping(workplanMapping);
         }
 
-        return removeNewReleaseInfoFromWorkplanMapping(workplanMapping, isCreateRelease);
+        trimLongTextFieldsFromWorkplanMapping(workplanMapping);
+
+        return workplanMapping;
     }
 
-    private WorkplanMapping removeNewReleaseInfoFromWorkplanMapping(WorkplanMapping workplanMapping, boolean isCreateRelease) {
+    /**
+     * If some text fields are too long (such as description), it'll exceed the VARCHAR2(4000) size  of config JSON when stored to PPMIC_WORKPLAN_MAPPING.
+     * So we need to truncate text fields that are potentially long.
+     * This will not affect the created release in Octane, since truncation occurs AFTER the release is created.
+     */
+    private void trimLongTextFieldsFromWorkplanMapping(WorkplanMapping workplanMapping) {
+
+        // Update the display config JSon
+        String displayConfigJson = workplanMapping.getConfigDisplayJson();
+        if(displayConfigJson != null) {
+            JSONObject json = (JSONObject)JSONSerializer.toJSON(displayConfigJson);
+            JSONArray oldConfig = json.getJSONArray("config");
+            JSONArray newConfig = new JSONArray();
+            for (int i = 0; i < oldConfig.size(); i++) {
+                JSONObject entry = oldConfig.getJSONObject(i);
+                String label = entry.getString("label");
+
+                if (OctaneConstants.KEY_NEW_RELEASE_NAME.equalsIgnoreCase(label)
+                        || OctaneConstants.KEY_NEW_RELEASE_DESCRIPTION.equalsIgnoreCase(label)) {
+                    String text = trim(entry.getString("text"));
+                    entry.put("text", text);
+                }
+
+                newConfig.add(entry);
+            }
+
+            json.put("config", newConfig);
+            workplanMapping.setConfigDisplayJson(json.toString());
+        }
+
+        // Update the real config JSon
+        String configJson = workplanMapping.getConfigJson();
+        if(configJson != null) {
+            JSONObject json = (JSONObject) JSONSerializer.toJSON(configJson);
+            json.put(OctaneConstants.KEY_NEW_RELEASE_NAME, trim(json.getString(OctaneConstants.KEY_NEW_RELEASE_NAME)));
+            json.put(OctaneConstants.KEY_NEW_RELEASE_DESCRIPTION, trim(json.getString(OctaneConstants.KEY_NEW_RELEASE_DESCRIPTION)));
+            workplanMapping.setConfigJson(json.toString());
+        }
+    }
+
+
+    private String trim(String text) {
+        if (text == null) {
+            return null;
+        }
+
+        if (text.length() > 50) {
+            return text.substring(0, 47) + "...";
+        }
+
+        return text;
+    }
+
+    /**
+     * This method is called if we didn't created a new release upon sync - it will remove all "new release" fields from the info recap.
+     */
+    private void removeNewReleaseInfoFromWorkplanMapping(WorkplanMapping workplanMapping) {
         String displayConfigJson = workplanMapping.getConfigDisplayJson();
         if(displayConfigJson != null) {
             JSONObject json = (JSONObject) JSONSerializer.toJSON(displayConfigJson);
@@ -419,12 +483,9 @@ public class OctaneWorkPlanIntegration extends WorkPlanIntegration implements Fu
                         || OctaneConstants.KEY_NEW_RELEASE_START_DATE.equalsIgnoreCase(label)
                         || OctaneConstants.KEY_NEW_RELEASE_END_DATE.equalsIgnoreCase(label)
                         || OctaneConstants.KEY_NEW_RELEASE_SPRINT_DURATION.equalsIgnoreCase(label)
+                        || OctaneConstants.KEY_NEW_RELEASE_NAME.equalsIgnoreCase(label)
+                        || OctaneConstants.KEY_IS_CREATE_RELEASE.equalsIgnoreCase(label)
                         || OctaneConstants.KEY_NEW_RELEASE_DESCRIPTION.equalsIgnoreCase(label)) {
-                    continue;
-                }
-
-                if (!isCreateRelease && (OctaneConstants.KEY_NEW_RELEASE_NAME.equalsIgnoreCase(label) || OctaneConstants.KEY_IS_CREATE_RELEASE.equalsIgnoreCase(label))) {
-                    // Removing release name & decision to create a new release only if not creating new release
                     continue;
                 }
 
@@ -434,11 +495,11 @@ public class OctaneWorkPlanIntegration extends WorkPlanIntegration implements Fu
             json.put("config", newConfig);
             workplanMapping.setConfigDisplayJson(json.toString());
         }
-
-        return workplanMapping;
     }
 
     private void updateNewReleaseInformationInWorkplanMapping(WorkplanMapping workplanMapping, Release newRelease) {
+
+        LocalizationProvider l10n = Providers.getLocalizationProvider(OctaneIntegrationConnector.class);
 
         //update mapping Release in ConfigJson & ConfigDisplayJson: We must select the newly created release info.
         String configJson = workplanMapping.getConfigJson();
@@ -456,7 +517,7 @@ public class OctaneWorkPlanIntegration extends WorkPlanIntegration implements Fu
                 JSONObject entry = config.getJSONObject(i);
                 String label = entry.getString("label");
                 if (OctaneConstants.KEY_IMPORT_SELECTION.equalsIgnoreCase(label)) {
-                    entry.put("text", OctaneConstants.IMPORT_SELECTION_RELEASE);
+                    entry.put("text", l10n.getConnectorText("IMPORT_SELECTION_RELEASE"));
                 } else if (OctaneConstants.KEY_IMPORT_SELECTION_DETAILS.equalsIgnoreCase(label)) {
                     entry.put("text", newRelease.getId());
                 } else if (OctaneConstants.KEY_NEW_RELEASE_NAME.equalsIgnoreCase(label)) {
