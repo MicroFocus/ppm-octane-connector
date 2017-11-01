@@ -743,6 +743,14 @@ public class ClientPublicAPI {
             statusStr.append("(");
             boolean first = true;
             for (String x : doneStatusIDs) {
+
+                // Old versions of Octane will return a number as phase ID.
+                // Newer verions of Octane (12.55+ ?) will return the string like phase.defect.closed, and as such
+                // should be enclosed in "^" in the query string.
+                if (!StringUtils.isNumeric(x)) {
+                    x = "^"+x+"^";
+                }
+
                 if (first) {
                     first = false;
                     statusStr.append("phase={id=" + x + "}");
