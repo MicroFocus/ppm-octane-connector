@@ -105,4 +105,10 @@ public class OctaneConstants {
     public static final String KEY_FIELD_TARGETS = "targets";
     public static final String KEY_FIELD_TYPE = "type";
 
+    public static final String KEY_FIELD_DESCRIPTION = "description";
+    public static final String KEY_FIELD_OWNER = "owner";
+    public static final String KEY_FIELD_PHASE = "phase";
+    public static final String KEY_FIELD_AUTHOR = "author";
+    public static final String KEY_FIELD_STORY_POINTS = "story_points";
+    public static final String KEY_FIELD_TEAM = "team";
 }
