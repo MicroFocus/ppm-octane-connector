@@ -83,7 +83,7 @@ public class OctaneWorkItemExternalTask extends BaseOctaneExternalTask {
 
             @Override
             public Date getActualStart() {
-                if (getPercentComplete() >= 0) {
+                if (getPercentComplete() > 0.0d) {
                     return getScheduledStart();
                 } else {
                     return null;
@@ -93,10 +93,19 @@ public class OctaneWorkItemExternalTask extends BaseOctaneExternalTask {
 
             @Override
             public Date getActualFinish() {
+
+                Date actualFinish = null;
+
                 if (getStatus() == TaskStatus.COMPLETED) {
-                    return adjustFinishDateTime(workItem.getLastModifiedTime());
+                    actualFinish = adjustFinishDateTime(workItem.getLastModifiedTime());
                 }
-                return null;
+
+                if (actualFinish != null && actualFinish.before(getActualStart())) {
+                    // Actual finish should always be after actual start.
+                    actualFinish = getScheduledFinish();
+                }
+
+                return actualFinish;
             }
 
             @Override

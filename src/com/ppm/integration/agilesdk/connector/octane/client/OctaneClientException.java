@@ -1,5 +1,8 @@
 package com.ppm.integration.agilesdk.connector.octane.client;
 
+import com.ppm.integration.agilesdk.connector.octane.OctaneIntegrationConnector;
+import com.ppm.integration.agilesdk.provider.Providers;
+
 public class OctaneClientException extends RuntimeException {
 
     private final String errorCode;
@@ -24,5 +27,10 @@ public class OctaneClientException extends RuntimeException {
 
     public String[] getParams() {
         return params;
+    }
+
+    @Override
+    public String getMessage() {
+        return Providers.getLocalizationProvider(OctaneIntegrationConnector.class).getConnectorText(msgKey, params);
     }
 }
