@@ -2,6 +2,8 @@ package com.ppm.integration.agilesdk.connector.octane;
 
 import com.ppm.integration.agilesdk.ValueSet;
 import com.ppm.integration.agilesdk.connector.octane.client.ClientPublicAPI;
+import com.ppm.integration.agilesdk.connector.octane.model.FeatureCreateEntity;
+import com.ppm.integration.agilesdk.connector.octane.model.FeatureEntity;
 import com.ppm.integration.agilesdk.connector.octane.model.FieldInfo;
 import com.ppm.integration.agilesdk.dm.AgileEntityFieldInfo;
 import com.ppm.integration.agilesdk.dm.AgileEntityInfo;
@@ -10,6 +12,7 @@ import com.ppm.integration.agilesdk.dm.FieldValue;
 import com.ppm.integration.agilesdk.dm.RequestIntegration;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import net.sf.json.JSONObject;
 import net.sf.json.JSONSerializer;
 
@@ -36,7 +39,7 @@ public class OctaneRequestIntegration extends RequestIntegration {
     }
 
     @Override
-    public List<AgileEntityFieldInfo> getAgileEntityFieldsInfo(final String entityType, final String agileProjectValue, final ValueSet instanceConfigurationParameters) {
+    public List<AgileEntityFieldInfo> getAgileEntityFieldsInfo(final String agileProjectValue, final String entityType, final ValueSet instanceConfigurationParameters) {
         List<AgileEntityFieldInfo> fieldList = new ArrayList<AgileEntityFieldInfo>();
         ClientPublicAPI client = ClientPublicAPI.getClient(instanceConfigurationParameters);
         JSONObject workspaceJson = (JSONObject)JSONSerializer.toJSON(agileProjectValue);
@@ -68,7 +71,35 @@ public class OctaneRequestIntegration extends RequestIntegration {
     }
 
     @Override
-    public String createEntity(AgileEntityMap entity) {
-        return null;
+    public String createEntity(final String agileProjectValue, final String entityType, final Map<String, List<FieldValue>> entityMap,
+            final ValueSet instanceConfigurationParameters) {
+        String entityId = null;
+        ClientPublicAPI client = ClientPublicAPI.getClient(instanceConfigurationParameters);
+        JSONObject workspaceJson = (JSONObject)JSONSerializer.toJSON(agileProjectValue);
+        String workSpaceId = workspaceJson.getString(OctaneConstants.WORKSPACE_ID);
+        String sharedSpaceId = workspaceJson.getString(OctaneConstants.SHARED_SPACE_ID);
+        if (OctaneConstants.SUB_TYPE_FEATURE.equals(entityType)) {
+            FeatureCreateEntity entity = buildFeatureEntity(entityMap);
+            List<FeatureEntity> features = client.createFeatureInWorkspace(sharedSpaceId, workSpaceId, entity);
+            if (features != null && features.size() > 0) {
+                entityId = features.get(0).getId();
+            }
+        }
+        return entityId;
+    }
+
+    private FeatureCreateEntity buildFeatureEntity(Map<String, List<FieldValue>> entityMap) {
+        FeatureCreateEntity entity = new FeatureCreateEntity();
+        FeatureEntity featureEntity = new FeatureEntity();
+        List<FieldValue> name = entityMap.get(OctaneConstants.KEY_FIELD_NAME);
+        if (name != null && name.size() > 0) {
+            featureEntity.setName(name.get(0).getValue());
+        }
+        List<FieldValue> description = entityMap.get(OctaneConstants.KEY_FIELD_DESCRIPTION);
+        if (description != null && description.size() > 0) {
+            featureEntity.setDescription(description.get(0).getValue());
+        }
+        entity.addFeatureEntity(featureEntity);
+        return entity;
     }
 }

@@ -921,6 +921,18 @@ public class ClientPublicAPI {
         }
         return valueList;
     }
+
+    public List<FeatureEntity> createFeatureInWorkspace(final String sharedspaceId, final String workspaceId, final FeatureCreateEntity entity) {
+        String url = String.format("%s/api/shared_spaces/%s/workspaces/%s/features", baseURL, sharedspaceId, workspaceId);
+
+        RestResponse response = sendRequest(url, HttpMethod.POST, this.getJsonStrFromObject(entity));
+        if (HttpStatus.SC_CREATED != response.getStatusCode()) {
+            this.logger.error("Error occurs when creating feature in Octane: Response code = " + response.getStatusCode());
+            throw new OctaneClientException("AGM_APP", "ERROR_HTTP_CONNECTIVITY_ERROR", new String[] { response.getData() });
+        }
+        return (List<FeatureEntity>) getDataContent(response.getData(), new TypeReference<List<FeatureEntity>>(){});
+    }
+
     
     private String getJsonStrFromObject(Object sourceObj)  {
     	ObjectMapper objectMapper = new ObjectMapper();
