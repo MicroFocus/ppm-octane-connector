@@ -1,10 +1,13 @@
 package com.ppm.integration.agilesdk.connector.octane;
 
 import com.ppm.integration.agilesdk.ValueSet;
+import com.ppm.integration.agilesdk.connector.octane.model.SimpleEntity;
 import com.ppm.integration.agilesdk.connector.octane.client.ClientPublicAPI;
 import com.ppm.integration.agilesdk.connector.octane.model.FeatureCreateEntity;
 import com.ppm.integration.agilesdk.connector.octane.model.FeatureEntity;
 import com.ppm.integration.agilesdk.connector.octane.model.FieldInfo;
+import com.ppm.integration.agilesdk.connector.octane.model.StoryCreateEntity;
+import com.ppm.integration.agilesdk.connector.octane.model.StoryEntity;
 import com.ppm.integration.agilesdk.dm.AgileEntityFieldInfo;
 import com.ppm.integration.agilesdk.dm.AgileEntityInfo;
 import com.ppm.integration.agilesdk.dm.AgileEntityMap;
@@ -84,8 +87,36 @@ public class OctaneRequestIntegration extends RequestIntegration {
             if (features != null && features.size() > 0) {
                 entityId = features.get(0).getId();
             }
+        } else if(OctaneConstants.SUB_TYPE_STORY.equals(entityType)){
+        	StoryCreateEntity entity = buildStoryCreateEntity(entityMap);
+            List<StoryEntity> stories = client.createStoryInWorkspace(sharedSpaceId, workSpaceId, entity);
+            if (stories != null && stories.size() > 0) {
+                entityId = stories.get(0).getId();
+            }
         }
         return entityId;
+    }
+    
+    private StoryCreateEntity buildStoryCreateEntity(Map<String, List<FieldValue>> entityMap)
+    {
+    	StoryCreateEntity storyCreateEntity = new StoryCreateEntity();
+    	StoryEntity storyEntity = new StoryEntity();    	
+    	List<FieldValue> name = entityMap.get(OctaneConstants.KEY_FIELD_NAME);
+    	if (name != null && name.size() > 0)
+    	{
+    		storyEntity.setName(name.get(0).getValue());
+    	}
+    	List<FieldValue> description = entityMap.get(OctaneConstants.KEY_FIELD_DESCRIPTION);
+        if (description != null && description.size() > 0) {
+        	storyEntity.setDescription(description.get(0).getValue());
+        }
+        SimpleEntity phase = new SimpleEntity();
+        phase.setId("phase.story.new");
+        phase.setType("phase");
+        storyEntity.setPhase(phase);
+        storyCreateEntity.addStoryEntity(storyEntity);
+    	return storyCreateEntity;
+    	
     }
 
     private FeatureCreateEntity buildFeatureEntity(Map<String, List<FieldValue>> entityMap) {

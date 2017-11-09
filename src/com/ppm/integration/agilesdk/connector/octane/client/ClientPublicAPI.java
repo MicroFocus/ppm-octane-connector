@@ -940,6 +940,17 @@ public class ClientPublicAPI {
         }
         return (List<FeatureEntity>) getDataContent(response.getData(), new TypeReference<List<FeatureEntity>>(){});
     }
+    
+    public List<StoryEntity> createStoryInWorkspace(final String sharedspaceId, final String workspaceId, final StoryCreateEntity entity) {
+        String url = String.format("%s/api/shared_spaces/%s/workspaces/%s/stories", baseURL, sharedspaceId, workspaceId);
+
+        RestResponse response = sendRequest(url, HttpMethod.POST, this.getJsonStrFromObject(entity));
+        if (HttpStatus.SC_CREATED != response.getStatusCode()) {
+            this.logger.error("Error occurs when creating story in Octane: Response code = " + response.getStatusCode());
+            throw new OctaneClientException("AGM_APP", "ERROR_HTTP_CONNECTIVITY_ERROR", new String[] { response.getData() });
+        }
+        return (List<StoryEntity>) getDataContent(response.getData(), new TypeReference<List<StoryEntity>>(){});
+    }
 
     
     private String getJsonStrFromObject(Object sourceObj)  {
