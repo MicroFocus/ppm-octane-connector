@@ -1,16 +1,15 @@
 package com.ppm.integration.agilesdk.connector.octane;
 
 import com.ppm.integration.agilesdk.ValueSet;
-import com.ppm.integration.agilesdk.connector.octane.model.SimpleEntity;
 import com.ppm.integration.agilesdk.connector.octane.client.ClientPublicAPI;
 import com.ppm.integration.agilesdk.connector.octane.model.FeatureCreateEntity;
 import com.ppm.integration.agilesdk.connector.octane.model.FeatureEntity;
 import com.ppm.integration.agilesdk.connector.octane.model.FieldInfo;
+import com.ppm.integration.agilesdk.connector.octane.model.SimpleEntity;
 import com.ppm.integration.agilesdk.connector.octane.model.StoryCreateEntity;
 import com.ppm.integration.agilesdk.connector.octane.model.StoryEntity;
 import com.ppm.integration.agilesdk.dm.AgileEntityFieldInfo;
 import com.ppm.integration.agilesdk.dm.AgileEntityInfo;
-import com.ppm.integration.agilesdk.dm.AgileEntityMap;
 import com.ppm.integration.agilesdk.dm.FieldValue;
 import com.ppm.integration.agilesdk.dm.RequestIntegration;
 import java.util.ArrayList;
@@ -52,6 +51,7 @@ public class OctaneRequestIntegration extends RequestIntegration {
         for (FieldInfo field : fields) {
             AgileEntityFieldInfo info = new AgileEntityFieldInfo();
             info.setDisplayName(field.getLabel());
+            info.setName(field.getName());
             info.setListType(field.getListType());
             JSONObject valueObj = new JSONObject();
             valueObj.put(OctaneConstants.KEY_FIELD_NAME, field.getName());
