@@ -15,6 +15,8 @@ import com.ppm.integration.agilesdk.dm.RequestIntegration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+
 import net.sf.json.JSONObject;
 import net.sf.json.JSONSerializer;
 
@@ -95,6 +97,22 @@ public class OctaneRequestIntegration extends RequestIntegration {
             }
         }
         return entityId;
+    }
+    
+    @Override
+    public Map<String, Map<String, List<FieldValue>>> getEntities(final String agileProjectValue,final ValueSet instanceConfigurationParameters, final String entityType, Set<String> entityIds){
+        ClientPublicAPI client = ClientPublicAPI.getClient(instanceConfigurationParameters);
+        JSONObject workspaceJson = (JSONObject)JSONSerializer.toJSON(agileProjectValue);
+        String workSpaceId = workspaceJson.getString(OctaneConstants.WORKSPACE_ID);
+        String sharedSpaceId = workspaceJson.getString(OctaneConstants.SHARED_SPACE_ID);
+        Map<String, Map<String, List<FieldValue>>> entitiesInfo =null;
+        if (OctaneConstants.SUB_TYPE_FEATURE.equals(entityType)) {
+        	entitiesInfo = client.getUserStories(sharedSpaceId, workSpaceId, entityIds);        	
+        } else if(OctaneConstants.SUB_TYPE_STORY.equals(entityType)){
+        	entitiesInfo = client.getUserStories(sharedSpaceId, workSpaceId, entityIds);
+        }
+    	
+    	return entitiesInfo;
     }
     
     private StoryCreateEntity buildStoryCreateEntity(Map<String, List<FieldValue>> entityMap)

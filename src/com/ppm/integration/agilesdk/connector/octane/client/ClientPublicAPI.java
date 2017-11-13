@@ -4,11 +4,13 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.hp.ppm.dm.model.AgileEntity;
 import com.ppm.integration.agilesdk.ValueSet;
 import com.ppm.integration.agilesdk.connector.octane.OctaneConstants;
 import com.ppm.integration.agilesdk.connector.octane.model.*;
 import com.ppm.integration.agilesdk.dm.FieldValue;
 import net.sf.json.JSONArray;
+import net.sf.json.JSONException;
 import net.sf.json.JSONObject;
 import org.apache.commons.lang.StringUtils;
 import org.apache.http.HttpStatus;
@@ -1092,6 +1094,140 @@ public class ClientPublicAPI {
         }
 
         return results;
+    }
+    
+    public Map<String, Map<String, List<FieldValue>>> getUserStories(String sharedspaceId, String workspaceId,Set<String> ids) {
+    	Map<String, Map<String, List<FieldValue>>> storiesMap = new HashMap<>(); 
+
+        if (ids == null || ids.isEmpty()) {
+           return new HashMap<>();        }
+
+        String query = "id%20IN%20" + StringUtils.join(ids, ",");
+        List<JSONObject> workItemsJson = getUserStoriesJson(sharedspaceId, workspaceId,query);
+        for (JSONObject workItemJson : workItemsJson) {
+        	   	
+        	Map<String, List<FieldValue>> storyMap = new HashMap<String, List<FieldValue>>();
+        	storyMap = wapperStoryFieldsMap(workItemJson);
+        	storiesMap.put(workItemJson.getString(OctaneConstants.KEY_FIELD_ID), storyMap);
+        }
+
+        return storiesMap;
+    }
+    
+    public Map<String, Map<String, List<FieldValue>>> getFeatures(String sharedspaceId, String workspaceId,Set<String> ids) {
+    	Map<String, Map<String, List<FieldValue>>> featuresMap = new HashMap<>(); 
+
+        if (ids == null || ids.isEmpty()) {
+           return new HashMap<>();        }
+
+        String query = "id%20IN%20" + StringUtils.join(ids, ",");
+        List<JSONObject> workItemsJson = getFeatureJson(sharedspaceId, workspaceId,query);
+        for (JSONObject workItemJson : workItemsJson) {
+        	   	
+        	Map<String, List<FieldValue>> featureMap = new HashMap<String, List<FieldValue>>();
+        	featureMap = wapperFeaturesMap(workItemJson);
+        	featuresMap.put(workItemJson.getString(OctaneConstants.KEY_FIELD_ID), featureMap);
+        }
+
+        return featuresMap;
+    }
+    
+    private Map<String, List<FieldValue>> wapperStoryFieldsMap(JSONObject item){
+    	
+    	Map<String, List<FieldValue>> agileFields = new HashMap<String, List<FieldValue>>();
+    	FieldValue type =  new FieldValue(OctaneConstants.KEY_FIELD_TYPE, item.get(OctaneConstants.KEY_FIELD_TYPE).toString());
+    	FieldValue description =  new FieldValue(OctaneConstants.KEY_FIELD_DESCRIPTION, item.get(OctaneConstants.KEY_FIELD_DESCRIPTION).toString());
+    	FieldValue name =  new FieldValue(OctaneConstants.KEY_FIELD_NAME, item.get(OctaneConstants.KEY_FIELD_NAME).toString());
+    	FieldValue creationTime =  new FieldValue(OctaneConstants.KEY_FIELD_CREATE_TIME, item.get(OctaneConstants.KEY_FIELD_CREATE_TIME).toString());
+    	FieldValue lastModified = new FieldValue(OctaneConstants.KEY_FIELD_LAST_MODIFIED, item.get(OctaneConstants.KEY_FIELD_LAST_MODIFIED).toString());
+    	FieldValue phase = new FieldValue(OctaneConstants.KEY_FIELD_PHASE, getString("id", getObj(OctaneConstants.KEY_FIELD_PHASE,item)));
+    	FieldValue storyPoints = new FieldValue(OctaneConstants.KEY_FIELD_STORY_POINTS, item.get(OctaneConstants.KEY_FIELD_STORY_POINTS).toString());
+    	FieldValue remainingHours = new FieldValue(OctaneConstants.KEY_FIELD_REMAINING_HOURS, item.get(OctaneConstants.KEY_FIELD_REMAINING_HOURS).toString());
+    	FieldValue estimatedHours = new FieldValue(OctaneConstants.KEY_FIELD_ESTIMATED_HOURS, item.get(OctaneConstants.KEY_FIELD_ESTIMATED_HOURS).toString());
+    	
+    	agileFields.put(OctaneConstants.KEY_FIELD_TYPE,  Arrays.asList(type));
+    	agileFields.put(OctaneConstants.KEY_FIELD_DESCRIPTION,  Arrays.asList(description));
+    	agileFields.put(OctaneConstants.KEY_FIELD_NAME,  Arrays.asList(name));
+    	agileFields.put(OctaneConstants.KEY_FIELD_CREATE_TIME,  Arrays.asList(creationTime));
+    	agileFields.put(OctaneConstants.KEY_FIELD_LAST_MODIFIED,  Arrays.asList(lastModified));
+    	agileFields.put(OctaneConstants.KEY_FIELD_PHASE,  Arrays.asList(phase));
+    	agileFields.put(OctaneConstants.KEY_FIELD_STORY_POINTS,  Arrays.asList(storyPoints));
+    	agileFields.put(OctaneConstants.KEY_FIELD_REMAINING_HOURS,  Arrays.asList(remainingHours));
+    	agileFields.put(OctaneConstants.KEY_FIELD_REMAINING_HOURS,  Arrays.asList(estimatedHours));
+    	
+    	return agileFields;
+    	
+    }
+    
+    private Map<String, List<FieldValue>> wapperFeaturesMap(JSONObject item){
+    	
+    	Map<String, List<FieldValue>> agileFields = new HashMap<String, List<FieldValue>>();
+    	FieldValue type =  new FieldValue(OctaneConstants.KEY_FIELD_TYPE, item.get(OctaneConstants.KEY_FIELD_TYPE).toString());
+    	FieldValue description =  new FieldValue(OctaneConstants.KEY_FIELD_DESCRIPTION, item.get(OctaneConstants.KEY_FIELD_DESCRIPTION).toString());
+    	FieldValue name =  new FieldValue(OctaneConstants.KEY_FIELD_NAME, item.get(OctaneConstants.KEY_FIELD_NAME).toString());
+    	FieldValue creationTime =  new FieldValue(OctaneConstants.KEY_FIELD_CREATE_TIME, item.get(OctaneConstants.KEY_FIELD_CREATE_TIME).toString());
+    	FieldValue version = new FieldValue(OctaneConstants.KEY_FIELD_VERSION_STAMP, item.get(OctaneConstants.KEY_FIELD_VERSION_STAMP).toString());
+    	FieldValue lastModified = new FieldValue(OctaneConstants.KEY_FIELD_LAST_MODIFIED, item.get(OctaneConstants.KEY_FIELD_LAST_MODIFIED).toString());
+    	FieldValue phase = new FieldValue(OctaneConstants.KEY_FIELD_PHASE, getString("id", getObj(OctaneConstants.KEY_FIELD_PHASE,item)));
+    	FieldValue storyPoints = new FieldValue(OctaneConstants.KEY_FIELD_STORY_POINTS, item.get(OctaneConstants.KEY_FIELD_STORY_POINTS).toString());
+    	
+    	agileFields.put(OctaneConstants.KEY_FIELD_TYPE,  Arrays.asList(type));
+    	agileFields.put(OctaneConstants.KEY_FIELD_DESCRIPTION,  Arrays.asList(description));
+    	agileFields.put(OctaneConstants.KEY_FIELD_NAME,  Arrays.asList(name));
+    	agileFields.put(OctaneConstants.KEY_FIELD_CREATE_TIME,  Arrays.asList(creationTime));
+    	agileFields.put(OctaneConstants.KEY_FIELD_VERSION_STAMP,  Arrays.asList(version));
+    	agileFields.put(OctaneConstants.KEY_FIELD_LAST_MODIFIED,  Arrays.asList(lastModified));
+    	agileFields.put(OctaneConstants.KEY_FIELD_PHASE,  Arrays.asList(phase));
+    	agileFields.put(OctaneConstants.KEY_FIELD_STORY_POINTS,  Arrays.asList(storyPoints));
+    	
+    	
+    	return agileFields;
+    	
+    }
+    
+    private List<JSONObject> getUserStoriesJson(String sharedspaceId, String workspaceId, String queryFilter) {
+
+        String url = String.format("%s/api/shared_spaces/%s/workspaces/%s/stories", baseURL, sharedspaceId, workspaceId);
+        if (!StringUtils.isBlank(queryFilter)) {
+            url += "?query=\""+queryFilter+"\"";
+        }
+
+        return new JsonPaginatedOctaneGetter().get(url);
+    }
+    
+    private List<JSONObject> getFeatureJson(String sharedspaceId, String workspaceId, String queryFilter) {
+
+        String url = String.format("%s/api/shared_spaces/%s/workspaces/%s/features", baseURL, sharedspaceId, workspaceId);
+        if (!StringUtils.isBlank(queryFilter)) {
+            url += "?query=\""+queryFilter+"\"";
+        }
+
+        return new JsonPaginatedOctaneGetter().get(url);
+    }
+    
+    private String getString(String key, JSONObject obj) {
+
+        if (obj == null) {
+            return null;
+        }
+
+        try {
+            return obj.getString(key);
+        } catch (JSONException e) {
+            return null;
+        }
+    }
+    
+    private JSONObject getObj(String key, JSONObject obj) {
+        if (obj == null) {
+            return null;
+        }
+
+        try {
+            return obj.getJSONObject(key);
+        } catch (JSONException e) {
+            return null;
+        }
     }
 
     /**
