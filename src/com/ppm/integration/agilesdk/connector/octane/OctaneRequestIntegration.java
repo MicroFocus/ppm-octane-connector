@@ -100,7 +100,7 @@ public class OctaneRequestIntegration extends RequestIntegration {
     }
     
     @Override
-    public Map<String, Map<String, List<FieldValue>>> getEntities(final String agileProjectValue,final ValueSet instanceConfigurationParameters, final String entityType, Set<String> entityIds){
+    public Map<String, Map<String, List<FieldValue>>> getEntities(final String agileProjectValue,final String entityType, final ValueSet instanceConfigurationParameters, Set<String> entityIds){
         ClientPublicAPI client = ClientPublicAPI.getClient(instanceConfigurationParameters);
         JSONObject workspaceJson = (JSONObject)JSONSerializer.toJSON(agileProjectValue);
         String workSpaceId = workspaceJson.getString(OctaneConstants.WORKSPACE_ID);
