@@ -110,5 +110,10 @@ public class OctaneConstants {
     public static final String KEY_FIELD_PHASE = "phase";
     public static final String KEY_FIELD_AUTHOR = "author";
     public static final String KEY_FIELD_STORY_POINTS = "story_points";
+    public static final String KEY_FIELD_REMAINING_HOURS = "remaining_hours";
+    public static final String KEY_FIELD_ESTIMATED_HOURS = "estimated_hours";
     public static final String KEY_FIELD_TEAM = "team";
+    public static final String KEY_FIELD_CREATE_TIME = "creation_time";
+    public static final String KEY_FIELD_VERSION_STAMP = "version_stamp";
+    public static final String KEY_FIELD_LAST_MODIFIED = "last_modified";
 }
