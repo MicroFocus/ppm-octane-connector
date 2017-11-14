@@ -148,6 +148,11 @@ public class OctaneRequestIntegration extends RequestIntegration {
         if (description != null && description.size() > 0) {
             featureEntity.setDescription(description.get(0).getValue());
         }
+
+        SimpleEntity phase = new SimpleEntity();
+        phase.setId("phase.feature.new");
+        phase.setType("phase");
+        featureEntity.setPhase(phase);
         entity.addFeatureEntity(featureEntity);
         return entity;
     }

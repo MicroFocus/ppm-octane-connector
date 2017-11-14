@@ -25,8 +25,7 @@ public class FeatureCreateEntity {
     public void addFeatureEntity(FeatureEntity entity) {
         if (data == null) {
             data = new ArrayList<FeatureEntity>();
-        } else {
-            data.add(entity);
         }
+        data.add(entity);
     }
 }
