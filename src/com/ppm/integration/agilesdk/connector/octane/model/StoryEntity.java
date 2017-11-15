@@ -13,7 +13,7 @@ public class StoryEntity extends SimpleEntity{
 	
 	private String description;
 	
-	private Integer stroy_point;
+	private Integer story_points;
 	
 	private SimpleEntity team;
 	
@@ -26,6 +26,16 @@ public class StoryEntity extends SimpleEntity{
 	private SimpleEntity author;
 	
 	private SimpleEntity owner;
+	
+	private SimpleEntity parent;
+
+	public SimpleEntity getParent() {
+		return parent;
+	}
+
+	public void setParent(SimpleEntity parent) {
+		this.parent = parent;
+	}
 
 	public String getDescription() {
 		return description;
@@ -35,12 +45,12 @@ public class StoryEntity extends SimpleEntity{
 		this.description = description;
 	}
 
-	public Integer getStroy_point() {
-		return stroy_point;
+	public Integer getStory_points() {
+		return story_points;
 	}
 
-	public void setStroy_point(Integer stroy_point) {
-		this.stroy_point = stroy_point;
+	public void setStory_points(Integer story_points) {
+		this.story_points = story_points;
 	}
 
 	public SimpleEntity getTeam() {
