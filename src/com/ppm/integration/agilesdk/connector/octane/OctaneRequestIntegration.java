@@ -8,6 +8,7 @@ import com.ppm.integration.agilesdk.connector.octane.model.FieldInfo;
 import com.ppm.integration.agilesdk.connector.octane.model.SimpleEntity;
 import com.ppm.integration.agilesdk.connector.octane.model.StoryCreateEntity;
 import com.ppm.integration.agilesdk.connector.octane.model.StoryEntity;
+import com.ppm.integration.agilesdk.connector.octane.model.WorkItemRoot;
 import com.ppm.integration.agilesdk.dm.AgileEntityFieldInfo;
 import com.ppm.integration.agilesdk.dm.AgileEntityInfo;
 import com.ppm.integration.agilesdk.dm.FieldValue;
@@ -90,7 +91,9 @@ public class OctaneRequestIntegration extends RequestIntegration {
                 entityId = features.get(0).getId();
             }
         } else if(OctaneConstants.SUB_TYPE_STORY.equals(entityType)){
-        	StoryCreateEntity entity = buildStoryCreateEntity(entityMap);
+        	WorkItemRoot root = new WorkItemRoot();
+        	root = client.getWorkItemRoot(Integer.parseInt(sharedSpaceId), Integer.parseInt(workSpaceId));
+        	StoryCreateEntity entity = buildStoryCreateEntity(entityMap,root);
             List<StoryEntity> stories = client.createStoryInWorkspace(sharedSpaceId, workSpaceId, entity);
             if (stories != null && stories.size() > 0) {
                 entityId = stories.get(0).getId();
@@ -115,7 +118,7 @@ public class OctaneRequestIntegration extends RequestIntegration {
     	return entitiesInfo;
     }
     
-    private StoryCreateEntity buildStoryCreateEntity(Map<String, List<FieldValue>> entityMap)
+    private StoryCreateEntity buildStoryCreateEntity(Map<String, List<FieldValue>> entityMap,WorkItemRoot root)
     {
     	StoryCreateEntity storyCreateEntity = new StoryCreateEntity();
     	StoryEntity storyEntity = new StoryEntity();    	
@@ -131,6 +134,11 @@ public class OctaneRequestIntegration extends RequestIntegration {
         SimpleEntity phase = new SimpleEntity();
         phase.setId("phase.story.new");
         phase.setType("phase");
+        storyEntity.setPhase(phase);
+        SimpleEntity parent = new SimpleEntity();
+        parent.setId(root.id);
+        parent.setType(root.type);
+        storyEntity.setParent(parent);
         storyEntity.setPhase(phase);
         storyCreateEntity.addStoryEntity(storyEntity);
     	return storyCreateEntity;

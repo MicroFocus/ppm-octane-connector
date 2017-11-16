@@ -27,9 +27,8 @@ public class StoryCreateEntity extends SimpleEntity{
     public void addStoryEntity(StoryEntity entity) {
         if (data == null) {
             data = new ArrayList<StoryEntity>();
-        } else {
-            data.add(entity);
         }
+        data.add(entity);
     }
 
 }
