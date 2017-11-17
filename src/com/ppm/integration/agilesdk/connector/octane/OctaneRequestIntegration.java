@@ -14,9 +14,11 @@ import com.ppm.integration.agilesdk.dm.AgileEntityInfo;
 import com.ppm.integration.agilesdk.dm.FieldValue;
 import com.ppm.integration.agilesdk.dm.RequestIntegration;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import edu.emory.mathcs.backport.java.util.Collections;
 
 import net.sf.json.JSONObject;
 import net.sf.json.JSONSerializer;
@@ -62,6 +64,7 @@ public class OctaneRequestIntegration extends RequestIntegration {
             info.setValue(valueObj.toString());
             fieldList.add(info);
         }
+        Collections.sort(fieldList, new AgileFieldComparator());
         return fieldList;
     }
 
@@ -127,6 +130,7 @@ public class OctaneRequestIntegration extends RequestIntegration {
     	{
     		storyEntity.setName(name.get(0).getValue());
     	}
+    	storyEntity.setName("ppm request default name");
     	List<FieldValue> description = entityMap.get(OctaneConstants.KEY_FIELD_DESCRIPTION);
         if (description != null && description.size() > 0) {
         	storyEntity.setDescription(description.get(0).getValue());
@@ -163,5 +167,12 @@ public class OctaneRequestIntegration extends RequestIntegration {
         featureEntity.setPhase(phase);
         entity.addFeatureEntity(featureEntity);
         return entity;
+    }
+}
+
+class AgileFieldComparator implements Comparator<AgileEntityFieldInfo> {
+    @Override
+    public int compare(final AgileEntityFieldInfo o1, final AgileEntityFieldInfo o2) {
+        return o1.getDisplayName().compareTo(o2.getDisplayName());
     }
 }
