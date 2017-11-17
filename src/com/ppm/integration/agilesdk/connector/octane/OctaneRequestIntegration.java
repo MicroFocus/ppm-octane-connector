@@ -113,7 +113,7 @@ public class OctaneRequestIntegration extends RequestIntegration {
         String sharedSpaceId = workspaceJson.getString(OctaneConstants.SHARED_SPACE_ID);
         Map<String, Map<String, List<FieldValue>>> entitiesInfo =null;
         if (OctaneConstants.SUB_TYPE_FEATURE.equals(entityType)) {
-        	entitiesInfo = client.getUserStories(sharedSpaceId, workSpaceId, entityIds);        	
+        	entitiesInfo = client.getFeatures(sharedSpaceId, workSpaceId, entityIds);        	
         } else if(OctaneConstants.SUB_TYPE_STORY.equals(entityType)){
         	entitiesInfo = client.getUserStories(sharedSpaceId, workSpaceId, entityIds);
         }
