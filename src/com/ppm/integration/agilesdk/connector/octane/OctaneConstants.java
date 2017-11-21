@@ -116,4 +116,6 @@ public class OctaneConstants {
     public static final String KEY_FIELD_CREATE_TIME = "creation_time";
     public static final String KEY_FIELD_VERSION_STAMP = "version_stamp";
     public static final String KEY_FIELD_LAST_MODIFIED = "last_modified";
+    
+    public static final String KEY_FIELD_NAME_DEFAULT_VALUE = "default name value";
 }
