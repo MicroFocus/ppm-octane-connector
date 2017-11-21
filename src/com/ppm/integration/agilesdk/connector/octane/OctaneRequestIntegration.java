@@ -77,24 +77,24 @@ public class OctaneRequestIntegration extends RequestIntegration {
     }
 
     @Override
-    public String createEntity(final String agileProjectValue, final String entityType, final Map<String, List<FieldValue>> entityMap,
-            final ValueSet instanceConfigurationParameters) {
-        String entityId = null;
-        ClientPublicAPI client = ClientPublicAPI.getClient(instanceConfigurationParameters);
-        JSONObject workspaceJson = (JSONObject)JSONSerializer.toJSON(agileProjectValue);
-        String workSpaceId = workspaceJson.getString(OctaneConstants.WORKSPACE_ID);
-        String sharedSpaceId = workspaceJson.getString(OctaneConstants.SHARED_SPACE_ID);
-        if (OctaneConstants.SUB_TYPE_FEATURE.equals(entityType)) {
-            String entityStr = buildEntity(entityMap,null);
-            entityId = client.createFeatureInWorkspace(sharedSpaceId, workSpaceId, entityStr);
-        } else if(OctaneConstants.SUB_TYPE_STORY.equals(entityType)){
-        	WorkItemRoot root = new WorkItemRoot();
-        	root = client.getWorkItemRoot(Integer.parseInt(sharedSpaceId), Integer.parseInt(workSpaceId));
-        	String entityStr = buildEntity(entityMap,root);
-        	entityId = client.createStoryInWorkspace(sharedSpaceId, workSpaceId, entityStr);
-        }
-        return entityId;
-    }
+	public String createEntity(final String agileProjectValue, final String entityType,
+			final Map<String, List<FieldValue>> entityMap, final ValueSet instanceConfigurationParameters) {
+		String entityId = null;
+		ClientPublicAPI client = ClientPublicAPI.getClient(instanceConfigurationParameters);
+		JSONObject workspaceJson = (JSONObject) JSONSerializer.toJSON(agileProjectValue);
+		String workSpaceId = workspaceJson.getString(OctaneConstants.WORKSPACE_ID);
+		String sharedSpaceId = workspaceJson.getString(OctaneConstants.SHARED_SPACE_ID);
+		if (OctaneConstants.SUB_TYPE_FEATURE.equals(entityType)) {
+			String entityStr = buildEntity(entityMap, null);
+			entityId = client.createFeatureInWorkspace(sharedSpaceId, workSpaceId, entityStr);
+		} else if (OctaneConstants.SUB_TYPE_STORY.equals(entityType)) {
+			WorkItemRoot root = new WorkItemRoot();
+			root = client.getWorkItemRoot(Integer.parseInt(sharedSpaceId), Integer.parseInt(workSpaceId));
+			String entityStr = buildEntity(entityMap, root);
+			entityId = client.createStoryInWorkspace(sharedSpaceId, workSpaceId, entityStr);
+		}
+		return entityId;
+	}
     
     @Override
     public Map<String, Map<String, List<FieldValue>>> getEntities(final String agileProjectValue,final String entityType, final ValueSet instanceConfigurationParameters, Set<String> entityIds){
@@ -112,45 +112,44 @@ public class OctaneRequestIntegration extends RequestIntegration {
     	return entitiesInfo;
     }
     
-    private String buildEntity(Map<String, List<FieldValue>> entityMap, WorkItemRoot root)
-    {
-    	JSONArray entityList = new JSONArray();
-    	JSONObject entityObj = new JSONObject();
-    	boolean existName = false;
-    	
+	private String buildEntity(Map<String, List<FieldValue>> entityMap, WorkItemRoot root) {
+		JSONArray entityList = new JSONArray();
+		JSONObject entityObj = new JSONObject();
+		boolean existName = false;
+
 		Iterator<Entry<String, List<FieldValue>>> it = entityMap.entrySet().iterator();
 		while (it.hasNext()) {
 			Entry<String, List<FieldValue>> entry = it.next();
 			String key = entry.getKey();
-			if(key.equals(OctaneConstants.KEY_FIELD_NAME))
+			if (key.equals(OctaneConstants.KEY_FIELD_NAME))
 				existName = true;
 			entityObj.put(entry.getKey(), entry.getValue().get(0).getValue());
 		}
 
-		if(!existName){
+		if (!existName) {
 			entityObj.put(OctaneConstants.KEY_FIELD_NAME, OctaneConstants.KEY_FIELD_NAME_DEFAULT_VALUE);
 		}
-		
+
 		JSONObject complexObj = new JSONObject();
 		complexObj.put("id", "phase.story.new");
 		complexObj.put("type", "phase");
 		entityObj.put("phase", complexObj);
-		
+
 		if (root != null) {
 			JSONObject parent = new JSONObject();
 			parent.put("id", root.id);
 			parent.put("type", root.type);
 			entityObj.put("parent", parent);
-		}		
+		}
 		entityList.add(entityObj);
-		
+
 		return entityList.toString();
-    }
+	}
 }
 
 class AgileFieldComparator implements Comparator<AgileEntityFieldInfo> {
     @Override
     public int compare(final AgileEntityFieldInfo o1, final AgileEntityFieldInfo o2) {
-        return o1.getDisplayName().compareTo(o2.getDisplayName());
+        return o1.getDisplayName().compareToIgnoreCase(o2.getDisplayName());
     }
 }

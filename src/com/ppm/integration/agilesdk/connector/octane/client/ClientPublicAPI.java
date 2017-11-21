@@ -931,53 +931,60 @@ public class ClientPublicAPI {
         return valueList;
     }
 
-    public String createFeatureInWorkspace(final String sharedspaceId, final String workspaceId, final String entity) {
-        String url = String.format("%s/api/shared_spaces/%s/workspaces/%s/features", baseURL, sharedspaceId, workspaceId);
+	public String createFeatureInWorkspace(final String sharedspaceId, final String workspaceId, final String entity) {
+		String url = String.format("%s/api/shared_spaces/%s/workspaces/%s/features", baseURL, sharedspaceId,
+				workspaceId);
 
-        RestResponse response = sendRequest(url, HttpMethod.POST, this.getJsonStrForPOSTData(entity));
-        if (HttpStatus.SC_CREATED != response.getStatusCode()) {
-            this.logger.error("Error occurs when creating feature in Octane: Response code = " + response.getStatusCode());
-            throw new OctaneClientException("AGM_APP", "ERROR_HTTP_CONNECTIVITY_ERROR", new String[] { response.getData() });
-        }
-        return getCreateEntityIdFromResponse(response.getData());
-    }
-    
-    public String createStoryInWorkspace(final String sharedspaceId, final String workspaceId, final String entity) {
-        String url = String.format("%s/api/shared_spaces/%s/workspaces/%s/stories", baseURL, sharedspaceId, workspaceId);
+		RestResponse response = sendRequest(url, HttpMethod.POST, this.getJsonStrForPOSTData(entity));
+		if (HttpStatus.SC_CREATED != response.getStatusCode()) {
+			this.logger
+					.error("Error occurs when creating feature in Octane: Response code = " + response.getStatusCode());
+			throw new OctaneClientException("AGM_APP", "ERROR_HTTP_CONNECTIVITY_ERROR",
+					new String[] { response.getData() });
+		}
+		return getCreateEntityIdFromResponse(response.getData());
+	}
 
-        RestResponse response = sendRequest(url, HttpMethod.POST, this.getJsonStrForPOSTData(entity));
-        if (HttpStatus.SC_CREATED != response.getStatusCode()) {
-            this.logger.error("Error occurs when creating story in Octane: Response code = " + response.getStatusCode());
-            throw new OctaneClientException("AGM_APP", "ERROR_HTTP_CONNECTIVITY_ERROR", new String[] { response.getData() });
-        }
-        
-        return getCreateEntityIdFromResponse(response.getData());
-        
-    }
+	public String createStoryInWorkspace(final String sharedspaceId, final String workspaceId, final String entity) {
+		String url = String.format("%s/api/shared_spaces/%s/workspaces/%s/stories", baseURL, sharedspaceId,
+				workspaceId);
 
-    private String getCreateEntityIdFromResponse(String jsonData){
-    	org.json.JSONObject obj;
-        String creatEntity = "";
+		RestResponse response = sendRequest(url, HttpMethod.POST, this.getJsonStrForPOSTData(entity));
+		if (HttpStatus.SC_CREATED != response.getStatusCode()) {
+			this.logger
+					.error("Error occurs when creating story in Octane: Response code = " + response.getStatusCode());
+			throw new OctaneClientException("AGM_APP", "ERROR_HTTP_CONNECTIVITY_ERROR",
+					new String[] { response.getData() });
+		}
+
+		return getCreateEntityIdFromResponse(response.getData());
+
+	}
+
+	private String getCreateEntityIdFromResponse(String jsonData) {
+		org.json.JSONObject obj;
+		String creatEntity = "";
 		try {
 			obj = new org.json.JSONObject(jsonData);
-			org.json.JSONArray data = (org.json.JSONArray)(obj.get("data"));
-	        if(data.length()>0)
-	        	creatEntity = (String) data.getJSONObject(0).get("id");
+			org.json.JSONArray data = (org.json.JSONArray) (obj.get("data"));
+			if (data.length() > 0)
+				creatEntity = (String) data.getJSONObject(0).get("id");
 		} catch (org.json.JSONException e) {
-			throw new OctaneClientException("AGM_APP", "ERROR_HTTP_CONNECTIVITY_ERROR", "Error occurs when parse response data:"+ jsonData);
+			throw new OctaneClientException("AGM_APP", "ERROR_HTTP_CONNECTIVITY_ERROR",
+					"Error occurs when parse response data:" + jsonData);
 		}
-        return creatEntity;
-    	
-    }
-    
-    private String getJsonStrFromObject(Object sourceObj)  {
-    	ObjectMapper objectMapper = new ObjectMapper();
-        try {
-            return objectMapper.writeValueAsString(sourceObj);
-        } catch (JsonProcessingException e) {
-            throw new RuntimeException("Error when generating JSon String from object", e);
-        }
-    }
+		return creatEntity;
+
+	}
+
+	private String getJsonStrFromObject(Object sourceObj) {
+		ObjectMapper objectMapper = new ObjectMapper();
+		try {
+			return objectMapper.writeValueAsString(sourceObj);
+		} catch (JsonProcessingException e) {
+			throw new RuntimeException("Error when generating JSon String from object", e);
+		}
+	}
     
     private String getJsonStrForPOSTData(Object sourceObj)  {
     	JSONObject entityObj = new JSONObject();
