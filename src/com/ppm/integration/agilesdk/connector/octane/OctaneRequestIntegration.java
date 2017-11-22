@@ -14,6 +14,9 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+
+import javax.ws.rs.HttpMethod;
+
 import java.util.Set;
 import edu.emory.mathcs.backport.java.util.Collections;
 import net.sf.json.JSONArray;
@@ -75,25 +78,19 @@ public class OctaneRequestIntegration extends RequestIntegration {
         String logicalName = fieldObj.getString(OctaneConstants.KEY_LOGICAL_NAME);
         return client.getEntityFieldValueList(sharedSpaceId, workSpaceId, logicalName);
     }
+    
+    @Override
+	public String updateEntity(final String agileProjectValue, final String entityType,
+			final Map<String, List<FieldValue>> entityMap, final ValueSet instanceConfigurationParameters,
+			final int agileEntityId) {
+    	return saveOrUpdateEntity(agileProjectValue,entityType,entityMap,instanceConfigurationParameters,agileEntityId);
+	}
 
     @Override
 	public String createEntity(final String agileProjectValue, final String entityType,
 			final Map<String, List<FieldValue>> entityMap, final ValueSet instanceConfigurationParameters) {
-		String entityId = null;
-		ClientPublicAPI client = ClientPublicAPI.getClient(instanceConfigurationParameters);
-		JSONObject workspaceJson = (JSONObject) JSONSerializer.toJSON(agileProjectValue);
-		String workSpaceId = workspaceJson.getString(OctaneConstants.WORKSPACE_ID);
-		String sharedSpaceId = workspaceJson.getString(OctaneConstants.SHARED_SPACE_ID);
-		if (OctaneConstants.SUB_TYPE_FEATURE.equals(entityType)) {
-			String entityStr = buildEntity(entityMap, null);
-			entityId = client.createFeatureInWorkspace(sharedSpaceId, workSpaceId, entityStr);
-		} else if (OctaneConstants.SUB_TYPE_STORY.equals(entityType)) {
-			WorkItemRoot root = new WorkItemRoot();
-			root = client.getWorkItemRoot(Integer.parseInt(sharedSpaceId), Integer.parseInt(workSpaceId));
-			String entityStr = buildEntity(entityMap, root);
-			entityId = client.createStoryInWorkspace(sharedSpaceId, workSpaceId, entityStr);
-		}
-		return entityId;
+    	return saveOrUpdateEntity(agileProjectValue,entityType,entityMap,instanceConfigurationParameters,null);
+		
 	}
     
     @Override
@@ -112,7 +109,31 @@ public class OctaneRequestIntegration extends RequestIntegration {
     	return entitiesInfo;
     }
     
-	private String buildEntity(Map<String, List<FieldValue>> entityMap, WorkItemRoot root) {
+    private String saveOrUpdateEntity(final String agileProjectValue, final String entityType,
+			final Map<String, List<FieldValue>> entityMap, final ValueSet instanceConfigurationParameters, final Integer agileEntityId){
+    	String entityId = null;
+		ClientPublicAPI client = ClientPublicAPI.getClient(instanceConfigurationParameters);
+		JSONObject workspaceJson = (JSONObject) JSONSerializer.toJSON(agileProjectValue);
+		String workSpaceId = workspaceJson.getString(OctaneConstants.WORKSPACE_ID);
+		String sharedSpaceId = workspaceJson.getString(OctaneConstants.SHARED_SPACE_ID);
+		String method = HttpMethod.POST;
+		if(agileEntityId!=null && agileEntityId >0){
+			method = HttpMethod.PUT;
+		}
+		if (OctaneConstants.SUB_TYPE_FEATURE.equals(entityType)) {
+			String entityStr = buildEntity(agileEntityId,entityMap, null);
+			entityId = client.saveFeatureInWorkspace(sharedSpaceId, workSpaceId, entityStr,method);
+		} else if (OctaneConstants.SUB_TYPE_STORY.equals(entityType)) {
+			WorkItemRoot root = new WorkItemRoot();
+			root = client.getWorkItemRoot(Integer.parseInt(sharedSpaceId), Integer.parseInt(workSpaceId));
+			String entityStr = buildEntity(agileEntityId,entityMap, root);
+			entityId = client.saveStoryInWorkspace(sharedSpaceId, workSpaceId, entityStr,method);
+		}
+		return entityId;
+    	
+    } 
+    
+	private String buildEntity(final Integer agileEntityId, Map<String, List<FieldValue>> entityMap, WorkItemRoot root) {
 		JSONArray entityList = new JSONArray();
 		JSONObject entityObj = new JSONObject();
 		boolean existName = false;
@@ -128,6 +149,9 @@ public class OctaneRequestIntegration extends RequestIntegration {
 
 		if (!existName) {
 			entityObj.put(OctaneConstants.KEY_FIELD_NAME, OctaneConstants.KEY_FIELD_NAME_DEFAULT_VALUE);
+		}
+		if(agileEntityId!=null && agileEntityId > 0){
+			entityObj.put(OctaneConstants.KEY_FIELD_ID, agileEntityId);
 		}
 
 		JSONObject complexObj = new JSONObject();

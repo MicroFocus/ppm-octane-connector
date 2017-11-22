@@ -931,11 +931,11 @@ public class ClientPublicAPI {
         return valueList;
     }
 
-	public String createFeatureInWorkspace(final String sharedspaceId, final String workspaceId, final String entity) {
+	public String saveFeatureInWorkspace(final String sharedspaceId, final String workspaceId, final String entity,final String method) {
 		String url = String.format("%s/api/shared_spaces/%s/workspaces/%s/features", baseURL, sharedspaceId,
 				workspaceId);
 
-		RestResponse response = sendRequest(url, HttpMethod.POST, this.getJsonStrForPOSTData(entity));
+		RestResponse response = sendRequest(url, method, this.getJsonStrForPOSTData(entity));
 		if (HttpStatus.SC_CREATED != response.getStatusCode()) {
 			this.logger
 					.error("Error occurs when creating feature in Octane: Response code = " + response.getStatusCode());
@@ -945,11 +945,11 @@ public class ClientPublicAPI {
 		return getCreateEntityIdFromResponse(response.getData());
 	}
 
-	public String createStoryInWorkspace(final String sharedspaceId, final String workspaceId, final String entity) {
+	public String saveStoryInWorkspace(final String sharedspaceId, final String workspaceId, final String entity,final String method) {
 		String url = String.format("%s/api/shared_spaces/%s/workspaces/%s/stories", baseURL, sharedspaceId,
 				workspaceId);
 
-		RestResponse response = sendRequest(url, HttpMethod.POST, this.getJsonStrForPOSTData(entity));
+		RestResponse response = sendRequest(url, method, this.getJsonStrForPOSTData(entity));
 		if (HttpStatus.SC_CREATED != response.getStatusCode()) {
 			this.logger
 					.error("Error occurs when creating story in Octane: Response code = " + response.getStatusCode());
