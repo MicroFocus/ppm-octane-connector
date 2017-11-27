@@ -1135,7 +1135,7 @@ public class ClientPublicAPI {
         for (JSONObject workItemJson : workItemsJson) {
         	   	
         	Map<String, List<FieldValue>> storyMap = new HashMap<String, List<FieldValue>>();
-        	storyMap = wapperStoryFieldsMap(workItemJson);
+        	storyMap = wapperEntityFieldsMap(workItemJson);
         	storiesMap.put(workItemJson.getString(OctaneConstants.KEY_FIELD_ID), storyMap);
         }
 
@@ -1153,61 +1153,24 @@ public class ClientPublicAPI {
         for (JSONObject workItemJson : workItemsJson) {
         	   	
         	Map<String, List<FieldValue>> featureMap = new HashMap<String, List<FieldValue>>();
-        	featureMap = wapperFeaturesMap(workItemJson);
+        	featureMap = wapperEntityFieldsMap(workItemJson);
         	featuresMap.put(workItemJson.getString(OctaneConstants.KEY_FIELD_ID), featureMap);
         }
 
         return featuresMap;
     }
     
-    private Map<String, List<FieldValue>> wapperStoryFieldsMap(JSONObject item){
-    	
+    private Map<String, List<FieldValue>> wapperEntityFieldsMap(JSONObject item){
+
     	Map<String, List<FieldValue>> agileFields = new HashMap<String, List<FieldValue>>();
-    	FieldValue type =  new FieldValue(OctaneConstants.KEY_FIELD_TYPE, item.get(OctaneConstants.KEY_FIELD_TYPE).toString());
-    	FieldValue description =  new FieldValue(OctaneConstants.KEY_FIELD_DESCRIPTION, item.get(OctaneConstants.KEY_FIELD_DESCRIPTION).toString());
-    	FieldValue name =  new FieldValue(OctaneConstants.KEY_FIELD_NAME, item.get(OctaneConstants.KEY_FIELD_NAME).toString());
-    	FieldValue creationTime =  new FieldValue(OctaneConstants.KEY_FIELD_CREATE_TIME, item.get(OctaneConstants.KEY_FIELD_CREATE_TIME).toString());
-    	FieldValue lastModified = new FieldValue(OctaneConstants.KEY_FIELD_LAST_MODIFIED, item.get(OctaneConstants.KEY_FIELD_LAST_MODIFIED).toString());
-    	FieldValue phase = new FieldValue(OctaneConstants.KEY_FIELD_PHASE, getString("id", getObj(OctaneConstants.KEY_FIELD_PHASE,item)));
-    	FieldValue storyPoints = new FieldValue(OctaneConstants.KEY_FIELD_STORY_POINTS, item.get(OctaneConstants.KEY_FIELD_STORY_POINTS).toString());
-    	FieldValue remainingHours = new FieldValue(OctaneConstants.KEY_FIELD_REMAINING_HOURS, item.get(OctaneConstants.KEY_FIELD_REMAINING_HOURS).toString());
-    	FieldValue estimatedHours = new FieldValue(OctaneConstants.KEY_FIELD_ESTIMATED_HOURS, item.get(OctaneConstants.KEY_FIELD_ESTIMATED_HOURS).toString());
     	
-    	agileFields.put(OctaneConstants.KEY_FIELD_TYPE,  Arrays.asList(type));
-    	agileFields.put(OctaneConstants.KEY_FIELD_DESCRIPTION,  Arrays.asList(description));
-    	agileFields.put(OctaneConstants.KEY_FIELD_NAME,  Arrays.asList(name));
-    	agileFields.put(OctaneConstants.KEY_FIELD_CREATE_TIME,  Arrays.asList(creationTime));
-    	agileFields.put(OctaneConstants.KEY_FIELD_LAST_MODIFIED,  Arrays.asList(lastModified));
-    	agileFields.put(OctaneConstants.KEY_FIELD_PHASE,  Arrays.asList(phase));
-    	agileFields.put(OctaneConstants.KEY_FIELD_STORY_POINTS,  Arrays.asList(storyPoints));
-    	agileFields.put(OctaneConstants.KEY_FIELD_REMAINING_HOURS,  Arrays.asList(remainingHours));
-    	agileFields.put(OctaneConstants.KEY_FIELD_REMAINING_HOURS,  Arrays.asList(estimatedHours));
-    	
-    	return agileFields;
-    	
-    }
-    
-    private Map<String, List<FieldValue>> wapperFeaturesMap(JSONObject item){
-    	
-    	Map<String, List<FieldValue>> agileFields = new HashMap<String, List<FieldValue>>();
-    	FieldValue type =  new FieldValue(OctaneConstants.KEY_FIELD_TYPE, item.get(OctaneConstants.KEY_FIELD_TYPE).toString());
-    	FieldValue description =  new FieldValue(OctaneConstants.KEY_FIELD_DESCRIPTION, item.get(OctaneConstants.KEY_FIELD_DESCRIPTION).toString());
-    	FieldValue name =  new FieldValue(OctaneConstants.KEY_FIELD_NAME, item.get(OctaneConstants.KEY_FIELD_NAME).toString());
-    	FieldValue creationTime =  new FieldValue(OctaneConstants.KEY_FIELD_CREATE_TIME, item.get(OctaneConstants.KEY_FIELD_CREATE_TIME).toString());
-    	FieldValue version = new FieldValue(OctaneConstants.KEY_FIELD_VERSION_STAMP, item.get(OctaneConstants.KEY_FIELD_VERSION_STAMP).toString());
-    	FieldValue lastModified = new FieldValue(OctaneConstants.KEY_FIELD_LAST_MODIFIED, item.get(OctaneConstants.KEY_FIELD_LAST_MODIFIED).toString());
-    	FieldValue phase = new FieldValue(OctaneConstants.KEY_FIELD_PHASE, getString("id", getObj(OctaneConstants.KEY_FIELD_PHASE,item)));
-    	FieldValue storyPoints = new FieldValue(OctaneConstants.KEY_FIELD_STORY_POINTS, item.get(OctaneConstants.KEY_FIELD_STORY_POINTS).toString());
-    	
-    	agileFields.put(OctaneConstants.KEY_FIELD_TYPE,  Arrays.asList(type));
-    	agileFields.put(OctaneConstants.KEY_FIELD_DESCRIPTION,  Arrays.asList(description));
-    	agileFields.put(OctaneConstants.KEY_FIELD_NAME,  Arrays.asList(name));
-    	agileFields.put(OctaneConstants.KEY_FIELD_CREATE_TIME,  Arrays.asList(creationTime));
-    	agileFields.put(OctaneConstants.KEY_FIELD_VERSION_STAMP,  Arrays.asList(version));
-    	agileFields.put(OctaneConstants.KEY_FIELD_LAST_MODIFIED,  Arrays.asList(lastModified));
-    	agileFields.put(OctaneConstants.KEY_FIELD_PHASE,  Arrays.asList(phase));
-    	agileFields.put(OctaneConstants.KEY_FIELD_STORY_POINTS,  Arrays.asList(storyPoints));
-    	
+    	Iterator<String> sIterator = item.keys();
+    	while(sIterator.hasNext()){  
+    	    String key = sIterator.next();  
+    	    String value = item.getString(key);  
+    	    FieldValue fieldValue =  new FieldValue(key, value);
+    	    agileFields.put(key,  Arrays.asList(fieldValue));
+    	} 
     	
     	return agileFields;
     	

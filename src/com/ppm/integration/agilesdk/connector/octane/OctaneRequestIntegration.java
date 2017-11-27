@@ -121,19 +121,19 @@ public class OctaneRequestIntegration extends RequestIntegration {
 			method = HttpMethod.PUT;
 		}
 		if (OctaneConstants.SUB_TYPE_FEATURE.equals(entityType)) {
-			String entityStr = buildEntity(agileEntityId,entityMap, null);
+			String entityStr = buildEntity(entityType,agileEntityId,entityMap, null);
 			entityId = client.saveFeatureInWorkspace(sharedSpaceId, workSpaceId, entityStr,method);
 		} else if (OctaneConstants.SUB_TYPE_STORY.equals(entityType)) {
 			WorkItemRoot root = new WorkItemRoot();
 			root = client.getWorkItemRoot(Integer.parseInt(sharedSpaceId), Integer.parseInt(workSpaceId));
-			String entityStr = buildEntity(agileEntityId,entityMap, root);
+			String entityStr = buildEntity(entityType,agileEntityId,entityMap, root);
 			entityId = client.saveStoryInWorkspace(sharedSpaceId, workSpaceId, entityStr,method);
 		}
 		return entityId;
     	
     } 
     
-	private String buildEntity(final Integer agileEntityId, Map<String, List<FieldValue>> entityMap, WorkItemRoot root) {
+	private String buildEntity(final String entityType, final Integer agileEntityId, Map<String, List<FieldValue>> entityMap, WorkItemRoot root) {
 		JSONArray entityList = new JSONArray();
 		JSONObject entityObj = new JSONObject();
 		boolean existName = false;
@@ -155,7 +155,12 @@ public class OctaneRequestIntegration extends RequestIntegration {
 		}
 
 		JSONObject complexObj = new JSONObject();
-		complexObj.put("id", "phase.story.new");
+		if (OctaneConstants.SUB_TYPE_STORY.equals(entityType))
+		{
+			complexObj.put("id", "phase.story.new");
+		} else {
+			complexObj.put("id", "phase.feature.new");
+		}
 		complexObj.put("type", "phase");
 		entityObj.put("phase", complexObj);
 
