@@ -118,7 +118,6 @@ public class ClientPublicAPI {
      */
     private RestResponse sendRequest(String url, String method, String data, Map<String, String> headers)
     {
-    	int responseCode = 0;
         try {
             URL obj = new URL(url);
             HttpURLConnection con = null;
@@ -147,18 +146,7 @@ public class ClientPublicAPI {
                 wr.close();
             }
 
-            try {
-                responseCode = con.getResponseCode();
-            } catch (IOException e) {
-                if (retryNumber < 3) {
-                    retryNumber += 1;
-                    logger.error("OCTANE_API: Socket execption - This is the " + retryNumber + " time to retry.");
-                    return sendRequest(url, method, data, headers);
-		         } else {
-		            retryNumber = 0;
-		            throw new OctaneClientException("OCTANE_API", "ERROR_BAD_REQUEST");
-				}
-			}
+            int responseCode = con.getResponseCode();
             BufferedReader in;
             if (responseCode == 200 ) {
                 in = new BufferedReader(new InputStreamReader(con.getInputStream(), "UTF-8"));
