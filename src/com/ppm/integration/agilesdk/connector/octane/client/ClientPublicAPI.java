@@ -139,13 +139,13 @@ public class ClientPublicAPI {
 
             //set data
 
-            if (data != null) {
-                con.setDoOutput(true);
-                OutputStreamWriter wr = new OutputStreamWriter(con.getOutputStream(), "UTF-8");
-                wr.write(data);
-                wr.flush();
-                wr.close();
-            }
+			if (data != null) {
+				con.setDoOutput(true);
+				OutputStreamWriter wr = new OutputStreamWriter(con.getOutputStream(), "UTF-8");
+				wr.write(data);
+				wr.flush();
+				wr.close();
+			}
 
 			try {
 				responseCode = con.getResponseCode();
@@ -159,7 +159,7 @@ public class ClientPublicAPI {
 					throw new OctaneClientException("OCTANE_API", "ERROR_BAD_REQUEST");
 				}
 			}
-            BufferedReader in;
+			BufferedReader in;
             if (responseCode == 200 ) {
                 in = new BufferedReader(new InputStreamReader(con.getInputStream(), "UTF-8"));
 
