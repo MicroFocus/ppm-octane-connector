@@ -139,27 +139,27 @@ public class ClientPublicAPI {
 
             //set data
 
-			if (data != null) {
-				con.setDoOutput(true);
-				OutputStreamWriter wr = new OutputStreamWriter(con.getOutputStream(), "UTF-8");
-				wr.write(data);
-				wr.flush();
-				wr.close();
-			}
+            if (data != null) {
+                con.setDoOutput(true);
+                OutputStreamWriter wr = new OutputStreamWriter(con.getOutputStream(), "UTF-8");
+                wr.write(data);
+                wr.flush();
+                wr.close();
+            }
 
-			try {
-				responseCode = con.getResponseCode();
-			} catch (IOException e) {
-				if (retryNumber < 3) {
-					retryNumber += 1;
-					logger.error("OCTANE_API: Socket execption - This is the " + retryNumber + " time to retry.");
-					return sendRequest(url, method, data, headers);
-				} else {
-					retryNumber = 0;
-					throw new OctaneClientException("OCTANE_API", "ERROR_BAD_REQUEST");
+            try {
+                responseCode = con.getResponseCode();
+            } catch (IOException e) {
+                if (retryNumber < 3) {
+                    retryNumber += 1;
+                    logger.error("OCTANE_API: Socket execption - This is the " + retryNumber + " time to retry.");
+                    return sendRequest(url, method, data, headers);
+		         } else {
+		            retryNumber = 0;
+		            throw new OctaneClientException("OCTANE_API", "ERROR_BAD_REQUEST");
 				}
 			}
-			BufferedReader in;
+            BufferedReader in;
             if (responseCode == 200 ) {
                 in = new BufferedReader(new InputStreamReader(con.getInputStream(), "UTF-8"));
 
