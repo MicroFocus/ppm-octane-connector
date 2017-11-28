@@ -248,8 +248,13 @@ public class OctaneWorkPlanIntegration extends WorkPlanIntegration implements Fu
 
                     }
                 },
-                new NumberText(OctaneConstants.KEY_NEW_RELEASE_SPRINT_DURATION,"NEW_RELEASE_SPRINT_DURATION","14","block",false)
+                new DynamicDropdown(OctaneConstants.KEY_NEW_RELEASE_SCRUM_KANBAN,"KEY_NEW_RELEASE_SCRUM_KANBAN",OctaneConstants.NEW_RELEASE_SCRUM, "", false)
                 {
+                    @Override
+                    public List<String> getDependencies() {
+                        return new ArrayList<String>();
+                    }
+
                     @Override
                     public List<String> getStyleDependencies() {
                         return Arrays.asList(new String[] { OctaneConstants.KEY_IS_CREATE_RELEASE });
@@ -257,7 +262,40 @@ public class OctaneWorkPlanIntegration extends WorkPlanIntegration implements Fu
 
                     @Override
                     public FieldAppearance getFieldAppearance(ValueSet values) {
-                        return getCreateReleaseNotRequiredFieldsAppearance(values);
+                        return getCreateReleaseRequiredFieldsAppearance(values);
+                    }
+
+                    @Override
+                    public List<Option> getDynamicalOptions(ValueSet values) {
+
+                        List<Option> optionList = new ArrayList<>();
+
+                        Option option1 = new Option(OctaneConstants.NEW_RELEASE_SCRUM, l10n.getConnectorText("NEW_RELEASE_SCRUM"));
+                        Option option2 = new Option(OctaneConstants.NEW_RELEASE_KANBAN, l10n.getConnectorText("NEW_RELEASE_KANBAN"));
+
+                        optionList.add(option1);
+                        optionList.add(option2);
+
+                        return optionList;
+                    }
+                },
+                new NumberText(OctaneConstants.KEY_NEW_RELEASE_SPRINT_DURATION,"NEW_RELEASE_SPRINT_DURATION","14","block",false)
+                {
+                    @Override
+                    public List<String> getStyleDependencies() {
+                        return Arrays.asList(new String[] { OctaneConstants.KEY_IS_CREATE_RELEASE, OctaneConstants.KEY_NEW_RELEASE_SCRUM_KANBAN});
+                    }
+
+                    @Override
+                    public FieldAppearance getFieldAppearance(ValueSet values) {
+
+                        String releaseType = values.get(OctaneConstants.KEY_NEW_RELEASE_SCRUM_KANBAN);
+                        if (OctaneConstants.NEW_RELEASE_SCRUM.equals(releaseType)) {
+                            return getCreateReleaseRequiredFieldsAppearance(values);
+                        } else  {
+                            // If we create use Kanban release, this field is always disabled.
+                            return new FieldAppearance("disabled", "required");
+                        }
                     }
                 },
 
@@ -398,9 +436,19 @@ public class OctaneWorkPlanIntegration extends WorkPlanIntegration implements Fu
                 throw new RuntimeException("Error while parsing date value", e);
             }
 
-            String daysPerSprint = values.get(OctaneConstants.KEY_NEW_RELEASE_SPRINT_DURATION);
+            Integer daysPerSprint = (StringUtils.isBlank(values.get(OctaneConstants.KEY_NEW_RELEASE_SPRINT_DURATION)) ? null : Integer.parseInt(values.get(OctaneConstants.KEY_NEW_RELEASE_SPRINT_DURATION)));
 
-            Release release = client.createRelease(values.get(OctaneConstants.KEY_NEW_RELEASE_NAME), values.get(OctaneConstants.KEY_NEW_RELEASE_DESCRIPTION), startDate, endDate, (StringUtils.isBlank(daysPerSprint) ? null : Integer.parseInt(daysPerSprint)));
+            if (OctaneConstants.NEW_RELEASE_KANBAN.equals(values.get(OctaneConstants.KEY_NEW_RELEASE_SCRUM_KANBAN))) {
+                // We actually have to set this value to null to create a Kanban release.
+                daysPerSprint = null;
+            } else {
+                if (daysPerSprint == null || daysPerSprint.intValue() < 1) {
+                    // If we create a Scrum release, we have to pass a value for the number of days per sprint.
+                    daysPerSprint = new Integer(14);
+                }
+            }
+
+            Release release = client.createRelease(values.get(OctaneConstants.KEY_NEW_RELEASE_NAME), values.get(OctaneConstants.KEY_NEW_RELEASE_DESCRIPTION), startDate, endDate, daysPerSprint);
 
             updateNewReleaseInformationInWorkplanMapping(workplanMapping, release);
 

@@ -91,6 +91,14 @@ public class OctaneConstants {
     public static final String KEY_NEW_RELEASE_START_DATE = "new_release_start_date";
     public static final String KEY_NEW_RELEASE_END_DATE = "new_release_end_date";
     public static final String KEY_NEW_RELEASE_SPRINT_DURATION = "new_release_sprint_duration";
+    public static final String KEY_NEW_RELEASE_SCRUM_KANBAN = "key_new_release_scrum_kanban";
+    public static final String NEW_RELEASE_KANBAN = "kanban";
+    public static final String NEW_RELEASE_SCRUM = "scrum";
+
+
+
+
+
     public static final String KEY_IMPORT_ITEM_STORIES = "import_item_stories";
     public static final String KEY_IMPORT_ITEM_DEFECTS = "import_item_defects";
     public static final String KEY_IMPORT_ITEM_QUALITY_STORIES = "import_item_quality_stories";
