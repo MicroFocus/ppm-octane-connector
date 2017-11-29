@@ -80,26 +80,34 @@ public class OctaneRequestIntegration extends RequestIntegration {
         return client.getEntityFieldValueList(sharedSpaceId, workSpaceId, logicalName);
     }
     
-    @Override
+	@Override
 	public String updateEntity(final String agileProjectValue, final String entityType,
 			final Map<String, List<FieldValue>> entityMap, final ValueSet instanceConfigurationParameters,
 			final int agileEntityId) {
-    	return saveOrUpdateEntity(agileProjectValue,entityType,entityMap,instanceConfigurationParameters,agileEntityId);
+		String result = null;
+		try {
+			result = saveOrUpdateEntity(agileProjectValue, entityType, entityMap, instanceConfigurationParameters,
+					agileEntityId);
+		} catch (Exception e) {
+			throw new OctaneClientException("AGM_APP", "ERROR_HTTP_CONNECTIVITY_ERROR",
+					new String[] { e.getMessage() });
+		}
+		return result;
 	}
 
-    @Override
+	@Override
 	public String createEntity(final String agileProjectValue, final String entityType,
 			final Map<String, List<FieldValue>> entityMap, final ValueSet instanceConfigurationParameters) {
-    	    String result = null;
-    	    try{
-    	    	result = saveOrUpdateEntity(agileProjectValue,entityType,entityMap,instanceConfigurationParameters,null);
-    	    } catch (Exception e)
-    	    {
-    	    	throw new OctaneClientException("AGM_APP", "ERROR_HTTP_CONNECTIVITY_ERROR",
-						new String[] { e.getMessage()});
-    	    }
-    	    return result;
-		
+		String result = null;
+		try {
+			result = saveOrUpdateEntity(agileProjectValue, entityType, entityMap, instanceConfigurationParameters,
+					null);
+		} catch (Exception e) {
+			throw new OctaneClientException("AGM_APP", "ERROR_HTTP_CONNECTIVITY_ERROR",
+					new String[] { e.getMessage() });
+		}
+		return result;
+
 	}
     
     @Override
