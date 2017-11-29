@@ -2,6 +2,7 @@ package com.ppm.integration.agilesdk.connector.octane;
 
 import com.ppm.integration.agilesdk.ValueSet;
 import com.ppm.integration.agilesdk.connector.octane.client.ClientPublicAPI;
+import com.ppm.integration.agilesdk.connector.octane.client.OctaneClientException;
 import com.ppm.integration.agilesdk.connector.octane.model.FieldInfo;
 import com.ppm.integration.agilesdk.connector.octane.model.WorkItemRoot;
 import com.ppm.integration.agilesdk.dm.AgileEntityFieldInfo;
@@ -89,7 +90,15 @@ public class OctaneRequestIntegration extends RequestIntegration {
     @Override
 	public String createEntity(final String agileProjectValue, final String entityType,
 			final Map<String, List<FieldValue>> entityMap, final ValueSet instanceConfigurationParameters) {
-    	return saveOrUpdateEntity(agileProjectValue,entityType,entityMap,instanceConfigurationParameters,null);
+    	    String result = null;
+    	    try{
+    	    	result = saveOrUpdateEntity(agileProjectValue,entityType,entityMap,instanceConfigurationParameters,null);
+    	    } catch (Exception e)
+    	    {
+    	    	throw new OctaneClientException("AGM_APP", "ERROR_HTTP_CONNECTIVITY_ERROR",
+						new String[] { e.getMessage()});
+    	    }
+    	    return result;
 		
 	}
     
@@ -122,7 +131,12 @@ public class OctaneRequestIntegration extends RequestIntegration {
 		}
 		if (OctaneConstants.SUB_TYPE_FEATURE.equals(entityType)) {
 			String entityStr = buildEntity(entityType,agileEntityId,entityMap, null);
-			entityId = client.saveFeatureInWorkspace(sharedSpaceId, workSpaceId, entityStr,method);
+			try {
+				entityId = client.saveFeatureInWorkspace(sharedSpaceId, workSpaceId, entityStr,method);
+			} catch (Exception e) {
+				throw new OctaneClientException("AGM_APP", "ERROR_HTTP_CONNECTIVITY_ERROR",
+						new String[] { e.getMessage()});
+			}
 		} else if (OctaneConstants.SUB_TYPE_STORY.equals(entityType)) {
 			WorkItemRoot root = new WorkItemRoot();
 			root = client.getWorkItemRoot(Integer.parseInt(sharedSpaceId), Integer.parseInt(workSpaceId));
