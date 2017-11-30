@@ -952,7 +952,7 @@ public class ClientPublicAPI {
 		RestResponse response = sendRequest(url, method, this.getJsonStrForPOSTData(entity));
 		if (HttpStatus.SC_CREATED != response.getStatusCode() && HttpStatus.SC_OK != response.getStatusCode()) {
 			this.logger
-					.error("Error occurs when creating story in Octane: Response code = " + response.getStatusCode());
+					.error("Error occurs when saving story in Octane: Response code = " + response.getStatusCode());
 			throw new OctaneClientException("AGM_APP", "ERROR_HTTP_CONNECTIVITY_ERROR",
 					new String[] { response.getData() });
 		}
