@@ -897,7 +897,7 @@ public class ClientPublicAPI {
 
     public List<FieldInfo> getEntityFields(final String sharedspaceId, final String workspaceId, final String entityName) {
         String url = String.format("%s/api/shared_spaces/%s/workspaces/%s/metadata/fields?query=%s%s%s",
-                baseURL, sharedspaceId, workspaceId, "%22entity_name%20EQ%20'", entityName, "';visible_in_ui%20EQ%20true%22");
+                baseURL, sharedspaceId, workspaceId, "%22entity_name%20EQ%20'", entityName, "';visible_in_ui%20EQ%20true;editable%20EQ%20true;field_type%20EQ%20'string'%22");
         List fieldsList = new ArrayList();
         RestResponse response = sendGet(url);
         JSONObject dataObj = JSONObject.fromObject(response.getData());
@@ -1178,9 +1178,16 @@ public class ClientPublicAPI {
     
     private List<JSONObject> getUserStoriesJson(String sharedspaceId, String workspaceId, String queryFilter) {
 
-        String url = String.format("%s/api/shared_spaces/%s/workspaces/%s/stories", baseURL, sharedspaceId, workspaceId);
+    	List<FieldInfo> fieldsInfos = getEntityFields(sharedspaceId,workspaceId,"story");
+    	List fieldNames = new ArrayList();
+    	for(FieldInfo field:fieldsInfos)
+    	{
+    		fieldNames.add(field.getName());
+    	}
+    	
+        String url = String.format("%s/api/shared_spaces/%s/workspaces/%s/stories?fields=%s", baseURL, sharedspaceId, workspaceId,StringUtils.join(fieldNames, ","));
         if (!StringUtils.isBlank(queryFilter)) {
-            url += "?query=\""+queryFilter+"\"";
+            url += "&query=\""+queryFilter+"\"";
         }
 
         return new JsonPaginatedOctaneGetter().get(url);
@@ -1188,9 +1195,15 @@ public class ClientPublicAPI {
     
     private List<JSONObject> getFeatureJson(String sharedspaceId, String workspaceId, String queryFilter) {
 
-        String url = String.format("%s/api/shared_spaces/%s/workspaces/%s/features", baseURL, sharedspaceId, workspaceId);
+    	List<FieldInfo> fieldsInfos = getEntityFields(sharedspaceId,workspaceId,"feature");
+    	List fieldNames = new ArrayList();
+    	for(FieldInfo field:fieldsInfos)
+    	{
+    		fieldNames.add(field.getName());
+    	}
+        String url = String.format("%s/api/shared_spaces/%s/workspaces/%s/features?fields=%s", baseURL, sharedspaceId, workspaceId, StringUtils.join(fieldNames, ","));
         if (!StringUtils.isBlank(queryFilter)) {
-            url += "?query=\""+queryFilter+"\"";
+            url += "&query=\""+queryFilter+"\"";
         }
 
         return new JsonPaginatedOctaneGetter().get(url);
