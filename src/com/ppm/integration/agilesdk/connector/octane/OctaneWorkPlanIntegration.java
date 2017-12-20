@@ -343,9 +343,12 @@ public class OctaneWorkPlanIntegration extends WorkPlanIntegration implements Fu
 
                         Option option1 = new Option(OctaneConstants.PERCENT_COMPLETE_WORK, l10n.getConnectorText("PERCENT_COMPLETE_WORK"));
                         Option option2 = new Option(OctaneConstants.PERCENT_COMPLETE_STORY_POINTS, l10n.getConnectorText("PERCENT_COMPLETE_STORY_POINTS"));
+                        Option option3 = new Option(OctaneConstants.PERCENT_COMPLETE_ITEMS_COUNT, l10n.getConnectorText("PERCENT_COMPLETE_ITEMS_COUNT"));
+
 
                         optionList.add(option1);
                         optionList.add(option2);
+                        optionList.add(option3);
 
                         return optionList;
                     }
