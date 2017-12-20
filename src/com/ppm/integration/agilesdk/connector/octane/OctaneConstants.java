@@ -84,6 +84,7 @@ public class OctaneConstants {
     public static final String KEY_PERCENT_COMPLETE = "percent_complete";
     public static final String PERCENT_COMPLETE_WORK = "percent_complete_work";
     public static final String PERCENT_COMPLETE_STORY_POINTS = "percent_complete_story_points";
+    public static final String PERCENT_COMPLETE_ITEMS_COUNT = "percent_complete_items_count";
 
     public static final String KEY_IS_CREATE_RELEASE = "is_create_release";
     public static final String KEY_NEW_RELEASE_NAME = "new_release_name";

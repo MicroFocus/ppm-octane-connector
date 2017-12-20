@@ -125,8 +125,8 @@ public class OctaneWorkItemExternalTask extends BaseOctaneExternalTask {
                     return 100;
                 }
 
-                if (OctaneConstants.PERCENT_COMPLETE_STORY_POINTS.equals(context.percentComplete)) {
-                    // If we are in story points mode and task is not completed, then it's zero percent.
+                if (OctaneConstants.PERCENT_COMPLETE_STORY_POINTS.equals(context.percentComplete) || OctaneConstants.PERCENT_COMPLETE_ITEMS_COUNT.equals(context.percentComplete)) {
+                    // If we are in story points mode or backlog items count mode and task is not completed, then it's zero percent.
                     return 0;
                 }
 

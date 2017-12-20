@@ -57,7 +57,7 @@ public class OctaneIntegrationConnector extends IntegrationConnector {
     }
 
     @Override public String getConnectorVersion() {
-        return "1.0";
+        return "1.2 beta";
     }
 
     /**
