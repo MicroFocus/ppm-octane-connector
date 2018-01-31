@@ -132,6 +132,20 @@ public class GenericWorkItem {
         return getString("id", getObj("owner"));
     }
 
+    public String getOwnerEmail() {
+
+        String id = getOwnerId();
+        if (id != null && id.contains("@")) {
+            return id;
+        }
+        String name = getString("name", getObj("owner"));
+        if (name != null && name.contains("@")) {
+            return name;
+        }
+
+        return null;
+    }
+
     public boolean isEpic() {
         return "epic".equals(getSubType());
     }

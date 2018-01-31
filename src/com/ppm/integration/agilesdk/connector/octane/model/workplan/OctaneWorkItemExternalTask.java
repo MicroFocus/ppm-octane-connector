@@ -140,7 +140,7 @@ public class OctaneWorkItemExternalTask extends BaseOctaneExternalTask {
 
             @Override
             public long getResourceId() {
-                User user =  context.getUserProvider().getByEmail(workItem.getOwnerId());
+                User user =  context.getUserProvider().getByEmail(workItem.getOwnerEmail());
                 return (user == null ? -1 : user.getUserId());
             }
 
