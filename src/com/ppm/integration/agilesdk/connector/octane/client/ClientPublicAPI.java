@@ -7,6 +7,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ppm.integration.agilesdk.ValueSet;
 import com.ppm.integration.agilesdk.connector.octane.OctaneConstants;
 import com.ppm.integration.agilesdk.connector.octane.model.*;
+import com.ppm.integration.agilesdk.dm.AgileEntityUrl;
 import com.ppm.integration.agilesdk.dm.FieldValue;
 import net.sf.json.JSONArray;
 import net.sf.json.JSONException;
@@ -50,6 +51,9 @@ public class ClientPublicAPI {
     private Proxy proxy = null;
 
     private int retryNumber = 0;
+    
+    private static final String DEFAULT_ENTITY_ITEM_URL =
+            "%s/ui/entity-navigation?p=%s/%s&entityType=work_item&id=%s";
 
     public ClientPublicAPI(String baseUrl) {
         this.baseURL = baseUrl.trim();
@@ -931,8 +935,12 @@ public class ClientPublicAPI {
         return valueList;
     }
 
-	public String saveFeatureInWorkspace(final String sharedspaceId, final String workspaceId, final String entity,final String method) {
+	public AgileEntityUrl saveFeatureInWorkspace(final String sharedspaceId, final String workspaceId, final String entity,final String method) {
+		AgileEntityUrl entityUrl = new AgileEntityUrl();
 		String url = String.format("%s/api/shared_spaces/%s/workspaces/%s/features", baseURL, sharedspaceId,
+				workspaceId);
+		
+		String featureurl = String.format("%s/api/shared_spaces/%s/workspaces/%s/features", baseURL, sharedspaceId,
 				workspaceId);
 
 		RestResponse response = sendRequest(url, method, this.getJsonStrForPOSTData(entity));
@@ -942,10 +950,16 @@ public class ClientPublicAPI {
 			throw new OctaneClientException("AGM_APP", "ERROR_HTTP_CONNECTIVITY_ERROR",
 					new String[] { response.getData() });
 		}
-		return getCreateEntityIdFromResponse(response.getData());
+		String entityId = getCreateEntityIdFromResponse(response.getData());
+		entityUrl.setUrl(String.format("DEFAULT_ENTITY_ITEM_URL", baseURL, sharedspaceId,
+				workspaceId,entityId));
+		entityUrl.setId(entityId);
+		return entityUrl;
 	}
 
-	public String saveStoryInWorkspace(final String sharedspaceId, final String workspaceId, final String entity,final String method) {
+	public AgileEntityUrl saveStoryInWorkspace(final String sharedspaceId, final String workspaceId, final String entity,final String method) {
+		AgileEntityUrl entityUrl = new AgileEntityUrl();
+		
 		String url = String.format("%s/api/shared_spaces/%s/workspaces/%s/stories", baseURL, sharedspaceId,
 				workspaceId);
 
@@ -956,8 +970,12 @@ public class ClientPublicAPI {
 			throw new OctaneClientException("AGM_APP", "ERROR_HTTP_CONNECTIVITY_ERROR",
 					new String[] { response.getData() });
 		}
-
-		return getCreateEntityIdFromResponse(response.getData());
+		
+		String entityId = getCreateEntityIdFromResponse(response.getData());
+		entityUrl.setUrl(String.format(DEFAULT_ENTITY_ITEM_URL, baseURL, sharedspaceId,
+				workspaceId,entityId));
+		entityUrl.setId(entityId);
+		return entityUrl;
 
 	}
 
