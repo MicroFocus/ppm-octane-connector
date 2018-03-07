@@ -951,7 +951,7 @@ public class ClientPublicAPI {
 					new String[] { response.getData() });
 		}
 		String entityId = getCreateEntityIdFromResponse(response.getData());
-		entityUrl.setUrl(String.format("DEFAULT_ENTITY_ITEM_URL", baseURL, sharedspaceId,
+		entityUrl.setUrl(String.format(DEFAULT_ENTITY_ITEM_URL, baseURL, sharedspaceId,
 				workspaceId,entityId));
 		entityUrl.setId(entityId);
 		return entityUrl;
