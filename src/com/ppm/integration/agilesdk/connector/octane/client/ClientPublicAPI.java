@@ -15,7 +15,9 @@ import net.sf.json.JSONObject;
 import org.apache.commons.lang.StringUtils;
 import org.apache.http.HttpStatus;
 import org.apache.log4j.Logger;
-
+import org.joda.time.DateTime;
+import org.joda.time.format.DateTimeFormatter;
+import org.joda.time.format.ISODateTimeFormat;
 
 import javax.ws.rs.HttpMethod;
 import javax.ws.rs.core.MediaType;
@@ -944,7 +946,7 @@ public class ClientPublicAPI {
 				workspaceId);
 
 		RestResponse response = sendRequest(url, method, this.getJsonStrForPOSTData(entity));
-		if (HttpStatus.SC_CREATED != response.getStatusCode()) {
+		if (HttpStatus.SC_CREATED != response.getStatusCode() && HttpStatus.SC_OK != response.getStatusCode()) {
 			this.logger
 					.error("Error occurs when creating feature in Octane: Response code = " + response.getStatusCode());
 			throw new OctaneClientException("AGM_APP", "ERROR_HTTP_CONNECTIVITY_ERROR",
@@ -1167,6 +1169,7 @@ public class ClientPublicAPI {
            return new HashMap<>();        }
 
         String query = "id%20IN%20" + StringUtils.join(ids, ",");
+        //String query = "last_modified%20GT%20^2018-03-06T16:42:11Z^";
         List<JSONObject> workItemsJson = getFeatureJson(sharedspaceId, workspaceId,query);
         for (JSONObject workItemJson : workItemsJson) {
         	   	
@@ -1185,7 +1188,7 @@ public class ClientPublicAPI {
     	Iterator<String> sIterator = item.keys();
     	while(sIterator.hasNext()){  
     	    String key = sIterator.next();  
-    	    String value = item.getString(key);  
+    	    String value = item.getString(key);
     	    FieldValue fieldValue =  new FieldValue(key, value);
     	    agileFields.put(key,  Arrays.asList(fieldValue));
     	} 
@@ -1202,7 +1205,7 @@ public class ClientPublicAPI {
     	{
     		fieldNames.add(field.getName());
     	}
-    	
+    	fieldNames.add("last_modified");
         String url = String.format("%s/api/shared_spaces/%s/workspaces/%s/stories?fields=%s", baseURL, sharedspaceId, workspaceId,StringUtils.join(fieldNames, ","));
         if (!StringUtils.isBlank(queryFilter)) {
             url += "&query=\""+queryFilter+"\"";
@@ -1219,6 +1222,7 @@ public class ClientPublicAPI {
     	{
     		fieldNames.add(field.getName());
     	}
+    	fieldNames.add("last_modified");
         String url = String.format("%s/api/shared_spaces/%s/workspaces/%s/features?fields=%s", baseURL, sharedspaceId, workspaceId, StringUtils.join(fieldNames, ","));
         if (!StringUtils.isBlank(queryFilter)) {
             url += "&query=\""+queryFilter+"\"";
