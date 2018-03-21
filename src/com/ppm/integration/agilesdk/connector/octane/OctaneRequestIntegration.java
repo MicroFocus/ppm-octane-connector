@@ -160,13 +160,12 @@ public class OctaneRequestIntegration extends RequestIntegration {
             final AgileEntity entity, final ValueSet instanceConfigurationParameters)
     {
         AgileEntityUrl resultUrl = null;
-        Long entityId = Long.parseLong(entity.getId());
         ClientPublicAPI client = ClientPublicAPI.getClient(instanceConfigurationParameters);
         JSONObject workspaceJson = (JSONObject)JSONSerializer.toJSON(agileProjectValue);
         String workSpaceId = workspaceJson.getString(OctaneConstants.WORKSPACE_ID);
         String sharedSpaceId = workspaceJson.getString(OctaneConstants.SHARED_SPACE_ID);
         String method = HttpMethod.POST;
-        if (entityId != null && entityId > 0) {
+        if (entity.getId() != null) {
             method = HttpMethod.PUT;
         }
         if (OctaneConstants.SUB_TYPE_FEATURE.equals(entityType)) {
@@ -190,7 +189,6 @@ public class OctaneRequestIntegration extends RequestIntegration {
         JSONArray entityList = new JSONArray();
         JSONObject entityObj = new JSONObject();
         boolean existName = false;
-        Long entityId = Long.parseLong(entity.getId());
 
         Iterator<Entry<String, List<AgileEntityFieldValue>>> it = entity.getAllFields();
         while (it.hasNext()) {
@@ -205,8 +203,8 @@ public class OctaneRequestIntegration extends RequestIntegration {
         if (!existName) {
             entityObj.put(OctaneConstants.KEY_FIELD_NAME, OctaneConstants.KEY_FIELD_NAME_DEFAULT_VALUE);
         }
-        if (entityId != null && entityId > 0) {
-            entityObj.put(OctaneConstants.KEY_FIELD_ID, entityId);
+        if (entity.getId() != null) {
+            entityObj.put(OctaneConstants.KEY_FIELD_ID, entity.getId());
         }
 
         JSONObject complexObj = new JSONObject();
