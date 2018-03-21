@@ -7,8 +7,10 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ppm.integration.agilesdk.ValueSet;
 import com.ppm.integration.agilesdk.connector.octane.OctaneConstants;
 import com.ppm.integration.agilesdk.connector.octane.model.*;
-import com.ppm.integration.agilesdk.dm.AgileEntityUrl;
-import com.ppm.integration.agilesdk.dm.FieldValue;
+import com.ppm.integration.agilesdk.model.AgileEntityUrl;
+import com.ppm.integration.agilesdk.model.AgileEntityField;
+import com.ppm.integration.agilesdk.model.AgileEntity;
+import com.ppm.integration.agilesdk.model.AgileEntityFieldValue;
 import net.sf.json.JSONArray;
 import net.sf.json.JSONException;
 import net.sf.json.JSONObject;
@@ -918,7 +920,7 @@ public class ClientPublicAPI {
         return fieldsList;
     }
 
-    public List<FieldValue> getEntityFieldValueList(final String sharedspaceId, final String workspaceId, final String logicalName) {
+    public List<AgileEntityField> getEntityFieldValueList(final String sharedspaceId, final String workspaceId, final String logicalName) {
         String url = String.format("%s/api/shared_spaces/%s/workspaces/%s/list_nodes?query=%s%s%s",
                 baseURL, sharedspaceId, workspaceId, "%22logical_name%20EQ%20^", logicalName, ".*^%22");
         RestResponse response = sendGet(url);
@@ -928,54 +930,55 @@ public class ClientPublicAPI {
             JSONArray fieldsArray = dataObj.getJSONArray("data");
             for(int i = 0; i < fieldsArray.size(); i++) {
                 JSONObject data = fieldsArray.getJSONObject(i);
-                FieldValue value = new FieldValue();
-                value.setKey(data.getString(OctaneConstants.KEY_FIELD_ID));
-                value.setValue(data.getString(OctaneConstants.KEY_FIELD_NAME));
-                valueList.add(value);
+                AgileEntityField field = new AgileEntityField();
+                field.setKey(data.getString(OctaneConstants.KEY_FIELD_ID));
+                field.setValue(data.getString(OctaneConstants.KEY_FIELD_NAME), null);
+                valueList.add(field);
             }
         }
         return valueList;
     }
 
-	public AgileEntityUrl saveFeatureInWorkspace(final String sharedspaceId, final String workspaceId, final String entity,final String method) {
+    public AgileEntityUrl saveFeatureInWorkspace(final String sharedspaceId, final String workspaceId,
+            final String entity, final String method)
+    {
 		AgileEntityUrl entityUrl = new AgileEntityUrl();
-		String url = String.format("%s/api/shared_spaces/%s/workspaces/%s/features", baseURL, sharedspaceId,
-				workspaceId);
-		
-		String featureurl = String.format("%s/api/shared_spaces/%s/workspaces/%s/features", baseURL, sharedspaceId,
-				workspaceId);
+        String url =
+                String.format("%s/api/shared_spaces/%s/workspaces/%s/features", baseURL, sharedspaceId, workspaceId);
+
+        String featureurl =
+                String.format("%s/api/shared_spaces/%s/workspaces/%s/features", baseURL, sharedspaceId, workspaceId);
 
 		RestResponse response = sendRequest(url, method, this.getJsonStrForPOSTData(entity));
 		if (HttpStatus.SC_CREATED != response.getStatusCode() && HttpStatus.SC_OK != response.getStatusCode()) {
 			this.logger
 					.error("Error occurs when creating feature in Octane: Response code = " + response.getStatusCode());
 			throw new OctaneClientException("AGM_APP", "ERROR_HTTP_CONNECTIVITY_ERROR",
-					new String[] { response.getData() });
+                    new String[] {response.getData()});
 		}
 		String entityId = getCreateEntityIdFromResponse(response.getData());
-		entityUrl.setUrl(String.format(DEFAULT_ENTITY_ITEM_URL, baseURL, sharedspaceId,
-				workspaceId,entityId));
+        entityUrl.setUrl(String.format(DEFAULT_ENTITY_ITEM_URL, baseURL, sharedspaceId, workspaceId, entityId));
 		entityUrl.setId(entityId);
 		return entityUrl;
 	}
 
-	public AgileEntityUrl saveStoryInWorkspace(final String sharedspaceId, final String workspaceId, final String entity,final String method) {
+    public AgileEntityUrl saveStoryInWorkspace(final String sharedspaceId, final String workspaceId,
+            final String entity, final String method)
+    {
 		AgileEntityUrl entityUrl = new AgileEntityUrl();
-		
-		String url = String.format("%s/api/shared_spaces/%s/workspaces/%s/stories", baseURL, sharedspaceId,
-				workspaceId);
+
+        String url =
+                String.format("%s/api/shared_spaces/%s/workspaces/%s/stories", baseURL, sharedspaceId, workspaceId);
 
 		RestResponse response = sendRequest(url, method, this.getJsonStrForPOSTData(entity));
 		if (HttpStatus.SC_CREATED != response.getStatusCode() && HttpStatus.SC_OK != response.getStatusCode()) {
-			this.logger
-					.error("Error occurs when saving story in Octane: Response code = " + response.getStatusCode());
+            this.logger.error("Error occurs when saving story in Octane: Response code = " + response.getStatusCode());
 			throw new OctaneClientException("AGM_APP", "ERROR_HTTP_CONNECTIVITY_ERROR",
-					new String[] { response.getData() });
+                    new String[] {response.getData()});
 		}
-		
+
 		String entityId = getCreateEntityIdFromResponse(response.getData());
-		entityUrl.setUrl(String.format(DEFAULT_ENTITY_ITEM_URL, baseURL, sharedspaceId,
-				workspaceId,entityId));
+        entityUrl.setUrl(String.format(DEFAULT_ENTITY_ITEM_URL, baseURL, sharedspaceId, workspaceId, entityId));
 		entityUrl.setId(entityId);
 		return entityUrl;
 
@@ -986,9 +989,9 @@ public class ClientPublicAPI {
 		String creatEntity = "";
 		try {
 			obj = new org.json.JSONObject(jsonData);
-			org.json.JSONArray data = (org.json.JSONArray) (obj.get("data"));
+            org.json.JSONArray data = (org.json.JSONArray)(obj.get("data"));
 			if (data.length() > 0)
-				creatEntity = (String) data.getJSONObject(0).get("id");
+                creatEntity = (String)data.getJSONObject(0).get("id");
 		} catch (org.json.JSONException e) {
 			throw new OctaneClientException("AGM_APP", "ERROR_HTTP_CONNECTIVITY_ERROR",
 					"Error occurs when parse response data:" + jsonData);
@@ -1005,7 +1008,7 @@ public class ClientPublicAPI {
 			throw new RuntimeException("Error when generating JSon String from object", e);
 		}
 	}
-    
+
     private String getJsonStrForPOSTData(Object sourceObj)  {
     	JSONObject entityObj = new JSONObject();
     	entityObj.put("data", sourceObj);
@@ -1143,72 +1146,98 @@ public class ClientPublicAPI {
 
         return results;
     }
-    
-    public Map<String, Map<String, List<FieldValue>>> getUserStories(String sharedspaceId, String workspaceId,Set<String> ids) {
-    	Map<String, Map<String, List<FieldValue>>> storiesMap = new HashMap<>(); 
 
-        if (ids == null || ids.isEmpty()) {
-           return new HashMap<>();        }
+    public AgileEntity getUserStory(String sharedspaceId, String workspaceId, String id) {
+        AgileEntity entity = null;
 
-        String query = "id%20IN%20" + StringUtils.join(ids, ",");
-        List<JSONObject> workItemsJson = getUserStoriesJson(sharedspaceId, workspaceId,query);
-        for (JSONObject workItemJson : workItemsJson) {
-        	   	
-        	Map<String, List<FieldValue>> storyMap = new HashMap<String, List<FieldValue>>();
-        	storyMap = wapperEntityFieldsMap(workItemJson);
-        	storiesMap.put(workItemJson.getString(OctaneConstants.KEY_FIELD_ID), storyMap);
+        if (id == null || "".equals(id)) {
+            return null;
         }
 
-        return storiesMap;
+        String query = "id=" + id;
+        List<JSONObject> workItemsJson = getUserStoriesJson(sharedspaceId, workspaceId, query);
+        if (workItemsJson.size() > 0) {
+            entity = wrapperEntity(workItemsJson.get(0));
+        }
+
+        return entity;
     }
     
-    public Map<String, Map<String, List<FieldValue>>> getFeatures(String sharedspaceId, String workspaceId,Set<String> ids) {
-    	Map<String, Map<String, List<FieldValue>>> featuresMap = new HashMap<>(); 
+    public List<AgileEntity> getUserStories(String sharedspaceId, String workspaceId, Set<String> ids) {
+        List<AgileEntity> agileEntities = new ArrayList<>();
 
         if (ids == null || ids.isEmpty()) {
-           return new HashMap<>();        }
+            return null;
+        }
+
+        String query = "id%20IN%20" + StringUtils.join(ids, ",");
+        List<JSONObject> workItemsJson = getUserStoriesJson(sharedspaceId, workspaceId, query);
+        for (JSONObject workItemJson : workItemsJson) {
+            AgileEntity entity = wrapperEntity(workItemJson);
+            agileEntities.add(entity);
+        }
+
+        return agileEntities;
+    }
+
+    public AgileEntity getFeature(String sharedspaceId, String workspaceId, String id) {
+        AgileEntity entity = null;
+
+        if (id == null || "".equals(id)) {
+            return null;
+        }
+
+        String query = "id=" + id;
+        List<JSONObject> workItemsJson = getFeatureJson(sharedspaceId, workspaceId, query);
+        if (workItemsJson.size() > 0) {
+            entity = wrapperEntity(workItemsJson.get(0));
+        }
+        return entity;
+    }
+    
+    public List<AgileEntity> getFeatures(String sharedspaceId, String workspaceId, Set<String> ids) {
+        List<AgileEntity> agileEntities = new ArrayList<>();
+
+        if (ids == null || ids.isEmpty()) {
+            return null;
+        }
 
         String query = "id%20IN%20" + StringUtils.join(ids, ",");
         //String query = "last_modified%20GT%20^2018-03-06T16:42:11Z^";
         List<JSONObject> workItemsJson = getFeatureJson(sharedspaceId, workspaceId,query);
         for (JSONObject workItemJson : workItemsJson) {
-        	   	
-        	Map<String, List<FieldValue>> featureMap = new HashMap<String, List<FieldValue>>();
-        	featureMap = wapperEntityFieldsMap(workItemJson);
-        	featuresMap.put(workItemJson.getString(OctaneConstants.KEY_FIELD_ID), featureMap);
+            AgileEntity entity = wrapperEntity(workItemJson);
+            agileEntities.add(entity);
         }
 
-        return featuresMap;
+        return agileEntities;
     }
     
-    private Map<String, List<FieldValue>> wapperEntityFieldsMap(JSONObject item){
+    private AgileEntity wrapperEntity(JSONObject item){
 
-    	Map<String, List<FieldValue>> agileFields = new HashMap<String, List<FieldValue>>();
-    	
+        AgileEntity entity = new AgileEntity();
     	Iterator<String> sIterator = item.keys();
-    	while(sIterator.hasNext()){  
-    	    String key = sIterator.next();  
-    	    String value = item.getString(key);
-    	    FieldValue fieldValue =  new FieldValue(key, value);
-    	    agileFields.put(key,  Arrays.asList(fieldValue));
-    	} 
-    	
-    	return agileFields;
-    	
+        while(sIterator.hasNext()){
+            String key = sIterator.next();
+            String value = item.getString(key);
+            AgileEntityFieldValue fieldValue =  new AgileEntityFieldValue(value, null);
+            entity.addField(key, fieldValue);
+        }
+        return entity;
     }
     
     private List<JSONObject> getUserStoriesJson(String sharedspaceId, String workspaceId, String queryFilter) {
 
-    	List<FieldInfo> fieldsInfos = getEntityFields(sharedspaceId,workspaceId,"story");
+        List<FieldInfo> fieldsInfos = getEntityFields(sharedspaceId, workspaceId, "story");
     	List fieldNames = new ArrayList();
-    	for(FieldInfo field:fieldsInfos)
-    	{
+        for (FieldInfo field : fieldsInfos) {
     		fieldNames.add(field.getName());
     	}
     	fieldNames.add("last_modified");
         String url = String.format("%s/api/shared_spaces/%s/workspaces/%s/stories?fields=%s", baseURL, sharedspaceId, workspaceId,StringUtils.join(fieldNames, ","));
         if (!StringUtils.isBlank(queryFilter)) {
             url += "&query=\""+queryFilter+"\"";
+            url += "&query=\"" + queryFilter + "\"";
         }
 
         return new JsonPaginatedOctaneGetter().get(url);
@@ -1216,16 +1245,15 @@ public class ClientPublicAPI {
     
     private List<JSONObject> getFeatureJson(String sharedspaceId, String workspaceId, String queryFilter) {
 
-    	List<FieldInfo> fieldsInfos = getEntityFields(sharedspaceId,workspaceId,"feature");
+        List<FieldInfo> fieldsInfos = getEntityFields(sharedspaceId, workspaceId, "feature");
     	List fieldNames = new ArrayList();
-    	for(FieldInfo field:fieldsInfos)
-    	{
+        for (FieldInfo field : fieldsInfos) {
     		fieldNames.add(field.getName());
     	}
     	fieldNames.add("last_modified");
         String url = String.format("%s/api/shared_spaces/%s/workspaces/%s/features?fields=%s", baseURL, sharedspaceId, workspaceId, StringUtils.join(fieldNames, ","));
         if (!StringUtils.isBlank(queryFilter)) {
-            url += "&query=\""+queryFilter+"\"";
+            url += "&query=\"" + queryFilter + "\"";
         }
 
         return new JsonPaginatedOctaneGetter().get(url);
