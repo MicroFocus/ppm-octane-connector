@@ -1,25 +1,29 @@
+
 package com.ppm.integration.agilesdk.connector.octane;
+
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.Date;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map.Entry;
+import java.util.Set;
+
+import javax.ws.rs.HttpMethod;
 
 import com.ppm.integration.agilesdk.ValueSet;
 import com.ppm.integration.agilesdk.connector.octane.client.ClientPublicAPI;
 import com.ppm.integration.agilesdk.connector.octane.client.OctaneClientException;
 import com.ppm.integration.agilesdk.connector.octane.model.FieldInfo;
 import com.ppm.integration.agilesdk.connector.octane.model.WorkItemRoot;
-import com.ppm.integration.agilesdk.dm.AgileEntityFieldInfo;
 import com.ppm.integration.agilesdk.dm.AgileEntityInfo;
-import com.ppm.integration.agilesdk.dm.FieldValue;
 import com.ppm.integration.agilesdk.dm.RequestIntegration;
-import com.ppm.integration.agilesdk.dm.AgileEntityUrl;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
+import com.ppm.integration.agilesdk.model.AgileEntity;
+import com.ppm.integration.agilesdk.model.AgileEntityField;
+import com.ppm.integration.agilesdk.model.AgileEntityFieldInfo;
+import com.ppm.integration.agilesdk.model.AgileEntityFieldValue;
+import com.ppm.integration.agilesdk.model.AgileEntityUrl;
 
-import javax.ws.rs.HttpMethod;
-
-import java.util.Set;
 import edu.emory.mathcs.backport.java.util.Collections;
 import net.sf.json.JSONArray;
 import net.sf.json.JSONObject;
@@ -28,7 +32,6 @@ import net.sf.json.JSONSerializer;
 /**
  * {@code OctaneRequestIntegration} description
  * <p/>
- *
  * @author ChunQi, Lu
  * @since 10/16/2017
  */
@@ -48,7 +51,9 @@ public class OctaneRequestIntegration extends RequestIntegration {
     }
 
     @Override
-    public List<AgileEntityFieldInfo> getAgileEntityFieldsInfo(final String agileProjectValue, final String entityType, final ValueSet instanceConfigurationParameters) {
+    public List<AgileEntityFieldInfo> getAgileEntityFieldsInfo(final String agileProjectValue, final String entityType,
+            final ValueSet instanceConfigurationParameters)
+    {
         List<AgileEntityFieldInfo> fieldList = new ArrayList<AgileEntityFieldInfo>();
         ClientPublicAPI client = ClientPublicAPI.getClient(instanceConfigurationParameters);
         JSONObject workspaceJson = (JSONObject)JSONSerializer.toJSON(agileProjectValue);
@@ -70,7 +75,10 @@ public class OctaneRequestIntegration extends RequestIntegration {
         return fieldList;
     }
 
-    public List<FieldValue> getAgileEntityFieldValueList(final String agileProjectValue, final String fieldInfo, final ValueSet instanceConfigurationParameters) {
+    @Override
+    public List<AgileEntityField> getAgileEntityFieldValueList(final String agileProjectValue, final String fieldInfo,
+            final ValueSet instanceConfigurationParameters)
+    {
         ClientPublicAPI client = ClientPublicAPI.getClient(instanceConfigurationParameters);
         JSONObject workspaceJson = (JSONObject)JSONSerializer.toJSON(agileProjectValue);
         String workSpaceId = workspaceJson.getString(OctaneConstants.WORKSPACE_ID);
@@ -80,123 +88,146 @@ public class OctaneRequestIntegration extends RequestIntegration {
         String logicalName = fieldObj.getString(OctaneConstants.KEY_LOGICAL_NAME);
         return client.getEntityFieldValueList(sharedSpaceId, workSpaceId, logicalName);
     }
-    
-	@Override
-	public AgileEntityUrl updateEntity(final String agileProjectValue, final String entityType,
-			final Map<String, List<FieldValue>> entityMap, final ValueSet instanceConfigurationParameters,
-			final int agileEntityId) {
-		AgileEntityUrl result = null;
-		try {
-			result = saveOrUpdateEntity(agileProjectValue, entityType, entityMap, instanceConfigurationParameters,
-					agileEntityId);
-		} catch (Exception e) {
-			throw new OctaneClientException("AGM_APP", "ERROR_HTTP_CONNECTIVITY_ERROR",
-					new String[] { e.getMessage() });
-		}
-		return result;
-	}
 
-	@Override
-	public AgileEntityUrl createEntity(final String agileProjectValue, final String entityType,
-			final Map<String, List<FieldValue>> entityMap, final ValueSet instanceConfigurationParameters) {
-		AgileEntityUrl result = null;
-		try {
-			result = saveOrUpdateEntity(agileProjectValue, entityType, entityMap, instanceConfigurationParameters,
-					null);
-		} catch (Exception e) {
-			throw new OctaneClientException("AGM_APP", "ERROR_HTTP_CONNECTIVITY_ERROR",
-					new String[] { e.getMessage() });
-		}
-		return result;
-
-	}
-    
     @Override
-    public Map<String, Map<String, List<FieldValue>>> getEntities(final String agileProjectValue,final String entityType, final ValueSet instanceConfigurationParameters, Set<String> entityIds){
+    public AgileEntityUrl updateEntity(final String agileProjectValue, final String entityType,
+            final AgileEntity entity, final ValueSet instanceConfigurationParameters)
+    {
+        AgileEntityUrl result = null;
+        try {
+            result = saveOrUpdateEntity(agileProjectValue, entityType, entity, instanceConfigurationParameters);
+        } catch (Exception e) {
+            throw new OctaneClientException("AGM_APP", "ERROR_HTTP_CONNECTIVITY_ERROR", new String[] {e.getMessage()});
+        }
+        return result;
+    }
+
+    @Override
+    public AgileEntityUrl createEntity(final String agileProjectValue, final String entityType,
+            final AgileEntity entity, final ValueSet instanceConfigurationParameters)
+    {
+        AgileEntityUrl result = null;
+        try {
+            result = saveOrUpdateEntity(agileProjectValue, entityType, entity, instanceConfigurationParameters);
+        } catch (Exception e) {
+            throw new OctaneClientException("AGM_APP", "ERROR_HTTP_CONNECTIVITY_ERROR", new String[] {e.getMessage()});
+        }
+        return result;
+
+    }
+
+    @Override
+    public List<AgileEntity> getEntities(final String agileProjectValue, final String entityType,
+            final ValueSet instanceConfigurationParameters, Set<String> entityIds, Date lastUpdateTime)
+    {
+        List<AgileEntity> entities = null;
+
         ClientPublicAPI client = ClientPublicAPI.getClient(instanceConfigurationParameters);
         JSONObject workspaceJson = (JSONObject)JSONSerializer.toJSON(agileProjectValue);
         String workSpaceId = workspaceJson.getString(OctaneConstants.WORKSPACE_ID);
         String sharedSpaceId = workspaceJson.getString(OctaneConstants.SHARED_SPACE_ID);
-        Map<String, Map<String, List<FieldValue>>> entitiesInfo =null;
+
         if (OctaneConstants.SUB_TYPE_FEATURE.equals(entityType)) {
-        	entitiesInfo = client.getFeatures(sharedSpaceId, workSpaceId, entityIds);        	
-        } else if(OctaneConstants.SUB_TYPE_STORY.equals(entityType)){
-        	entitiesInfo = client.getUserStories(sharedSpaceId, workSpaceId, entityIds);
+            entities = client.getFeatures(sharedSpaceId, workSpaceId, entityIds);
+        } else if (OctaneConstants.SUB_TYPE_STORY.equals(entityType)) {
+            entities = client.getUserStories(sharedSpaceId, workSpaceId, entityIds);
         }
-    	
-    	return entitiesInfo;
+
+        return entities;
     }
-    
+
+    @Override
+    public AgileEntity getEntity(final String agileProjectValue, final String entityType,
+            final ValueSet instanceConfigurationParameters, String entityId)
+    {
+        AgileEntity entity = null;
+
+        ClientPublicAPI client = ClientPublicAPI.getClient(instanceConfigurationParameters);
+        JSONObject workspaceJson = (JSONObject)JSONSerializer.toJSON(agileProjectValue);
+        String workSpaceId = workspaceJson.getString(OctaneConstants.WORKSPACE_ID);
+        String sharedSpaceId = workspaceJson.getString(OctaneConstants.SHARED_SPACE_ID);
+
+        if (OctaneConstants.SUB_TYPE_FEATURE.equals(entityType)) {
+            entity = client.getFeature(sharedSpaceId, workSpaceId, entityId);
+        } else if (OctaneConstants.SUB_TYPE_STORY.equals(entityType)) {
+            entity = client.getUserStory(sharedSpaceId, workSpaceId, entityId);
+        }
+
+        return entity;
+    }
+
     private AgileEntityUrl saveOrUpdateEntity(final String agileProjectValue, final String entityType,
-			final Map<String, List<FieldValue>> entityMap, final ValueSet instanceConfigurationParameters, final Integer agileEntityId){
-    	AgileEntityUrl resultUrl = null;
-		ClientPublicAPI client = ClientPublicAPI.getClient(instanceConfigurationParameters);
-		JSONObject workspaceJson = (JSONObject) JSONSerializer.toJSON(agileProjectValue);
-		String workSpaceId = workspaceJson.getString(OctaneConstants.WORKSPACE_ID);
-		String sharedSpaceId = workspaceJson.getString(OctaneConstants.SHARED_SPACE_ID);
-		String method = HttpMethod.POST;
-		if(agileEntityId!=null && agileEntityId >0){
-			method = HttpMethod.PUT;
-		}
-		if (OctaneConstants.SUB_TYPE_FEATURE.equals(entityType)) {
-			String entityStr = buildEntity(entityType,agileEntityId,entityMap, null);
-			try {
-				resultUrl = client.saveFeatureInWorkspace(sharedSpaceId, workSpaceId, entityStr,method);
-			} catch (Exception e) {
-				throw new OctaneClientException("AGM_APP", "ERROR_HTTP_CONNECTIVITY_ERROR",
-						new String[] { e.getMessage()});
-			}
-		} else if (OctaneConstants.SUB_TYPE_STORY.equals(entityType)) {
-			WorkItemRoot root = new WorkItemRoot();
-			root = client.getWorkItemRoot(Integer.parseInt(sharedSpaceId), Integer.parseInt(workSpaceId));
-			String entityStr = buildEntity(entityType,agileEntityId,entityMap, root);
-			resultUrl = client.saveStoryInWorkspace(sharedSpaceId, workSpaceId, entityStr,method);
-		}
-		return resultUrl;
-    	
-    } 
-    
-	private String buildEntity(final String entityType, final Integer agileEntityId, Map<String, List<FieldValue>> entityMap, WorkItemRoot root) {
-		JSONArray entityList = new JSONArray();
-		JSONObject entityObj = new JSONObject();
-		boolean existName = false;
+            final AgileEntity entity, final ValueSet instanceConfigurationParameters)
+    {
+        AgileEntityUrl resultUrl = null;
+        Long entityId = Long.parseLong(entity.getId());
+        ClientPublicAPI client = ClientPublicAPI.getClient(instanceConfigurationParameters);
+        JSONObject workspaceJson = (JSONObject)JSONSerializer.toJSON(agileProjectValue);
+        String workSpaceId = workspaceJson.getString(OctaneConstants.WORKSPACE_ID);
+        String sharedSpaceId = workspaceJson.getString(OctaneConstants.SHARED_SPACE_ID);
+        String method = HttpMethod.POST;
+        if (entityId != null && entityId > 0) {
+            method = HttpMethod.PUT;
+        }
+        if (OctaneConstants.SUB_TYPE_FEATURE.equals(entityType)) {
+            String entityStr = buildEntity(entityType, entity, null);
+            try {
+                resultUrl = client.saveFeatureInWorkspace(sharedSpaceId, workSpaceId, entityStr, method);
+            } catch (Exception e) {
+                throw new OctaneClientException("AGM_APP", "ERROR_HTTP_CONNECTIVITY_ERROR",
+                        new String[] {e.getMessage()});
+            }
+        } else if (OctaneConstants.SUB_TYPE_STORY.equals(entityType)) {
+            WorkItemRoot root = client.getWorkItemRoot(Integer.parseInt(sharedSpaceId), Integer.parseInt(workSpaceId));
+            String entityStr = buildEntity(entityType, entity, root);
+            resultUrl = client.saveStoryInWorkspace(sharedSpaceId, workSpaceId, entityStr, method);
+        }
+        return resultUrl;
 
-		Iterator<Entry<String, List<FieldValue>>> it = entityMap.entrySet().iterator();
-		while (it.hasNext()) {
-			Entry<String, List<FieldValue>> entry = it.next();
-			String key = entry.getKey();
-			if (key.equals(OctaneConstants.KEY_FIELD_NAME))
-				existName = true;
-			entityObj.put(entry.getKey(), entry.getValue().get(0).getValue());
-		}
+    }
 
-		if (!existName) {
-			entityObj.put(OctaneConstants.KEY_FIELD_NAME, OctaneConstants.KEY_FIELD_NAME_DEFAULT_VALUE);
-		}
-		if(agileEntityId!=null && agileEntityId > 0){
-			entityObj.put(OctaneConstants.KEY_FIELD_ID, agileEntityId);
-		}
+    private String buildEntity(final String entityType, AgileEntity entity, WorkItemRoot root) {
+        JSONArray entityList = new JSONArray();
+        JSONObject entityObj = new JSONObject();
+        boolean existName = false;
+        Long entityId = Long.parseLong(entity.getId());
 
-		JSONObject complexObj = new JSONObject();
-		if (OctaneConstants.SUB_TYPE_STORY.equals(entityType))
-		{
-			complexObj.put("id", "phase.story.new");
-		} else {
-			complexObj.put("id", "phase.feature.new");
-		}
-		complexObj.put("type", "phase");
-		entityObj.put("phase", complexObj);
+        Iterator<Entry<String, List<AgileEntityFieldValue>>> it = entity.getAllFields();
+        while (it.hasNext()) {
+            Entry<String, List<AgileEntityFieldValue>> entry = it.next();
+            String key = entry.getKey();
+            if (key.equals(OctaneConstants.KEY_FIELD_NAME))
+                existName = true;
 
-		if (root != null) {
-			JSONObject parent = new JSONObject();
-			parent.put("id", root.id);
-			parent.put("type", root.type);
-			entityObj.put("parent", parent);
-		}
-		entityList.add(entityObj);
+            entityObj.put(entry.getKey(), entry.getValue().get(0).getValue());
+        }
 
-		return entityList.toString();
-	}
+        if (!existName) {
+            entityObj.put(OctaneConstants.KEY_FIELD_NAME, OctaneConstants.KEY_FIELD_NAME_DEFAULT_VALUE);
+        }
+        if (entityId != null && entityId > 0) {
+            entityObj.put(OctaneConstants.KEY_FIELD_ID, entityId);
+        }
+
+        JSONObject complexObj = new JSONObject();
+        if (OctaneConstants.SUB_TYPE_STORY.equals(entityType)) {
+            complexObj.put("id", "phase.story.new");
+        } else {
+            complexObj.put("id", "phase.feature.new");
+        }
+        complexObj.put("type", "phase");
+        entityObj.put("phase", complexObj);
+
+        if (root != null) {
+            JSONObject parent = new JSONObject();
+            parent.put("id", root.id);
+            parent.put("type", root.type);
+            entityObj.put("parent", parent);
+        }
+        entityList.add(entityObj);
+
+        return entityList.toString();
+    }
 }
 
 class AgileFieldComparator implements Comparator<AgileEntityFieldInfo> {
