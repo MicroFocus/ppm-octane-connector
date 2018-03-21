@@ -36,8 +36,9 @@ import net.sf.json.JSONSerializer;
  * @since 10/16/2017
  */
 public class OctaneRequestIntegration extends RequestIntegration {
+
     @Override
-    public List<AgileEntityInfo> getAgileEntitiesInfo(final String agileProjectValue) {
+    public List<AgileEntityInfo> getAgileEntitiesInfo(final String agileProjectValue, final ValueSet instanceConfigurationParameters) {
         List<AgileEntityInfo> entityList = new ArrayList<AgileEntityInfo>();
         AgileEntityInfo feature = new AgileEntityInfo();
         feature.setName("Feature");
