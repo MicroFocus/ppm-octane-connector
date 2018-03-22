@@ -52,10 +52,10 @@ import com.ppm.integration.agilesdk.connector.octane.model.WorkItemEpic;
 import com.ppm.integration.agilesdk.connector.octane.model.WorkItemRoot;
 import com.ppm.integration.agilesdk.connector.octane.model.WorkSpace;
 import com.ppm.integration.agilesdk.connector.octane.model.WorkSpaces;
-import com.ppm.integration.agilesdk.dm.AgileEntityUrl;
 import com.ppm.integration.agilesdk.model.AgileEntity;
 import com.ppm.integration.agilesdk.model.AgileEntityField;
 import com.ppm.integration.agilesdk.model.AgileEntityFieldValue;
+import com.ppm.integration.agilesdk.model.AgileEntityUrl;
 
 import net.sf.json.JSONArray;
 import net.sf.json.JSONException;
