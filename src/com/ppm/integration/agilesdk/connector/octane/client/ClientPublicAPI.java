@@ -1,33 +1,68 @@
 package com.ppm.integration.agilesdk.connector.octane.client;
 
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
+import java.net.HttpURLConnection;
+import java.net.InetSocketAddress;
+import java.net.Proxy;
+import java.net.URL;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
+import javax.ws.rs.HttpMethod;
+import javax.ws.rs.core.MediaType;
+
+import org.apache.commons.lang.StringUtils;
+import org.apache.http.HttpStatus;
+import org.apache.log4j.Logger;
+import org.joda.time.DateTime;
+import org.joda.time.format.DateTimeFormatter;
+import org.joda.time.format.ISODateTimeFormat;
+
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ppm.integration.agilesdk.ValueSet;
 import com.ppm.integration.agilesdk.connector.octane.OctaneConstants;
-import com.ppm.integration.agilesdk.connector.octane.model.*;
-import com.ppm.integration.agilesdk.model.AgileEntityUrl;
-import com.ppm.integration.agilesdk.model.AgileEntityField;
+import com.ppm.integration.agilesdk.connector.octane.model.EpicAttr;
+import com.ppm.integration.agilesdk.connector.octane.model.EpicCreateEntity;
+import com.ppm.integration.agilesdk.connector.octane.model.EpicEntity;
+import com.ppm.integration.agilesdk.connector.octane.model.FieldInfo;
+import com.ppm.integration.agilesdk.connector.octane.model.GenericWorkItem;
+import com.ppm.integration.agilesdk.connector.octane.model.OctaneUtils;
+import com.ppm.integration.agilesdk.connector.octane.model.Release;
+import com.ppm.integration.agilesdk.connector.octane.model.ReleaseTeam;
+import com.ppm.integration.agilesdk.connector.octane.model.ReleaseTeams;
+import com.ppm.integration.agilesdk.connector.octane.model.Releases;
+import com.ppm.integration.agilesdk.connector.octane.model.SharedSpace;
+import com.ppm.integration.agilesdk.connector.octane.model.SharedSpaces;
+import com.ppm.integration.agilesdk.connector.octane.model.Sprint;
+import com.ppm.integration.agilesdk.connector.octane.model.Team;
+import com.ppm.integration.agilesdk.connector.octane.model.Teams;
+import com.ppm.integration.agilesdk.connector.octane.model.TimesheetItem;
+import com.ppm.integration.agilesdk.connector.octane.model.WorkItemEpic;
+import com.ppm.integration.agilesdk.connector.octane.model.WorkItemRoot;
+import com.ppm.integration.agilesdk.connector.octane.model.WorkSpace;
+import com.ppm.integration.agilesdk.connector.octane.model.WorkSpaces;
 import com.ppm.integration.agilesdk.model.AgileEntity;
+import com.ppm.integration.agilesdk.model.AgileEntityField;
 import com.ppm.integration.agilesdk.model.AgileEntityFieldValue;
+import com.ppm.integration.agilesdk.model.AgileEntityUrl;
+
 import net.sf.json.JSONArray;
 import net.sf.json.JSONException;
 import net.sf.json.JSONObject;
-import org.apache.commons.lang.StringUtils;
-import org.apache.http.HttpStatus;
-import org.apache.log4j.Logger;
-
-
-import javax.ws.rs.HttpMethod;
-import javax.ws.rs.core.MediaType;
-import java.io.*;
-import java.net.HttpURLConnection;
-import java.net.InetSocketAddress;
-import java.net.Proxy;
-import java.net.URL;
-import java.text.SimpleDateFormat;
-import java.util.*;
 
 
 /**
@@ -56,6 +91,10 @@ public class ClientPublicAPI {
     
     private static final String DEFAULT_ENTITY_ITEM_URL =
             "%s/ui/entity-navigation?p=%s/%s&entityType=work_item&id=%s";
+
+    private static final String KEY_LAST_UPDATE_DATE = "last_modified";
+
+    private static final String KEY_ID = "id";
 
     public ClientPublicAPI(String baseUrl) {
         this.baseURL = baseUrl.trim();
@@ -948,7 +987,7 @@ public class ClientPublicAPI {
                 String.format("%s/api/shared_spaces/%s/workspaces/%s/features", baseURL, sharedspaceId, workspaceId);
 
         RestResponse response = sendRequest(url, method, this.getJsonStrForPOSTData(entity));
-        if (HttpStatus.SC_CREATED != response.getStatusCode()) {
+        if (HttpStatus.SC_CREATED != response.getStatusCode() && HttpStatus.SC_OK != response.getStatusCode()) {
             this.logger
                     .error("Error occurs when creating feature in Octane: Response code = " + response.getStatusCode());
             throw new OctaneClientException("AGM_APP", "ERROR_HTTP_CONNECTIVITY_ERROR",
@@ -1012,7 +1051,7 @@ public class ClientPublicAPI {
         entityObj.put("data", sourceObj);
         return entityObj.toString();
     }
-    
+
     private String getCSRF(final String cookies) {
         String csrf = null;
         int csrfStart = cookies.indexOf("HPSSO_COOKIE_CSRF=");
@@ -1213,27 +1252,40 @@ public class ClientPublicAPI {
     private AgileEntity wrapperEntity(JSONObject item){
 
         AgileEntity entity = new AgileEntity();
-        Iterator<String> sIterator = item.keys();
-        while(sIterator.hasNext()){
+    	Iterator<String> sIterator = item.keys();
+        while (sIterator.hasNext()) {
             String key = sIterator.next();
             String value = item.getString(key);
-            AgileEntityFieldValue fieldValue =  new AgileEntityFieldValue(value, null);
-            entity.addField(key, fieldValue);
+            if (key.equals(KEY_LAST_UPDATE_DATE)) {
+                entity.setLastUpdateTime(parserDate(value));
+            } else if (key.equals(KEY_ID)) {
+                entity.setId(value);
+            } else {
+                AgileEntityFieldValue fieldValue = new AgileEntityFieldValue(value, null);
+                entity.addField(key, fieldValue);
+            }
         }
         return entity;
     }
     
+    private Date parserDate(String dateStr) {
+        DateTimeFormatter parser = ISODateTimeFormat.dateTimeParser();
+        DateTime dateTimeHere = parser.parseDateTime(dateStr);
+        return dateTimeHere.toDate();
+
+    }
+
     private List<JSONObject> getUserStoriesJson(String sharedspaceId, String workspaceId, String queryFilter) {
 
         List<FieldInfo> fieldsInfos = getEntityFields(sharedspaceId, workspaceId, "story");
-        List fieldNames = new ArrayList();
+    	List fieldNames = new ArrayList();
         for (FieldInfo field : fieldsInfos) {
-            fieldNames.add(field.getName());
-        }
-
-        String url = String.format("%s/api/shared_spaces/%s/workspaces/%s/stories?fields=%s", baseURL, sharedspaceId,
-                workspaceId, StringUtils.join(fieldNames, ","));
+    		fieldNames.add(field.getName());
+    	}
+        fieldNames.add(KEY_LAST_UPDATE_DATE);
+        String url = String.format("%s/api/shared_spaces/%s/workspaces/%s/stories?fields=%s", baseURL, sharedspaceId, workspaceId,StringUtils.join(fieldNames, ","));
         if (!StringUtils.isBlank(queryFilter)) {
+            url += "&query=\""+queryFilter+"\"";
             url += "&query=\"" + queryFilter + "\"";
         }
 
@@ -1243,12 +1295,12 @@ public class ClientPublicAPI {
     private List<JSONObject> getFeatureJson(String sharedspaceId, String workspaceId, String queryFilter) {
 
         List<FieldInfo> fieldsInfos = getEntityFields(sharedspaceId, workspaceId, "feature");
-        List fieldNames = new ArrayList();
+    	List fieldNames = new ArrayList();
         for (FieldInfo field : fieldsInfos) {
-            fieldNames.add(field.getName());
-        }
-        String url = String.format("%s/api/shared_spaces/%s/workspaces/%s/features?fields=%s", baseURL, sharedspaceId,
-                workspaceId, StringUtils.join(fieldNames, ","));
+    		fieldNames.add(field.getName());
+    	}
+        fieldNames.add(KEY_LAST_UPDATE_DATE);
+        String url = String.format("%s/api/shared_spaces/%s/workspaces/%s/features?fields=%s", baseURL, sharedspaceId, workspaceId, StringUtils.join(fieldNames, ","));
         if (!StringUtils.isBlank(queryFilter)) {
             url += "&query=\"" + queryFilter + "\"";
         }
