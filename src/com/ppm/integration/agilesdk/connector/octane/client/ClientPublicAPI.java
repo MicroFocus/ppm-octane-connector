@@ -25,9 +25,6 @@ import javax.ws.rs.core.MediaType;
 import org.apache.commons.lang.StringUtils;
 import org.apache.http.HttpStatus;
 import org.apache.log4j.Logger;
-import org.joda.time.DateTime;
-import org.joda.time.format.DateTimeFormatter;
-import org.joda.time.format.ISODateTimeFormat;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -91,10 +88,6 @@ public class ClientPublicAPI {
     
     private static final String DEFAULT_ENTITY_ITEM_URL =
             "%s/ui/entity-navigation?p=%s/%s&entityType=work_item&id=%s";
-
-    private static final String KEY_LAST_UPDATE_DATE = "last_modified";
-
-    private static final String KEY_ID = "id";
 
     public ClientPublicAPI(String baseUrl) {
         this.baseURL = baseUrl.trim();
@@ -987,7 +980,7 @@ public class ClientPublicAPI {
                 String.format("%s/api/shared_spaces/%s/workspaces/%s/features", baseURL, sharedspaceId, workspaceId);
 
         RestResponse response = sendRequest(url, method, this.getJsonStrForPOSTData(entity));
-        if (HttpStatus.SC_CREATED != response.getStatusCode() && HttpStatus.SC_OK != response.getStatusCode()) {
+        if (HttpStatus.SC_CREATED != response.getStatusCode()) {
             this.logger
                     .error("Error occurs when creating feature in Octane: Response code = " + response.getStatusCode());
             throw new OctaneClientException("AGM_APP", "ERROR_HTTP_CONNECTIVITY_ERROR",
@@ -1051,7 +1044,7 @@ public class ClientPublicAPI {
         entityObj.put("data", sourceObj);
         return entityObj.toString();
     }
-
+    
     private String getCSRF(final String cookies) {
         String csrf = null;
         int csrfStart = cookies.indexOf("HPSSO_COOKIE_CSRF=");
@@ -1249,43 +1242,86 @@ public class ClientPublicAPI {
         return agileEntities;
     }
     
+    public List<AgileEntity> getUserStoriesAfterDate(String sharedspaceId, String workspaceId, Set<String> ids,
+            Date updateDate)
+    {
+        if (null == updateDate) {
+            return getUserStories(sharedspaceId, workspaceId, ids);
+        }
+        List<AgileEntity> agileEntities = new ArrayList<>();
+
+        String query = "";
+        if (null != ids && !ids.isEmpty()) {
+            query += "id%20IN%20" + StringUtils.join(ids, ",") + "%20;%20";
+        }
+        query += "last_modified%20GT%20^" + transformDateFormat(updateDate) + "^";
+
+        List<JSONObject> workItemsJson = getUserStoriesJson(sharedspaceId, workspaceId, query);
+        for (JSONObject workItemJson : workItemsJson) {
+            AgileEntity entity = wrapperEntity(workItemJson);
+            agileEntities.add(entity);
+        }
+
+        return agileEntities;
+    }
+
+    public List<AgileEntity> getFeaturesAfterDate(String sharedspaceId, String workspaceId, Set<String> ids,
+            Date updateDate)
+    {
+        if (null == updateDate) {
+            return getFeatures(sharedspaceId, workspaceId, ids);
+        }
+        List<AgileEntity> agileEntities = new ArrayList<>();
+
+        String query = "";
+        if (null != ids && !ids.isEmpty()) {
+            query += "id%20IN%20" + StringUtils.join(ids, ",") + "%20;%20";
+        }
+        query += "last_modified%20GT%20^" + transformDateFormat(updateDate) + "^";
+
+        List<JSONObject> workItemsJson = getFeatureJson(sharedspaceId, workspaceId, query);
+        for (JSONObject workItemJson : workItemsJson) {
+            AgileEntity entity = wrapperEntity(workItemJson);
+            agileEntities.add(entity);
+        }
+
+        return agileEntities;
+    }
+
+    // change date format to "yyyy-MM-dd'T'HH:mm:ss'Z'"
+    private String transformDateFormat(Date dateStr) {
+        String dateString = "";
+        String pattern = "yyyy-MM-dd'T'HH:mm:ss'Z'";
+        SimpleDateFormat sdf = new SimpleDateFormat(pattern);
+        dateString = sdf.format(dateStr);
+
+        return dateString;
+    }
+
     private AgileEntity wrapperEntity(JSONObject item){
 
         AgileEntity entity = new AgileEntity();
-    	Iterator<String> sIterator = item.keys();
-        while (sIterator.hasNext()) {
+        Iterator<String> sIterator = item.keys();
+        while(sIterator.hasNext()){
             String key = sIterator.next();
             String value = item.getString(key);
-            if (key.equals(KEY_LAST_UPDATE_DATE)) {
-                entity.setLastUpdateTime(parserDate(value));
-            } else if (key.equals(KEY_ID)) {
-                entity.setId(value);
-            } else {
-                AgileEntityFieldValue fieldValue = new AgileEntityFieldValue(value, null);
-                entity.addField(key, fieldValue);
-            }
+            AgileEntityFieldValue fieldValue =  new AgileEntityFieldValue(value, null);
+            entity.addField(key, fieldValue);
         }
         return entity;
     }
     
-    private Date parserDate(String dateStr) {
-        DateTimeFormatter parser = ISODateTimeFormat.dateTimeParser();
-        DateTime dateTimeHere = parser.parseDateTime(dateStr);
-        return dateTimeHere.toDate();
-
-    }
-
     private List<JSONObject> getUserStoriesJson(String sharedspaceId, String workspaceId, String queryFilter) {
 
         List<FieldInfo> fieldsInfos = getEntityFields(sharedspaceId, workspaceId, "story");
-    	List fieldNames = new ArrayList();
+        List fieldNames = new ArrayList();
         for (FieldInfo field : fieldsInfos) {
-    		fieldNames.add(field.getName());
-    	}
-        fieldNames.add(KEY_LAST_UPDATE_DATE);
-        String url = String.format("%s/api/shared_spaces/%s/workspaces/%s/stories?fields=%s", baseURL, sharedspaceId, workspaceId,StringUtils.join(fieldNames, ","));
+            fieldNames.add(field.getName());
+        }
+
+        String url = String.format("%s/api/shared_spaces/%s/workspaces/%s/stories?fields=%s", baseURL, sharedspaceId,
+                workspaceId, StringUtils.join(fieldNames, ","));
         if (!StringUtils.isBlank(queryFilter)) {
-            url += "&query=\""+queryFilter+"\"";
             url += "&query=\"" + queryFilter + "\"";
         }
 
@@ -1295,12 +1331,12 @@ public class ClientPublicAPI {
     private List<JSONObject> getFeatureJson(String sharedspaceId, String workspaceId, String queryFilter) {
 
         List<FieldInfo> fieldsInfos = getEntityFields(sharedspaceId, workspaceId, "feature");
-    	List fieldNames = new ArrayList();
+        List fieldNames = new ArrayList();
         for (FieldInfo field : fieldsInfos) {
-    		fieldNames.add(field.getName());
-    	}
-        fieldNames.add(KEY_LAST_UPDATE_DATE);
-        String url = String.format("%s/api/shared_spaces/%s/workspaces/%s/features?fields=%s", baseURL, sharedspaceId, workspaceId, StringUtils.join(fieldNames, ","));
+            fieldNames.add(field.getName());
+        }
+        String url = String.format("%s/api/shared_spaces/%s/workspaces/%s/features?fields=%s", baseURL, sharedspaceId,
+                workspaceId, StringUtils.join(fieldNames, ","));
         if (!StringUtils.isBlank(queryFilter)) {
             url += "&query=\"" + queryFilter + "\"";
         }

@@ -1,5 +1,22 @@
 package com.ppm.integration.agilesdk.connector.octane;
 
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
+
+import org.junit.Assert;
+import org.junit.Before;
+import org.junit.Test;
+
 import com.hp.ppm.tm.model.TimeSheet;
 import com.ppm.integration.agilesdk.ValueSet;
 import com.ppm.integration.agilesdk.connector.octane.client.ClientPublicAPI;
@@ -18,19 +35,8 @@ import com.ppm.integration.agilesdk.connector.octane.model.WorkItemFeature;
 import com.ppm.integration.agilesdk.connector.octane.model.WorkItemRoot;
 import com.ppm.integration.agilesdk.connector.octane.model.WorkItemStory;
 import com.ppm.integration.agilesdk.connector.octane.model.WorkSpace;
-
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
+import com.ppm.integration.agilesdk.model.AgileEntity;
+import com.ppm.integration.agilesdk.model.AgileEntityFieldValue;
 
 public class ClientPublicAPITest {
     ValueSet values = new ValueSet();
@@ -351,6 +357,119 @@ public class ClientPublicAPITest {
     	for(EpicAttr e : result){
     		System.out.println("id: " + e.getId() +"  name:"+ e.getName() + "  type:"+ e.getType());
     	}
+    }
+
+    @Test public void testGetUserStoriesAfterDate() throws Exception {
+        ClientPublicAPI client = OctaneClientHelper.setupClientPublicAPI(values);
+        String clientId = values.get(OctaneConstants.APP_CLIENT_ID);
+        String clientSecret = values.get(OctaneConstants.APP_CLIENT_SECRET);
+        boolean isGetAccess = client.getAccessTokenWithFormFormat(clientId, clientSecret);
+        Assert.assertTrue(isGetAccess);
+        
+        // Set<String> id set param
+        Set<String> idSet = new HashSet<>();
+        // idSet.add("3394");
+        // idSet.add("5677");
+        idSet.add("160024");
+        idSet.add("176018");
+        idSet.add("128042");
+        // date param
+        Calendar cal = Calendar.getInstance();
+        cal.add(Calendar.DAY_OF_MONTH, -2);
+        Date yesterday = cal.getTime();
+
+        List<AgileEntity> result = client.getUserStoriesAfterDate(values.get(OctaneConstants.KEY_SHAREDSPACEID),
+                values.get(OctaneConstants.KEY_WORKSPACEID), null, null);
+        Assert.assertNull(result);
+        List<AgileEntity> result1 = client.getUserStoriesAfterDate(values.get(OctaneConstants.KEY_SHAREDSPACEID),
+                values.get(OctaneConstants.KEY_WORKSPACEID), idSet, null);
+        Assert.assertNotNull(result1);
+        List<AgileEntity> result2 = client.getUserStoriesAfterDate(values.get(OctaneConstants.KEY_SHAREDSPACEID),
+                values.get(OctaneConstants.KEY_WORKSPACEID), null, yesterday);
+        Assert.assertNotNull(result2);
+        List<AgileEntity> result3 = client.getUserStoriesAfterDate(values.get(OctaneConstants.KEY_SHAREDSPACEID),
+                values.get(OctaneConstants.KEY_WORKSPACEID), idSet, yesterday);
+        Assert.assertNotNull(result3);
+        // printAgileEntity(result1);
+        // printAgileEntity(result2);
+        printAgileEntity(result3);
+    }
+
+    @Test
+    public void testGetFeaturesAfterDate() throws Exception {
+        ClientPublicAPI client = OctaneClientHelper.setupClientPublicAPI(values);
+        String clientId = values.get(OctaneConstants.APP_CLIENT_ID);
+        String clientSecret = values.get(OctaneConstants.APP_CLIENT_SECRET);
+        boolean isGetAccess = client.getAccessTokenWithFormFormat(clientId, clientSecret);
+        Assert.assertTrue(isGetAccess);
+
+        // Set<String> id set param
+        Set<String> idSet = new HashSet<>();
+        idSet.add("3394");
+        idSet.add("5677");
+        idSet.add("128042");
+        idSet.add("176018");
+        idSet.add("160024");
+        // date param
+        Calendar cal = Calendar.getInstance();
+        cal.add(Calendar.DAY_OF_MONTH, -2);
+        Date yesterday = cal.getTime();
+
+        List<AgileEntity> result = client.getFeaturesAfterDate(values.get(OctaneConstants.KEY_SHAREDSPACEID),
+                values.get(OctaneConstants.KEY_WORKSPACEID), null, null);
+        Assert.assertNull(result);
+        List<AgileEntity> result1 = client.getFeaturesAfterDate(values.get(OctaneConstants.KEY_SHAREDSPACEID),
+                values.get(OctaneConstants.KEY_WORKSPACEID), idSet, null);
+        Assert.assertNotNull(result1);
+        List<AgileEntity> result2 = client.getFeaturesAfterDate(values.get(OctaneConstants.KEY_SHAREDSPACEID),
+                values.get(OctaneConstants.KEY_WORKSPACEID), null, yesterday);
+        Assert.assertNotNull(result2);
+        List<AgileEntity> result3 = client.getFeaturesAfterDate(values.get(OctaneConstants.KEY_SHAREDSPACEID),
+                values.get(OctaneConstants.KEY_WORKSPACEID), idSet, yesterday);
+        Assert.assertNotNull(result3);
+
+        // printAgileEntity(result1);
+        // printAgileEntity(result2);
+        printAgileEntity(result3);
+    }
+
+    @SuppressWarnings("unused")
+    private void printAgileEntity(List<AgileEntity> entitys) {
+        for (AgileEntity e : entitys) {
+            System.out.println("{");
+            Iterator<Entry<String, List<AgileEntityFieldValue>>> iterator = e.getAllFields();
+            while (iterator.hasNext()) {
+                Entry<String, List<AgileEntityFieldValue>> field = iterator.next();
+                System.out.print("\t" + field.getKey() + ": ");
+                for (AgileEntityFieldValue value : field.getValue()) {
+                    System.out.print(value.getValue() + ", " + value.getReferenceValue());
+                }
+                System.out.println("\t");
+            }
+            System.out.println("}");
+
+        }
+        System.out.println("==================================================================");
+    }
+
+    @Test
+    public void testGetFeaturesById() throws Exception {
+        ClientPublicAPI client = OctaneClientHelper.setupClientPublicAPI(values);
+        String clientId = values.get(OctaneConstants.APP_CLIENT_ID);
+        String clientSecret = values.get(OctaneConstants.APP_CLIENT_SECRET);
+        boolean isGetAccess = client.getAccessTokenWithFormFormat(clientId, clientSecret);
+        Assert.assertTrue(isGetAccess);
+
+        // Set<String> id set param
+        Set<String> idSet = new HashSet<>();
+        idSet.add("128042");
+        idSet.add("176018");
+        idSet.add("160024");
+        List<AgileEntity> result = client.getFeatures(values.get(OctaneConstants.KEY_SHAREDSPACEID),
+                values.get(OctaneConstants.KEY_WORKSPACEID), idSet);
+        // Assert.assertNotNull(result);
+
+        printAgileEntity(result);
     }
 }
 
