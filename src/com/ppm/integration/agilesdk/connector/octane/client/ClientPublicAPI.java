@@ -979,79 +979,79 @@ public class ClientPublicAPI {
     public AgileEntityUrl saveFeatureInWorkspace(final String sharedspaceId, final String workspaceId,
             final String entity, final String method)
     {
-		AgileEntityUrl entityUrl = new AgileEntityUrl();
+        AgileEntityUrl entityUrl = new AgileEntityUrl();
         String url =
                 String.format("%s/api/shared_spaces/%s/workspaces/%s/features", baseURL, sharedspaceId, workspaceId);
 
         String featureurl =
                 String.format("%s/api/shared_spaces/%s/workspaces/%s/features", baseURL, sharedspaceId, workspaceId);
 
-		RestResponse response = sendRequest(url, method, this.getJsonStrForPOSTData(entity));
-		if (HttpStatus.SC_CREATED != response.getStatusCode() && HttpStatus.SC_OK != response.getStatusCode()) {
-			this.logger
-					.error("Error occurs when creating feature in Octane: Response code = " + response.getStatusCode());
-			throw new OctaneClientException("AGM_APP", "ERROR_HTTP_CONNECTIVITY_ERROR",
+        RestResponse response = sendRequest(url, method, this.getJsonStrForPOSTData(entity));
+        if (HttpStatus.SC_CREATED != response.getStatusCode() && HttpStatus.SC_OK != response.getStatusCode()) {
+            this.logger
+                    .error("Error occurs when creating feature in Octane: Response code = " + response.getStatusCode());
+            throw new OctaneClientException("AGM_APP", "ERROR_HTTP_CONNECTIVITY_ERROR",
                     new String[] {response.getData()});
-		}
-		String entityId = getCreateEntityIdFromResponse(response.getData());
+        }
+        String entityId = getCreateEntityIdFromResponse(response.getData());
         entityUrl.setUrl(String.format(DEFAULT_ENTITY_ITEM_URL, baseURL, sharedspaceId, workspaceId, entityId));
-		entityUrl.setId(entityId);
-		return entityUrl;
-	}
+        entityUrl.setId(entityId);
+        return entityUrl;
+    }
 
     public AgileEntityUrl saveStoryInWorkspace(final String sharedspaceId, final String workspaceId,
             final String entity, final String method)
     {
-		AgileEntityUrl entityUrl = new AgileEntityUrl();
+        AgileEntityUrl entityUrl = new AgileEntityUrl();
 
         String url =
                 String.format("%s/api/shared_spaces/%s/workspaces/%s/stories", baseURL, sharedspaceId, workspaceId);
 
-		RestResponse response = sendRequest(url, method, this.getJsonStrForPOSTData(entity));
-		if (HttpStatus.SC_CREATED != response.getStatusCode() && HttpStatus.SC_OK != response.getStatusCode()) {
+        RestResponse response = sendRequest(url, method, this.getJsonStrForPOSTData(entity));
+        if (HttpStatus.SC_CREATED != response.getStatusCode() && HttpStatus.SC_OK != response.getStatusCode()) {
             this.logger.error("Error occurs when saving story in Octane: Response code = " + response.getStatusCode());
-			throw new OctaneClientException("AGM_APP", "ERROR_HTTP_CONNECTIVITY_ERROR",
+            throw new OctaneClientException("AGM_APP", "ERROR_HTTP_CONNECTIVITY_ERROR",
                     new String[] {response.getData()});
-		}
+        }
 
-		String entityId = getCreateEntityIdFromResponse(response.getData());
+        String entityId = getCreateEntityIdFromResponse(response.getData());
         entityUrl.setUrl(String.format(DEFAULT_ENTITY_ITEM_URL, baseURL, sharedspaceId, workspaceId, entityId));
-		entityUrl.setId(entityId);
-		return entityUrl;
+        entityUrl.setId(entityId);
+        return entityUrl;
 
-	}
-
-	private String getCreateEntityIdFromResponse(String jsonData) {
-		org.json.JSONObject obj;
-		String creatEntity = "";
-		try {
-			obj = new org.json.JSONObject(jsonData);
-            org.json.JSONArray data = (org.json.JSONArray)(obj.get("data"));
-			if (data.length() > 0)
-                creatEntity = (String)data.getJSONObject(0).get("id");
-		} catch (org.json.JSONException e) {
-			throw new OctaneClientException("AGM_APP", "ERROR_HTTP_CONNECTIVITY_ERROR",
-					"Error occurs when parse response data:" + jsonData);
-		}
-		return creatEntity;
-
-	}
-
-	private String getJsonStrFromObject(Object sourceObj) {
-		ObjectMapper objectMapper = new ObjectMapper();
-		try {
-			return objectMapper.writeValueAsString(sourceObj);
-		} catch (JsonProcessingException e) {
-			throw new RuntimeException("Error when generating JSon String from object", e);
-		}
-	}
-
-    private String getJsonStrForPOSTData(Object sourceObj)  {
-    	JSONObject entityObj = new JSONObject();
-    	entityObj.put("data", sourceObj);
-    	return entityObj.toString();
     }
-    
+
+    private String getCreateEntityIdFromResponse(String jsonData) {
+        org.json.JSONObject obj;
+        String creatEntity = "";
+        try {
+            obj = new org.json.JSONObject(jsonData);
+            org.json.JSONArray data = (org.json.JSONArray)(obj.get("data"));
+            if (data.length() > 0)
+                creatEntity = (String)data.getJSONObject(0).get("id");
+        } catch (org.json.JSONException e) {
+            throw new OctaneClientException("AGM_APP", "ERROR_HTTP_CONNECTIVITY_ERROR",
+                    "Error occurs when parse response data:" + jsonData);
+        }
+        return creatEntity;
+
+    }
+
+    private String getJsonStrFromObject(Object sourceObj) {
+        ObjectMapper objectMapper = new ObjectMapper();
+        try {
+            return objectMapper.writeValueAsString(sourceObj);
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException("Error when generating JSon String from object", e);
+        }
+    }
+
+    private String getJsonStrForPOSTData(Object sourceObj) {
+        JSONObject entityObj = new JSONObject();
+        entityObj.put("data", sourceObj);
+        return entityObj.toString();
+    }
+
     private String getCSRF(final String cookies) {
         String csrf = null;
         int csrfStart = cookies.indexOf("HPSSO_COOKIE_CSRF=");
@@ -1240,8 +1240,7 @@ public class ClientPublicAPI {
         }
 
         String query = "id%20IN%20" + StringUtils.join(ids, ",");
-        //String query = "last_modified%20GT%20^2018-03-06T16:42:11Z^";
-        List<JSONObject> workItemsJson = getFeatureJson(sharedspaceId, workspaceId,query);
+        List<JSONObject> workItemsJson = getFeatureJson(sharedspaceId, workspaceId, query);
         for (JSONObject workItemJson : workItemsJson) {
             AgileEntity entity = wrapperEntity(workItemJson);
             agileEntities.add(entity);
