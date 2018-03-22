@@ -1,33 +1,65 @@
 package com.ppm.integration.agilesdk.connector.octane.client;
 
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
+import java.net.HttpURLConnection;
+import java.net.InetSocketAddress;
+import java.net.Proxy;
+import java.net.URL;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
+import javax.ws.rs.HttpMethod;
+import javax.ws.rs.core.MediaType;
+
+import org.apache.commons.lang.StringUtils;
+import org.apache.http.HttpStatus;
+import org.apache.log4j.Logger;
+
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ppm.integration.agilesdk.ValueSet;
 import com.ppm.integration.agilesdk.connector.octane.OctaneConstants;
-import com.ppm.integration.agilesdk.connector.octane.model.*;
-import com.ppm.integration.agilesdk.model.AgileEntityUrl;
-import com.ppm.integration.agilesdk.model.AgileEntityField;
+import com.ppm.integration.agilesdk.connector.octane.model.EpicAttr;
+import com.ppm.integration.agilesdk.connector.octane.model.EpicCreateEntity;
+import com.ppm.integration.agilesdk.connector.octane.model.EpicEntity;
+import com.ppm.integration.agilesdk.connector.octane.model.FieldInfo;
+import com.ppm.integration.agilesdk.connector.octane.model.GenericWorkItem;
+import com.ppm.integration.agilesdk.connector.octane.model.OctaneUtils;
+import com.ppm.integration.agilesdk.connector.octane.model.Release;
+import com.ppm.integration.agilesdk.connector.octane.model.ReleaseTeam;
+import com.ppm.integration.agilesdk.connector.octane.model.ReleaseTeams;
+import com.ppm.integration.agilesdk.connector.octane.model.Releases;
+import com.ppm.integration.agilesdk.connector.octane.model.SharedSpace;
+import com.ppm.integration.agilesdk.connector.octane.model.SharedSpaces;
+import com.ppm.integration.agilesdk.connector.octane.model.Sprint;
+import com.ppm.integration.agilesdk.connector.octane.model.Team;
+import com.ppm.integration.agilesdk.connector.octane.model.Teams;
+import com.ppm.integration.agilesdk.connector.octane.model.TimesheetItem;
+import com.ppm.integration.agilesdk.connector.octane.model.WorkItemEpic;
+import com.ppm.integration.agilesdk.connector.octane.model.WorkItemRoot;
+import com.ppm.integration.agilesdk.connector.octane.model.WorkSpace;
+import com.ppm.integration.agilesdk.connector.octane.model.WorkSpaces;
+import com.ppm.integration.agilesdk.dm.AgileEntityUrl;
 import com.ppm.integration.agilesdk.model.AgileEntity;
+import com.ppm.integration.agilesdk.model.AgileEntityField;
 import com.ppm.integration.agilesdk.model.AgileEntityFieldValue;
+
 import net.sf.json.JSONArray;
 import net.sf.json.JSONException;
 import net.sf.json.JSONObject;
-import org.apache.commons.lang.StringUtils;
-import org.apache.http.HttpStatus;
-import org.apache.log4j.Logger;
-
-
-import javax.ws.rs.HttpMethod;
-import javax.ws.rs.core.MediaType;
-import java.io.*;
-import java.net.HttpURLConnection;
-import java.net.InetSocketAddress;
-import java.net.Proxy;
-import java.net.URL;
-import java.text.SimpleDateFormat;
-import java.util.*;
 
 
 /**
@@ -1210,6 +1242,61 @@ public class ClientPublicAPI {
         return agileEntities;
     }
     
+    public List<AgileEntity> getUserStoriesAfterDate(String sharedspaceId, String workspaceId, Set<String> ids,
+            Date updateDate)
+    {
+        if (null == updateDate) {
+            return getUserStories(sharedspaceId, workspaceId, ids);
+        }
+        List<AgileEntity> agileEntities = new ArrayList<>();
+
+        String query = "";
+        if (null != ids && !ids.isEmpty()) {
+            query += "id%20IN%20" + StringUtils.join(ids, ",") + "%20;%20";
+        }
+        query += "last_modified%20GT%20^" + transformDateFormat(updateDate) + "^";
+
+        List<JSONObject> workItemsJson = getUserStoriesJson(sharedspaceId, workspaceId, query);
+        for (JSONObject workItemJson : workItemsJson) {
+            AgileEntity entity = wrapperEntity(workItemJson);
+            agileEntities.add(entity);
+        }
+
+        return agileEntities;
+    }
+
+    public List<AgileEntity> getFeaturesAfterDate(String sharedspaceId, String workspaceId, Set<String> ids,
+            Date updateDate)
+    {
+        if (null == updateDate) {
+            return getFeatures(sharedspaceId, workspaceId, ids);
+        }
+        List<AgileEntity> agileEntities = new ArrayList<>();
+
+        String query = "";
+        if (null != ids && !ids.isEmpty()) {
+            query += "id%20IN%20" + StringUtils.join(ids, ",") + "%20;%20";
+        }
+        query += "last_modified%20GT%20^" + transformDateFormat(updateDate) + "^";
+
+        List<JSONObject> workItemsJson = getFeatureJson(sharedspaceId, workspaceId, query);
+        for (JSONObject workItemJson : workItemsJson) {
+            AgileEntity entity = wrapperEntity(workItemJson);
+            agileEntities.add(entity);
+        }
+
+        return agileEntities;
+    }
+
+    private String transformDateFormat(Date dateStr) {
+        String dateString = "";
+        String pattern = "yyyy-MM-dd'T'HH:mm:ss'Z'";
+        SimpleDateFormat sdf = new SimpleDateFormat(pattern);
+        dateString = sdf.format(dateStr);
+
+        return dateString;
+    }
+
     private AgileEntity wrapperEntity(JSONObject item){
 
         AgileEntity entity = new AgileEntity();
