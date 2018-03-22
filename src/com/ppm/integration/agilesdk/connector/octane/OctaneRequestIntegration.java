@@ -63,13 +63,13 @@ public class OctaneRequestIntegration extends RequestIntegration {
         List<FieldInfo> fields = client.getEntityFields(sharedSpaceId, workSpaceId, entityType);
         for (FieldInfo field : fields) {
             AgileEntityFieldInfo info = new AgileEntityFieldInfo();
-            info.setDisplayName(field.getLabel());
-            info.setName(field.getName());
+            info.setLabel(field.getLabel());
+            info.setId(field.getName());
             info.setListType(field.getListType());
             JSONObject valueObj = new JSONObject();
             valueObj.put(OctaneConstants.KEY_FIELD_NAME, field.getName());
             valueObj.put(OctaneConstants.KEY_LOGICAL_NAME, field.getLogicalName());
-            info.setValue(valueObj.toString());
+            info.setListIdentifier(valueObj.toString());
             fieldList.add(info);
         }
         Collections.sort(fieldList, new AgileFieldComparator());
@@ -232,6 +232,6 @@ public class OctaneRequestIntegration extends RequestIntegration {
 class AgileFieldComparator implements Comparator<AgileEntityFieldInfo> {
     @Override
     public int compare(final AgileEntityFieldInfo o1, final AgileEntityFieldInfo o2) {
-        return o1.getDisplayName().compareToIgnoreCase(o2.getDisplayName());
+        return o1.getLabel().compareToIgnoreCase(o2.getLabel());
     }
 }
