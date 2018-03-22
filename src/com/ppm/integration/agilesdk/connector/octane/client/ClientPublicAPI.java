@@ -1249,6 +1249,61 @@ public class ClientPublicAPI {
         return agileEntities;
     }
     
+    public List<AgileEntity> getUserStoriesAfterDate(String sharedspaceId, String workspaceId, Set<String> ids,
+            Date updateDate)
+    {
+        if (null == updateDate) {
+            return getUserStories(sharedspaceId, workspaceId, ids);
+        }
+        List<AgileEntity> agileEntities = new ArrayList<>();
+
+        String query = "";
+        if (null != ids && !ids.isEmpty()) {
+            query += "id%20IN%20" + StringUtils.join(ids, ",") + "%20;%20";
+        }
+        query += "last_modified%20GT%20^" + transformDateFormat(updateDate) + "^";
+
+        List<JSONObject> workItemsJson = getUserStoriesJson(sharedspaceId, workspaceId, query);
+        for (JSONObject workItemJson : workItemsJson) {
+            AgileEntity entity = wrapperEntity(workItemJson);
+            agileEntities.add(entity);
+        }
+
+        return agileEntities;
+    }
+
+    public List<AgileEntity> getFeaturesAfterDate(String sharedspaceId, String workspaceId, Set<String> ids,
+            Date updateDate)
+    {
+        if (null == updateDate) {
+            return getFeatures(sharedspaceId, workspaceId, ids);
+        }
+        List<AgileEntity> agileEntities = new ArrayList<>();
+
+        String query = "";
+        if (null != ids && !ids.isEmpty()) {
+            query += "id%20IN%20" + StringUtils.join(ids, ",") + "%20;%20";
+        }
+        query += "last_modified%20GT%20^" + transformDateFormat(updateDate) + "^";
+
+        List<JSONObject> workItemsJson = getFeatureJson(sharedspaceId, workspaceId, query);
+        for (JSONObject workItemJson : workItemsJson) {
+            AgileEntity entity = wrapperEntity(workItemJson);
+            agileEntities.add(entity);
+        }
+
+        return agileEntities;
+    }
+
+    private String transformDateFormat(Date dateStr) {
+        String dateString = "";
+        String pattern = "yyyy-MM-dd'T'HH:mm:ss'Z'";
+        SimpleDateFormat sdf = new SimpleDateFormat(pattern);
+        dateString = sdf.format(dateStr);
+
+        return dateString;
+    }
+
     private AgileEntity wrapperEntity(JSONObject item){
 
         AgileEntity entity = new AgileEntity();
