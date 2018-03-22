@@ -1288,6 +1288,7 @@ public class ClientPublicAPI {
         return agileEntities;
     }
 
+    // change date format to "yyyy-MM-dd'T'HH:mm:ss'Z'"
     private String transformDateFormat(Date dateStr) {
         String dateString = "";
         String pattern = "yyyy-MM-dd'T'HH:mm:ss'Z'";
