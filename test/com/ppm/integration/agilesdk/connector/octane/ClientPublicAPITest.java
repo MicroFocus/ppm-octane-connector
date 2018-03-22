@@ -1,5 +1,22 @@
 package com.ppm.integration.agilesdk.connector.octane;
 
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
+
+import org.junit.Assert;
+import org.junit.Before;
+import org.junit.Test;
+
 import com.hp.ppm.tm.model.TimeSheet;
 import com.ppm.integration.agilesdk.ValueSet;
 import com.ppm.integration.agilesdk.connector.octane.client.ClientPublicAPI;
@@ -18,19 +35,8 @@ import com.ppm.integration.agilesdk.connector.octane.model.WorkItemFeature;
 import com.ppm.integration.agilesdk.connector.octane.model.WorkItemRoot;
 import com.ppm.integration.agilesdk.connector.octane.model.WorkItemStory;
 import com.ppm.integration.agilesdk.connector.octane.model.WorkSpace;
-
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
+import com.ppm.integration.agilesdk.model.AgileEntity;
+import com.ppm.integration.agilesdk.model.AgileEntityFieldValue;
 
 public class ClientPublicAPITest {
     ValueSet values = new ValueSet();
@@ -352,5 +358,106 @@ public class ClientPublicAPITest {
     		System.out.println("id: " + e.getId() +"  name:"+ e.getName() + "  type:"+ e.getType());
     	}
     }
+
+    @Test
+    public void testGetUserStoriesAfterDate() throws Exception {
+        ClientPublicAPI client = OctaneClientHelper.setupClientPublicAPI(values);
+        String clientId = values.get(OctaneConstants.APP_CLIENT_ID);
+        String clientSecret = values.get(OctaneConstants.APP_CLIENT_SECRET);
+        boolean isGetAccess = client.getAccessTokenWithFormFormat(clientId, clientSecret);
+        Assert.assertTrue(isGetAccess);
+
+        Set<String> ids = new HashSet<String>();
+        ids.add("111111");
+        ids.add("222222");
+        ids.add("103014");
+        ids.add("225053");
+        ids.add("226013");
+
+        Calendar cal = Calendar.getInstance();
+        cal.add(Calendar.DAY_OF_MONTH, -1);
+        Date updateDate = cal.getTime();
+
+        List<AgileEntity> result = client.getUserStoriesAfterDate(values.get(OctaneConstants.KEY_SHAREDSPACEID),
+                values.get(OctaneConstants.KEY_WORKSPACEID), null, null);
+        List<AgileEntity> result1 = client.getUserStoriesAfterDate(values.get(OctaneConstants.KEY_SHAREDSPACEID),
+                values.get(OctaneConstants.KEY_WORKSPACEID), ids, null);
+        List<AgileEntity> result2 = client.getUserStoriesAfterDate(values.get(OctaneConstants.KEY_SHAREDSPACEID),
+                values.get(OctaneConstants.KEY_WORKSPACEID), null, updateDate);
+        List<AgileEntity> result3 = client.getUserStoriesAfterDate(values.get(OctaneConstants.KEY_SHAREDSPACEID),
+                values.get(OctaneConstants.KEY_WORKSPACEID), ids, updateDate);
+
+        Assert.assertNull(result);
+        Assert.assertNotNull(result1);
+        Assert.assertNotNull(result2);
+        Assert.assertNotNull(result3);
+
+        printAgileEntityList(result1);
+        printAgileEntityList(result2);
+        printAgileEntityList(result3);
+    }
+
+    @Test
+    public void testGetFeaturesAfterDate() throws Exception {
+        ClientPublicAPI client = OctaneClientHelper.setupClientPublicAPI(values);
+        String clientId = values.get(OctaneConstants.APP_CLIENT_ID);
+        String clientSecret = values.get(OctaneConstants.APP_CLIENT_SECRET);
+        boolean isGetAccess = client.getAccessTokenWithFormFormat(clientId, clientSecret);
+        Assert.assertTrue(isGetAccess);
+
+        Set<String> ids = new HashSet<String>();
+        ids.add("111111");
+        ids.add("222222");
+        ids.add("221011");
+        ids.add("222001");
+        ids.add("229001");
+
+
+
+        Calendar cal = Calendar.getInstance();
+        cal.add(Calendar.DAY_OF_MONTH, -1);
+        Date updateDate = cal.getTime();
+
+        List<AgileEntity> result = client.getFeaturesAfterDate(values.get(OctaneConstants.KEY_SHAREDSPACEID),
+                values.get(OctaneConstants.KEY_WORKSPACEID), null, null);
+        List<AgileEntity> result1 = client.getFeaturesAfterDate(values.get(OctaneConstants.KEY_SHAREDSPACEID),
+                values.get(OctaneConstants.KEY_WORKSPACEID), ids, null);
+        List<AgileEntity> result2 = client.getFeaturesAfterDate(values.get(OctaneConstants.KEY_SHAREDSPACEID),
+                values.get(OctaneConstants.KEY_WORKSPACEID), null, updateDate);
+        List<AgileEntity> result3 = client.getFeaturesAfterDate(values.get(OctaneConstants.KEY_SHAREDSPACEID),
+                values.get(OctaneConstants.KEY_WORKSPACEID), ids, updateDate);
+
+        Assert.assertNull(result);
+        Assert.assertNotNull(result1);
+        Assert.assertNotNull(result2);
+        Assert.assertNotNull(result3);
+
+        printAgileEntityList(result1);
+        printAgileEntityList(result2);
+        printAgileEntityList(result3);
+    }
+
+    private void printAgileEntityList(List<AgileEntity> agileEntityList) {
+        for (AgileEntity agileEntity : agileEntityList) {
+
+            Iterator<Entry<String, List<AgileEntityFieldValue>>> iterator = agileEntity.getAllFields();
+            System.out.println("\t{");
+            System.out.println("\tID: " + agileEntity.getId());
+            System.out.println("\tlast update time: " + agileEntity.getLastUpdateTime());
+            while (iterator.hasNext()) {
+
+                Entry<String, List<AgileEntityFieldValue>> entry = iterator.next();
+                System.out.print("\t\t" + entry.getKey() + ": ");
+                List<AgileEntityFieldValue> value = entry.getValue();
+                for (AgileEntityFieldValue v : value) {
+                    System.out.println(v.getValue() + ", \t\t referenceValue:" + v.getReferenceValue() + ", ");
+                }
+
+            }
+            System.out.println("\t}");
+        }
+        System.out.println("===========================================");
+    }
+
 }
 
