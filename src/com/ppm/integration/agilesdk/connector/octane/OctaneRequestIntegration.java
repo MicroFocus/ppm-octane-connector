@@ -129,9 +129,9 @@ public class OctaneRequestIntegration extends RequestIntegration {
         String sharedSpaceId = workspaceJson.getString(OctaneConstants.SHARED_SPACE_ID);
 
         if (OctaneConstants.SUB_TYPE_FEATURE.equals(entityType)) {
-            entities = client.getFeatures(sharedSpaceId, workSpaceId, entityIds);
+            entities = client.getFeaturesAfterDate(sharedSpaceId, workSpaceId, entityIds, lastUpdateTime);
         } else if (OctaneConstants.SUB_TYPE_STORY.equals(entityType)) {
-            entities = client.getUserStories(sharedSpaceId, workSpaceId, entityIds);
+            entities = client.getUserStoriesAfterDate(sharedSpaceId, workSpaceId, entityIds, lastUpdateTime);
         }
 
         return entities;
