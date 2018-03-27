@@ -77,7 +77,7 @@ public class OctaneRequestIntegration extends RequestIntegration {
     }
 
     @Override
-    public List<AgileEntityField> getAgileEntityFieldValueList(final String agileProjectValue, final String fieldInfo,
+    public List<AgileEntityField> getAgileEntityFieldValueList(final String agileProjectValue, final String entityType, final String fieldInfo,
             final ValueSet instanceConfigurationParameters)
     {
         ClientPublicAPI client = ClientPublicAPI.getClient(instanceConfigurationParameters);
