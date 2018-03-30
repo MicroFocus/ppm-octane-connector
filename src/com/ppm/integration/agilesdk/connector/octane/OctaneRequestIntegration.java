@@ -22,7 +22,6 @@ import com.ppm.integration.agilesdk.model.AgileEntity;
 import com.ppm.integration.agilesdk.model.AgileEntityField;
 import com.ppm.integration.agilesdk.model.AgileEntityFieldInfo;
 import com.ppm.integration.agilesdk.model.AgileEntityFieldValue;
-import com.ppm.integration.agilesdk.model.AgileEntityUrl;
 
 import edu.emory.mathcs.backport.java.util.Collections;
 import net.sf.json.JSONArray;
@@ -91,10 +90,10 @@ public class OctaneRequestIntegration extends RequestIntegration {
     }
 
     @Override
-    public AgileEntityUrl updateEntity(final String agileProjectValue, final String entityType,
+    public AgileEntity updateEntity(final String agileProjectValue, final String entityType,
             final AgileEntity entity, final ValueSet instanceConfigurationParameters)
     {
-        AgileEntityUrl result = null;
+        AgileEntity result = null;
         try {
             result = saveOrUpdateEntity(agileProjectValue, entityType, entity, instanceConfigurationParameters);
         } catch (Exception e) {
@@ -104,10 +103,10 @@ public class OctaneRequestIntegration extends RequestIntegration {
     }
 
     @Override
-    public AgileEntityUrl createEntity(final String agileProjectValue, final String entityType,
+    public AgileEntity createEntity(final String agileProjectValue, final String entityType,
             final AgileEntity entity, final ValueSet instanceConfigurationParameters)
     {
-        AgileEntityUrl result = null;
+        AgileEntity result = null;
         try {
             result = saveOrUpdateEntity(agileProjectValue, entityType, entity, instanceConfigurationParameters);
         } catch (Exception e) {
@@ -157,10 +156,10 @@ public class OctaneRequestIntegration extends RequestIntegration {
         return entity;
     }
 
-    private AgileEntityUrl saveOrUpdateEntity(final String agileProjectValue, final String entityType,
+    private AgileEntity saveOrUpdateEntity(final String agileProjectValue, final String entityType,
             final AgileEntity entity, final ValueSet instanceConfigurationParameters)
     {
-        AgileEntityUrl resultUrl = null;
+        AgileEntity agileEntity = null;
         ClientPublicAPI client = ClientPublicAPI.getClient(instanceConfigurationParameters);
         JSONObject workspaceJson = (JSONObject)JSONSerializer.toJSON(agileProjectValue);
         String workSpaceId = workspaceJson.getString(OctaneConstants.WORKSPACE_ID);
@@ -172,7 +171,7 @@ public class OctaneRequestIntegration extends RequestIntegration {
         if (OctaneConstants.SUB_TYPE_FEATURE.equals(entityType)) {
             String entityStr = buildEntity(entityType, entity, null);
             try {
-                resultUrl = client.saveFeatureInWorkspace(sharedSpaceId, workSpaceId, entityStr, method);
+                agileEntity = client.saveFeatureInWorkspace(sharedSpaceId, workSpaceId, entityStr, method);
             } catch (Exception e) {
                 throw new OctaneClientException("AGM_APP", "ERROR_HTTP_CONNECTIVITY_ERROR",
                         new String[] {e.getMessage()});
@@ -180,9 +179,9 @@ public class OctaneRequestIntegration extends RequestIntegration {
         } else if (OctaneConstants.SUB_TYPE_STORY.equals(entityType)) {
             WorkItemRoot root = client.getWorkItemRoot(Integer.parseInt(sharedSpaceId), Integer.parseInt(workSpaceId));
             String entityStr = buildEntity(entityType, entity, root);
-            resultUrl = client.saveStoryInWorkspace(sharedSpaceId, workSpaceId, entityStr, method);
+            agileEntity = client.saveStoryInWorkspace(sharedSpaceId, workSpaceId, entityStr, method);
         }
-        return resultUrl;
+        return agileEntity;
 
     }
 

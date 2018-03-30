@@ -58,7 +58,6 @@ import com.ppm.integration.agilesdk.connector.octane.model.WorkSpaces;
 import com.ppm.integration.agilesdk.model.AgileEntity;
 import com.ppm.integration.agilesdk.model.AgileEntityField;
 import com.ppm.integration.agilesdk.model.AgileEntityFieldValue;
-import com.ppm.integration.agilesdk.model.AgileEntityUrl;
 
 import net.sf.json.JSONArray;
 import net.sf.json.JSONException;
@@ -976,14 +975,11 @@ public class ClientPublicAPI {
         return valueList;
     }
 
-    public AgileEntityUrl saveFeatureInWorkspace(final String sharedspaceId, final String workspaceId,
+    public AgileEntity saveFeatureInWorkspace(final String sharedspaceId, final String workspaceId,
             final String entity, final String method)
     {
-        AgileEntityUrl entityUrl = new AgileEntityUrl();
+        AgileEntity agileEntity = null;
         String url =
-                String.format("%s/api/shared_spaces/%s/workspaces/%s/features", baseURL, sharedspaceId, workspaceId);
-
-        String featureurl =
                 String.format("%s/api/shared_spaces/%s/workspaces/%s/features", baseURL, sharedspaceId, workspaceId);
 
         RestResponse response = sendRequest(url, method, this.getJsonStrForPOSTData(entity));
@@ -993,16 +989,16 @@ public class ClientPublicAPI {
             throw new OctaneClientException("AGM_APP", "ERROR_HTTP_CONNECTIVITY_ERROR",
                     new String[] {response.getData()});
         }
-        String entityId = getCreateEntityIdFromResponse(response.getData());
-        entityUrl.setUrl(String.format(DEFAULT_ENTITY_ITEM_URL, baseURL, sharedspaceId, workspaceId, entityId));
-        entityUrl.setId(entityId);
-        return entityUrl;
+        agileEntity = getCreateEntityFromResponse(response.getData());
+        agileEntity.setEntityUrl(
+                String.format(DEFAULT_ENTITY_ITEM_URL, baseURL, sharedspaceId, workspaceId, agileEntity.getId()));
+        return agileEntity;
     }
 
-    public AgileEntityUrl saveStoryInWorkspace(final String sharedspaceId, final String workspaceId,
+    public AgileEntity saveStoryInWorkspace(final String sharedspaceId, final String workspaceId,
             final String entity, final String method)
     {
-        AgileEntityUrl entityUrl = new AgileEntityUrl();
+        AgileEntity agileEntity = null;
 
         String url =
                 String.format("%s/api/shared_spaces/%s/workspaces/%s/stories", baseURL, sharedspaceId, workspaceId);
@@ -1014,26 +1010,26 @@ public class ClientPublicAPI {
                     new String[] {response.getData()});
         }
 
-        String entityId = getCreateEntityIdFromResponse(response.getData());
-        entityUrl.setUrl(String.format(DEFAULT_ENTITY_ITEM_URL, baseURL, sharedspaceId, workspaceId, entityId));
-        entityUrl.setId(entityId);
-        return entityUrl;
+        agileEntity = getCreateEntityFromResponse(response.getData());
+        agileEntity.setEntityUrl(
+                String.format(DEFAULT_ENTITY_ITEM_URL, baseURL, sharedspaceId, workspaceId, agileEntity.getId()));
+        return agileEntity;
 
     }
 
-    private String getCreateEntityIdFromResponse(String jsonData) {
-        org.json.JSONObject obj;
-        String creatEntity = "";
+    private AgileEntity getCreateEntityFromResponse(String jsonData) {
+        JSONObject obj;
+        AgileEntity agileEntity = null;
         try {
-            obj = new org.json.JSONObject(jsonData);
-            org.json.JSONArray data = (org.json.JSONArray)(obj.get("data"));
-            if (data.length() > 0)
-                creatEntity = (String)data.getJSONObject(0).get("id");
-        } catch (org.json.JSONException e) {
+            obj = JSONObject.fromObject(jsonData);
+            JSONArray data = (JSONArray)(obj.get("data"));
+            if (data.size() > 0)
+                agileEntity = wrapperEntity(data.getJSONObject(0));
+        } catch (JSONException e) {
             throw new OctaneClientException("AGM_APP", "ERROR_HTTP_CONNECTIVITY_ERROR",
                     "Error occurs when parse response data:" + jsonData);
         }
-        return creatEntity;
+        return agileEntity;
 
     }
 
