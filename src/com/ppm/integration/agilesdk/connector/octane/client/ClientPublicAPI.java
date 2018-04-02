@@ -19,6 +19,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import java.util.TimeZone;
 import javax.ws.rs.HttpMethod;
 import javax.ws.rs.core.MediaType;
 
@@ -1292,9 +1293,10 @@ public class ClientPublicAPI {
     }
 
     private String transformDateFormat(Date dateStr) {
-        String dateString = "";
+        String dateString;
         String pattern = "yyyy-MM-dd'T'HH:mm:ss'Z'";
         SimpleDateFormat sdf = new SimpleDateFormat(pattern);
+        sdf.setTimeZone(TimeZone.getTimeZone("GMT"));
         dateString = sdf.format(dateStr);
 
         return dateString;
