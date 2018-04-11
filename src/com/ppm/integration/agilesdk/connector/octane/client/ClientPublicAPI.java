@@ -18,8 +18,8 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
 import java.util.TimeZone;
+
 import javax.ws.rs.HttpMethod;
 import javax.ws.rs.core.MediaType;
 
@@ -1246,6 +1246,19 @@ public class ClientPublicAPI {
         return agileEntities;
     }
     
+    public void deleteEntity(String sharedspaceId, String workspaceId, String entityType, String entityId) {
+        String url = String.format("%s/api/shared_spaces/%s/workspaces/%s/%s/%s", baseURL, sharedspaceId, workspaceId,
+                entityType, entityId);
+
+        RestResponse response = sendRequest(url, HttpMethod.DELETE, null);
+        if (HttpStatus.SC_OK != response.getStatusCode()) {
+            this.logger.error("Error occurs when saving story in Octane: Response code = " + response.getStatusCode());
+            throw new OctaneClientException("AGM_APP", "ERROR_HTTP_CONNECTIVITY_ERROR",
+                    new String[] {response.getData()});
+        }
+
+    }
+
     public List<AgileEntity> getUserStoriesAfterDate(String sharedspaceId, String workspaceId, Set<String> ids,
             Date updateDate)
     {
@@ -1309,6 +1322,8 @@ public class ClientPublicAPI {
         while (sIterator.hasNext()) {
             String key = sIterator.next();
             String value = item.getString(key);
+            if (value.equalsIgnoreCase("null"))
+                value = "";
             if (key.equals(KEY_LAST_UPDATE_DATE)) {
                 entity.setLastUpdateTime(parserDate(value));
             } else if (key.equals(KEY_ID)) {

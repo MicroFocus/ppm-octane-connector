@@ -226,6 +226,23 @@ public class OctaneRequestIntegration extends RequestIntegration {
 
         return entityList.toString();
     }
+
+    @Override
+    public void postDeleteRequest(final String agileProjectValue, final String entityType,
+            final ValueSet instanceConfigurationParameters, String entityId)
+    {
+        ClientPublicAPI client = ClientPublicAPI.getClient(instanceConfigurationParameters);
+        JSONObject workspaceJson = (JSONObject)JSONSerializer.toJSON(agileProjectValue);
+        String workSpaceId = workspaceJson.getString(OctaneConstants.WORKSPACE_ID);
+        String sharedSpaceId = workspaceJson.getString(OctaneConstants.SHARED_SPACE_ID);
+
+        if (OctaneConstants.SUB_TYPE_FEATURE.equals(entityType)) {
+            client.deleteEntity(sharedSpaceId, workSpaceId, "features", entityId);
+        } else if (OctaneConstants.SUB_TYPE_STORY.equals(entityType)) {
+            client.deleteEntity(sharedSpaceId, workSpaceId, "stories", entityId);
+        }
+
+    }
 }
 
 class AgileFieldComparator implements Comparator<AgileEntityFieldInfo> {
