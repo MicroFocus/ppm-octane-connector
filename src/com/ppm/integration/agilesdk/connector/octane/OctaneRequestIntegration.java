@@ -271,6 +271,8 @@ public class OctaneRequestIntegration extends RequestIntegration {
     {
         String[] fullName = fullNameStr.split("#@#");
         net.sf.json.JSONArray jsonArray = client.getUsersByFullName(shareSpaceId, fullName);
+        if (jsonArray.size() < 1)
+            return null;
         if (userFieldInfo.isMultiValue()) {
             JSONObject userList = new JSONObject();
             JSONArray userArr = new JSONArray();
