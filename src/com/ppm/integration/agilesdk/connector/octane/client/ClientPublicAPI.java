@@ -1356,6 +1356,28 @@ public class ClientPublicAPI {
             } else if (key.equals(KEY_ID)) {
                 entity.setId(value);
             } else {
+                JSONObject obj;
+                try {
+                    obj = JSONObject.fromObject(value);
+                    String type = obj.getString("type");
+                    if (type != null && type.equals("workspace_user")) {
+                        value = obj.getString("full_name");
+                    } else {
+                        JSONArray array = JSONArray.fromObject(obj.getString("data"));
+                        for (int i = 0; i < array.size(); i++) {
+                            JSONObject user = array.getJSONObject(i);
+                            if(i==0){
+                                value = user.getString("full_name");
+                            } else{
+                                value = value+"#@#"+user.getString("full_name");
+                            }
+                        }
+
+                    }
+                } catch (JSONException e) {
+
+                }
+               
                 AgileEntityFieldValue fieldValue = new AgileEntityFieldValue(value, null);
                 entity.addField(key, fieldValue);
             }
