@@ -13,6 +13,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
+import com.ppm.integration.agilesdk.dm.DataField;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -440,19 +441,16 @@ public class ClientPublicAPITest {
     private void printAgileEntityList(List<AgileEntity> agileEntityList) {
         for (AgileEntity agileEntity : agileEntityList) {
 
-            Iterator<Entry<String, List<AgileEntityFieldValue>>> iterator = agileEntity.getAllFields();
+            Iterator<Entry<String, DataField>> iterator = agileEntity.getAllFields();
             System.out.println("\t{");
             System.out.println("\tID: " + agileEntity.getId());
             System.out.println("\tlast update time: " + agileEntity.getLastUpdateTime());
             while (iterator.hasNext()) {
 
-                Entry<String, List<AgileEntityFieldValue>> entry = iterator.next();
+                Entry<String, DataField> entry = iterator.next();
                 System.out.print("\t\t" + entry.getKey() + ": ");
-                List<AgileEntityFieldValue> value = entry.getValue();
-                for (AgileEntityFieldValue v : value) {
-                    System.out.println(v.getValue() + ", \t\t referenceValue:" + v.getReferenceValue() + ", ");
-                }
-
+                DataField field = entry.getValue();
+                System.out.println(field.toString());
             }
             System.out.println("\t}");
         }

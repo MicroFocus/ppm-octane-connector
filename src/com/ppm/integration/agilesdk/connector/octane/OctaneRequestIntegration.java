@@ -2,6 +2,7 @@
 package com.ppm.integration.agilesdk.connector.octane;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
@@ -19,14 +20,19 @@ import com.ppm.integration.agilesdk.connector.octane.client.OctaneClientExceptio
 import com.ppm.integration.agilesdk.connector.octane.model.FieldInfo;
 import com.ppm.integration.agilesdk.connector.octane.model.WorkItemRoot;
 import com.ppm.integration.agilesdk.dm.AgileEntityInfo;
+import com.ppm.integration.agilesdk.dm.CodeMeaningField;
+import com.ppm.integration.agilesdk.dm.DataField;
+import com.ppm.integration.agilesdk.dm.DateField;
+import com.ppm.integration.agilesdk.dm.MultiCodeMeaningField;
+import com.ppm.integration.agilesdk.dm.MultiUserField;
 import com.ppm.integration.agilesdk.dm.RequestIntegration;
+import com.ppm.integration.agilesdk.dm.TextField;
+import com.ppm.integration.agilesdk.dm.UserField;
 import com.ppm.integration.agilesdk.model.AgileEntity;
 import com.ppm.integration.agilesdk.model.AgileEntityField;
 import com.ppm.integration.agilesdk.model.AgileEntityFieldInfo;
 import com.ppm.integration.agilesdk.model.AgileEntityFieldInfo.AgileEntityFieldType;
-import com.ppm.integration.agilesdk.model.AgileEntityFieldValue;
 
-import edu.emory.mathcs.backport.java.util.Collections;
 import net.sf.json.JSONArray;
 import net.sf.json.JSONObject;
 import net.sf.json.JSONSerializer;
@@ -40,7 +46,9 @@ import net.sf.json.JSONSerializer;
 public class OctaneRequestIntegration extends RequestIntegration {
 
     @Override
-    public List<AgileEntityInfo> getAgileEntitiesInfo(final String agileProjectValue, final ValueSet instanceConfigurationParameters) {
+    public List<AgileEntityInfo> getAgileEntitiesInfo(final String agileProjectValue,
+            final ValueSet instanceConfigurationParameters)
+    {
         List<AgileEntityInfo> entityList = new ArrayList<AgileEntityInfo>();
         AgileEntityInfo feature = new AgileEntityInfo();
         feature.setName("Feature");
@@ -80,8 +88,8 @@ public class OctaneRequestIntegration extends RequestIntegration {
     }
 
     @Override
-    public List<AgileEntityField> getAgileEntityFieldValueList(final String agileProjectValue, final String entityType, final String fieldInfo,
-            final ValueSet instanceConfigurationParameters)
+    public List<AgileEntityField> getAgileEntityFieldValueList(final String agileProjectValue, final String entityType,
+            final String fieldInfo, final ValueSet instanceConfigurationParameters)
     {
         ClientPublicAPI client = ClientPublicAPI.getClient(instanceConfigurationParameters);
         JSONObject workspaceJson = (JSONObject)JSONSerializer.toJSON(agileProjectValue);
@@ -94,8 +102,8 @@ public class OctaneRequestIntegration extends RequestIntegration {
     }
 
     @Override
-    public AgileEntity updateEntity(final String agileProjectValue, final String entityType,
-            final AgileEntity entity, final ValueSet instanceConfigurationParameters)
+    public AgileEntity updateEntity(final String agileProjectValue, final String entityType, final AgileEntity entity,
+            final ValueSet instanceConfigurationParameters)
     {
         AgileEntity result = null;
         try {
@@ -107,8 +115,8 @@ public class OctaneRequestIntegration extends RequestIntegration {
     }
 
     @Override
-    public AgileEntity createEntity(final String agileProjectValue, final String entityType,
-            final AgileEntity entity, final ValueSet instanceConfigurationParameters)
+    public AgileEntity createEntity(final String agileProjectValue, final String entityType, final AgileEntity entity,
+            final ValueSet instanceConfigurationParameters)
     {
         AgileEntity result = null;
         try {
@@ -191,9 +199,8 @@ public class OctaneRequestIntegration extends RequestIntegration {
 
     }
 
-    private String buildEntity(final ClientPublicAPI client, final String shareSpceId, final List<FieldInfo> fieldInfos, final String entityType,
-            AgileEntity entity,
-            WorkItemRoot root)
+    private String buildEntity(final ClientPublicAPI client, final String sharedSpceId,
+            final List<FieldInfo> fieldInfos, final String entityType, AgileEntity entity, WorkItemRoot root)
     {
         JSONArray entityList = new JSONArray();
         JSONObject entityObj = new JSONObject();
@@ -204,21 +211,31 @@ public class OctaneRequestIntegration extends RequestIntegration {
             fieldInfoMap.put(info.getName(), info);
         }
 
-        Iterator<Entry<String, List<AgileEntityFieldValue>>> it = entity.getAllFields();
+        Iterator<Entry<String, DataField>> it = entity.getAllFields();
         while (it.hasNext()) {
-            Entry<String, List<AgileEntityFieldValue>> entry = it.next();
+            Entry<String, DataField> entry = it.next();
             String key = entry.getKey();
             if (key.equals(OctaneConstants.KEY_FIELD_NAME))
                 existName = true;
 
             FieldInfo fieldInfo = fieldInfoMap.get(entry.getKey());
-            if (fieldInfo.getFieldType().equals("userList"))
-            {
-                JSONObject obj = transformUserField(client, fieldInfo, entry.getValue().get(0).getValue(), shareSpceId);
-                entityObj.put(entry.getKey(), obj);
 
-            } else {
-                entityObj.put(entry.getKey(), entry.getValue().get(0).getValue());
+            DataField field = entry.getValue();
+            if (field instanceof TextField) {
+                TextField textField = (TextField)field;
+                entityObj.put(key, textField.getText());
+            } else if (field instanceof MultiUserField) {
+                if (fieldInfo.getFieldType().equals("userList")) {
+                    MultiUserField userFields = (MultiUserField)field;
+                    JSONObject obj = transformUserField(client, fieldInfo, userFields.getFields(), sharedSpceId);
+                    entityObj.put(entry.getKey(), obj);
+                }
+            } else if (field instanceof CodeMeaningField) {
+
+            } else if (field instanceof MultiCodeMeaningField) {
+
+            } else if (field instanceof DateField) {
+
             }
         }
 
@@ -266,11 +283,16 @@ public class OctaneRequestIntegration extends RequestIntegration {
 
     }
 
-    private JSONObject transformUserField(ClientPublicAPI client, FieldInfo userFieldInfo, String fullNameStr,
+    private JSONObject transformUserField(ClientPublicAPI client, FieldInfo userFieldInfo, Set<UserField> fields,
             String shareSpaceId)
     {
-        String[] fullName = fullNameStr.split("#@#");
-        net.sf.json.JSONArray jsonArray = client.getUsersByFullName(shareSpaceId, fullName);
+        String[] fullNames = new String[fields.size()];
+        int index = 0;
+        for (UserField field : fields) {
+            fullNames[index] = field.getFullName();
+            index++;
+        }
+        net.sf.json.JSONArray jsonArray = client.getUsersByFullName(shareSpaceId, fullNames);
         if (jsonArray.size() < 1)
             return null;
         if (userFieldInfo.isMultiValue()) {
