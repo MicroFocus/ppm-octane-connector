@@ -1416,31 +1416,6 @@ public class ClientPublicAPI {
         }
         return agileEntities;
     }
-    
-    private String getString(String key, JSONObject obj) {
-
-        if (obj == null) {
-            return null;
-        }
-
-        try {
-            return obj.getString(key);
-        } catch (JSONException e) {
-            return null;
-        }
-    }
-    
-    private JSONObject getObj(String key, JSONObject obj) {
-        if (obj == null) {
-            return null;
-        }
-
-        try {
-            return obj.getJSONObject(key);
-        } catch (JSONException e) {
-            return null;
-        }
-    }
 
     /**
      * This class is in charge of retrieving data from Octane REST API in a paginated way.
