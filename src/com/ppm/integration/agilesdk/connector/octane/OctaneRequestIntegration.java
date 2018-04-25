@@ -284,7 +284,7 @@ public class OctaneRequestIntegration extends RequestIntegration {
                 obj.put("id", id);
                 userArr.add(obj);
             }
-            userList.put("date", userArr);
+            userList.put("data", userArr);
             return userList;
 
         } else {

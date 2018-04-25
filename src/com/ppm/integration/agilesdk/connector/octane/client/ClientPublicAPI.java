@@ -1342,10 +1342,10 @@ public class ClientPublicAPI {
         return dateString;
     }
 
-    private AgileEntity wrapperEntity(JSONObject item){
+    private AgileEntity wrapperEntity(JSONObject item) {
 
         AgileEntity entity = new AgileEntity();
-    	Iterator<String> sIterator = item.keys();
+        Iterator<String> sIterator = item.keys();
         while (sIterator.hasNext()) {
             String key = sIterator.next();
             String value = item.getString(key);
@@ -1359,17 +1359,23 @@ public class ClientPublicAPI {
                 JSONObject obj;
                 try {
                     obj = JSONObject.fromObject(value);
-                    String type = obj.getString("type");
+                    String type = null;
+                    try {
+                        type = obj.getString("type");
+                    } catch (JSONException e) {
+
+                    }
+
                     if (type != null && type.equals("workspace_user")) {
                         value = obj.getString("full_name");
                     } else {
                         JSONArray array = JSONArray.fromObject(obj.getString("data"));
                         for (int i = 0; i < array.size(); i++) {
                             JSONObject user = array.getJSONObject(i);
-                            if(i==0){
+                            if (i == 0) {
                                 value = user.getString("full_name");
-                            } else{
-                                value = value+"#@#"+user.getString("full_name");
+                            } else {
+                                value = value + "#@#" + user.getString("full_name");
                             }
                         }
 
@@ -1377,7 +1383,7 @@ public class ClientPublicAPI {
                 } catch (JSONException e) {
 
                 }
-               
+
                 AgileEntityFieldValue fieldValue = new AgileEntityFieldValue(value, null);
                 entity.addField(key, fieldValue);
             }
