@@ -266,20 +266,42 @@ public class ClientPublicAPI {
                 "%s/api/shared_spaces/%d/timesheet?login_names=%s&start_date=%s&end_date=%s&workspace_ids=%d&task_level=true",
                 baseURL, shareSpace, userName, startDateStr, endDateStr, workspaceId);
 
-        RestResponse response = sendGet(url);
+        RestResponse response = null;
+
+        try {
+            response = sendGet(url);
+        } catch (OctaneClientException oce) {
+            if ("ERROR_ACCESS_FAILED".equals(oce.getMsgKey())) {
+                // Client API user does not have acces to this work space; no big deal, it likely means we don't expect any data from there.
+                return new ArrayList<TimesheetItem>(0);
+            } else {
+                throw oce;
+            }
+        }
 
         try {
             List<TimesheetItem> items = parseTimesheetItems(response.getData());
             return items;
         } catch (Exception e) {
             logger.error("error in timesheet retrieve:", e);
-            throw new OctaneClientException("AGM_APP", "error in timesheet retrieve:", e.getMessage());
+            throw new OctaneClientException("AGM_APP", "error when retrieving timesheet information:", e.getMessage());
         }
     }
 
     private List<TimesheetItem> parseTimesheetItems(String json) {
         try {
             org.json.JSONObject obj = new org.json.JSONObject(json);
+
+            if (!obj.has("data")) {
+                // Likely an error on Octane side, authentication or something else.
+                if (obj.has("error_code") && obj.has("description") && obj.has("stack_trace")) {
+                    // Octane "proper" Error
+                    throw new RuntimeException("Octane error "+obj.getString("error_code")+ ": '"+obj.getString("description")+"'.\nOctane StackTrace:\n" + obj.getString("stack_trace"));
+                } else {
+                    // Unknown error
+                    throw new RuntimeException("Unknown error, cannot parse Octane Response; retrieved payload from Octane: "+json);
+                }
+            }
 
             org.json.JSONArray arr = obj.getJSONArray("data");
             List<TimesheetItem> items = new ArrayList<>();
