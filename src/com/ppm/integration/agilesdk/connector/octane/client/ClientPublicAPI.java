@@ -5,10 +5,12 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
+import java.io.UnsupportedEncodingException;
 import java.net.HttpURLConnection;
 import java.net.InetSocketAddress;
 import java.net.Proxy;
 import java.net.URL;
+import java.net.URLEncoder;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
@@ -964,7 +966,8 @@ public class ClientPublicAPI {
 
     public List<FieldInfo> getEntityFields(final String sharedspaceId, final String workspaceId, final String entityName) {
         String url = String.format("%s/api/shared_spaces/%s/workspaces/%s/metadata/fields?query=%s%s%s",
-                baseURL, sharedspaceId, workspaceId, "%22entity_name%20EQ%20'", entityName, "';visible_in_ui%20EQ%20true;editable%20EQ%20true;field_type%20EQ%20'string'%22");
+                baseURL, sharedspaceId, workspaceId, "%22entity_name%20EQ%20'", entityName,
+                "';visible_in_ui%20EQ%20true;editable%20EQ%20true;field_type%20IN%20'string','reference'%22");
         List fieldsList = new ArrayList();
         RestResponse response = sendGet(url);
         JSONObject dataObj = JSONObject.fromObject(response.getData());
@@ -973,7 +976,11 @@ public class ClientPublicAPI {
             for(int i = 0; i < fieldsArray.size(); i++) {
                 JSONObject data = fieldsArray.getJSONObject(i);
                 FieldInfo info = new FieldInfo(data);
-                fieldsList.add(info);
+                if (info.getFieldType() != null
+                        && (info.getFieldType().equals("string") || info.getFieldType().equals("userList")))
+                {
+                    fieldsList.add(info);
+                }
             }
         }
         return fieldsList;
@@ -1273,7 +1280,7 @@ public class ClientPublicAPI {
                 entityType, entityId);
 
         RestResponse response = sendRequest(url, HttpMethod.DELETE, null);
-        if (HttpStatus.SC_OK != response.getStatusCode()) {
+        if (HttpStatus.SC_OK != response.getStatusCode() && HttpStatus.SC_NOT_FOUND != response.getStatusCode()) {
             this.logger.error("Error occurs when saving story in Octane: Response code = " + response.getStatusCode());
             throw new OctaneClientException("AGM_APP", "ERROR_HTTP_CONNECTIVITY_ERROR",
                     new String[] {response.getData()});
@@ -1327,6 +1334,26 @@ public class ClientPublicAPI {
         return agileEntities;
     }
 
+    public JSONArray getUsersByFullName(String sharedspaceId, String[] names) {
+        String query = "";
+        if (null != names && names.length > 0) {
+            query += "\"full_name IN '" + StringUtils.join(names, "','") + "'\"";
+        } else {
+            return null;
+        }
+        try {
+            query = URLEncoder.encode(query, "gb2312");
+        } catch (UnsupportedEncodingException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
+        String url = String.format("%s/api/shared_spaces/%s/users?query=%s", baseURL, sharedspaceId, query);
+        RestResponse response = sendGet(url);
+        JSONObject dataObj = JSONObject.fromObject(response.getData());
+        JSONArray userList = JSONArray.fromObject(dataObj.get("data"));
+        return userList;
+    }
+
     private String transformDateFormat(Date dateStr) {
         String dateString;
         String pattern = "yyyy-MM-dd'T'HH:mm:ss'Z'";
@@ -1337,10 +1364,10 @@ public class ClientPublicAPI {
         return dateString;
     }
 
-    private AgileEntity wrapperEntity(JSONObject item){
+    private AgileEntity wrapperEntity(JSONObject item) {
 
         AgileEntity entity = new AgileEntity();
-    	Iterator<String> sIterator = item.keys();
+        Iterator<String> sIterator = item.keys();
         while (sIterator.hasNext()) {
             String key = sIterator.next();
             String value = item.getString(key);
@@ -1351,6 +1378,34 @@ public class ClientPublicAPI {
             } else if (key.equals(KEY_ID)) {
                 entity.setId(value);
             } else {
+                JSONObject obj;
+                try {
+                    obj = JSONObject.fromObject(value);
+                    String type = null;
+                    try {
+                        type = obj.getString("type");
+                    } catch (JSONException e) {
+
+                    }
+
+                    if (type != null && type.equals("workspace_user")) {
+                        value = obj.getString("full_name");
+                    } else {
+                        JSONArray array = JSONArray.fromObject(obj.getString("data"));
+                        for (int i = 0; i < array.size(); i++) {
+                            JSONObject user = array.getJSONObject(i);
+                            if (i == 0) {
+                                value = user.getString("full_name");
+                            } else {
+                                value = value + "#@#" + user.getString("full_name");
+                            }
+                        }
+
+                    }
+                } catch (JSONException e) {
+
+                }
+
                 AgileEntityFieldValue fieldValue = new AgileEntityFieldValue(value, null);
                 entity.addField(key, fieldValue);
             }

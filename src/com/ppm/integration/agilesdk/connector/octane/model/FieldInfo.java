@@ -2,6 +2,7 @@ package com.ppm.integration.agilesdk.connector.octane.model;
 
 import com.ppm.integration.agilesdk.connector.octane.OctaneConstants;
 import com.ppm.integration.agilesdk.connector.octane.client.OctaneClientException;
+
 import net.sf.json.JSONArray;
 import net.sf.json.JSONObject;
 
@@ -17,6 +18,17 @@ public class FieldInfo {
     private String name;
     private String logicalName;
     private Boolean listType = false;
+    private String fieldType;
+
+    private boolean multiValue = false;
+
+    public String getFieldType() {
+        return fieldType;
+    }
+
+    public void setFieldType(String fieldType) {
+        this.fieldType = fieldType;
+    }
 
     public FieldInfo(JSONObject jsonObject) {
         parseData(jsonObject);
@@ -54,7 +66,13 @@ public class FieldInfo {
         this.listType = listType;
     }
 
+    public boolean isMultiValue() {
+        return multiValue;
+    }
 
+    public void setMultiValue(boolean multiValue) {
+        this.multiValue = multiValue;
+    }
 
     private void parseData(final JSONObject dataObj) {
         try {
@@ -63,14 +81,25 @@ public class FieldInfo {
             if (dataObj.containsKey(OctaneConstants.KEY_FIELD_TYPE_DATA)) {
                 JSONObject typeData = dataObj.getJSONObject(OctaneConstants.KEY_FIELD_TYPE_DATA);
                 JSONArray targets = typeData.getJSONArray(OctaneConstants.KEY_FIELD_TARGETS);
+                boolean multiple = typeData.getBoolean(OctaneConstants.KEY_FIELD_MUlTIPLE);
                 for (int i = 0; i < targets.size(); i++) {
                     JSONObject target = targets.getJSONObject(i);
                     if (OctaneConstants.SUB_TYPE_LIST_NODE.equals(target.getString(OctaneConstants.KEY_FIELD_TYPE))) {
                         listType = true;
+                        fieldType = "SUB_TYPE_LIST_NODE";
                         logicalName = target.getString(OctaneConstants.KEY_LOGICAL_NAME);
                         break;
+                    } else if (OctaneConstants.SUB_TYPE_USER_NODE
+                            .equals(target.getString(OctaneConstants.KEY_FIELD_TYPE))) {// multiple
+                        listType = false;
+                        fieldType = "userList";
+                        multiValue = multiple;
+                        break;
+
                     }
                 }
+            } else {
+                fieldType = "string";
             }
         } catch (Exception e) {
             throw new OctaneClientException("AGM_APP", "Error when reading JSon data from Octane: "+ e.getMessage());
