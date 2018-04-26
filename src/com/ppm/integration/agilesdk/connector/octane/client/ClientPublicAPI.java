@@ -1001,9 +1001,7 @@ public class ClientPublicAPI {
                     new String[] {response.getData()});
         }
 
-        Map<String, FieldInfo> fieldInfoMap  = getFieldInfoMap(sharedspaceId, workspaceId, "feature");
-
-        agileEntity = getCreateEntityFromResponse(response.getData(), fieldInfoMap);
+        agileEntity = getCreateEntityFromResponse(response.getData());
         agileEntity.setEntityUrl(
                 String.format(DEFAULT_ENTITY_ITEM_URL, baseURL, sharedspaceId, workspaceId, agileEntity.getId()));
         return agileEntity;
@@ -1024,23 +1022,21 @@ public class ClientPublicAPI {
                     new String[] {response.getData()});
         }
 
-        Map<String, FieldInfo> fieldInfoMap  = getFieldInfoMap(sharedspaceId, workspaceId, "story");
-
-        agileEntity = getCreateEntityFromResponse(response.getData(), fieldInfoMap);
+        agileEntity = getCreateEntityFromResponse(response.getData());
         agileEntity.setEntityUrl(
                 String.format(DEFAULT_ENTITY_ITEM_URL, baseURL, sharedspaceId, workspaceId, agileEntity.getId()));
         return agileEntity;
 
     }
 
-    private AgileEntity getCreateEntityFromResponse(String jsonData, Map<String, FieldInfo> fieldInfoMap) {
+    private AgileEntity getCreateEntityFromResponse(String jsonData) {
         JSONObject obj;
         AgileEntity agileEntity = null;
         try {
             obj = JSONObject.fromObject(jsonData);
             JSONArray data = (JSONArray)(obj.get("data"));
             if (data.size() > 0)
-                agileEntity = wrapperEntity(data.getJSONObject(0), fieldInfoMap);
+                agileEntity = wrapperEntity(data.getJSONObject(0), null);
         } catch (JSONException e) {
             throw new OctaneClientException("AGM_APP", "ERROR_HTTP_CONNECTIVITY_ERROR",
                     "Error occurs when parse response data:" + jsonData);
@@ -1343,7 +1339,7 @@ public class ClientPublicAPI {
                 entity.setLastUpdateTime(parserDate(value));
             } else if (key.equals(KEY_ID)) {
                 entity.setId(value);
-            } else {
+            } else if (fieldInfoMap != null) {
                 if (fieldInfoMap.get(key).getFieldType().equals("userList")) {
                     MultiUserField userField = new MultiUserField();
                     entity.addField(key, userField);
