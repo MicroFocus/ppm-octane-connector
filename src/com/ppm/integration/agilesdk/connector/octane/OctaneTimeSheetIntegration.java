@@ -1,18 +1,16 @@
 package com.ppm.integration.agilesdk.connector.octane;
 
 import com.hp.ppm.tm.model.TimeSheet;
+import com.mercury.itg.integration.plugin.fundation.project.TimeSheetSearchItemExclude;
 import com.ppm.integration.agilesdk.ValueSet;
 import com.ppm.integration.agilesdk.connector.octane.client.*;
 import com.ppm.integration.agilesdk.connector.octane.model.SharedSpace;
 import com.ppm.integration.agilesdk.connector.octane.model.TimesheetItem;
 import com.ppm.integration.agilesdk.connector.octane.model.WorkSpace;
-import com.ppm.integration.agilesdk.tm.ExternalWorkItem;
-import com.ppm.integration.agilesdk.tm.ExternalWorkItemEffortBreakdown;
-import com.ppm.integration.agilesdk.tm.TimeSheetIntegration;
-import com.ppm.integration.agilesdk.tm.TimeSheetIntegrationContext;
-import com.ppm.integration.agilesdk.ui.Field;
-import com.ppm.integration.agilesdk.ui.PasswordText;
-import com.ppm.integration.agilesdk.ui.PlainText;
+import com.ppm.integration.agilesdk.provider.LocalizationProvider;
+import com.ppm.integration.agilesdk.provider.Providers;
+import com.ppm.integration.agilesdk.tm.*;
+import com.ppm.integration.agilesdk.ui.*;
 
 import java.text.DateFormat;
 import java.text.ParseException;
@@ -29,11 +27,16 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+
+import org.apache.commons.lang.StringUtils;
 import org.apache.log4j.Logger;
 import org.apache.wink.client.ClientRuntimeException;
 
 public class OctaneTimeSheetIntegration extends TimeSheetIntegration {
+
     private final Logger logger = Logger.getLogger(this.getClass());
+
+    static final String SEP = ">";
 
     protected synchronized String convertDate(Date date) {
 
@@ -49,7 +52,15 @@ public class OctaneTimeSheetIntegration extends TimeSheetIntegration {
 
     @Override public List<Field> getMappingConfigurationFields(ValueSet paramValueSet) {
         return Arrays.asList(new Field[] {new PlainText(OctaneConstants.KEY_USERNAME, "USERNAME", "", true),
-                new PasswordText(OctaneConstants.KEY_PASSWORD, "PASSWORD", "", true)});
+                new PasswordText(OctaneConstants.KEY_PASSWORD, "PASSWORD", "", true),
+                new LineBreaker(),
+                new SelectList(OctaneConstants.TS_GROUP_BY,"TS_GROUP_BY",OctaneConstants.TS_GROUP_BY_RELEASE,true)
+                        .addLevel(OctaneConstants.TS_GROUP_BY, "TS_GROUP_BY")
+                        .addOption(new SelectList.Option(OctaneConstants.TS_GROUP_BY_WORKSPACE,"TS_GROUP_BY_WORKSPACE"))
+                        .addOption(new SelectList.Option(OctaneConstants.TS_GROUP_BY_RELEASE,"TS_GROUP_BY_RELEASE"))
+                        .addOption(new SelectList.Option(OctaneConstants.TS_GROUP_BY_BACKLOG_ITEM,"TS_GROUP_BY_BACKLOG_ITEM"))
+
+        });
     }
 
     @Override public List<ExternalWorkItem> getExternalWorkItems(TimeSheetIntegrationContext context,
@@ -69,7 +80,8 @@ public class OctaneTimeSheetIntegration extends TimeSheetIntegration {
     public List<ExternalWorkItem> getExternalWorkItemsByTasks(TimeSheetIntegrationContext context,
             final ValueSet values) throws ParseException
     {
-        final List<ExternalWorkItem> items = Collections.synchronizedList(new LinkedList<ExternalWorkItem>());
+        final List<ExternalWorkItem> timesheetLines = Collections.synchronizedList(new LinkedList<ExternalWorkItem>());
+
         try {
 
             boolean passAuth = false;
@@ -88,6 +100,8 @@ public class OctaneTimeSheetIntegration extends TimeSheetIntegration {
             
             String clientId = values.get(OctaneConstants.APP_CLIENT_ID);
             String clientSecret = values.get(OctaneConstants.APP_CLIENT_SECRET);
+            String groupBy = values.get(OctaneConstants.TS_GROUP_BY);
+
 
             if (clientP.getAccessTokenWithFormFormat(clientId, clientSecret) && passAuth) {
                 List<SharedSpace> shareSpaces = clientP.getSharedSpaces();
@@ -99,27 +113,55 @@ public class OctaneTimeSheetIntegration extends TimeSheetIntegration {
                         List<TimesheetItem> timeSheets = clientP.getTimeSheetData(Integer.parseInt(shareSpace.id),
                                 values.get(OctaneConstants.KEY_USERNAME), startDate.toString(), endDate.toString(),
                                 Integer.parseInt(workSpace.id));
-                        Map<String, ArrayList<TimesheetItem>> releaseTimesheet =
-                                new HashMap<String, ArrayList<TimesheetItem>>();
 
-                        //this is used to generate Map<"release",List<TimesheetItem>>
-                        for (TimesheetItem timeItem : timeSheets) {
-                            if (!releaseTimesheet.containsKey(timeItem.getReleaseName())) {
-                                releaseTimesheet.put(timeItem.getReleaseName(), new ArrayList<TimesheetItem>());
-                            }
-                            releaseTimesheet.get(timeItem.getReleaseName()).add(timeItem);
+                        if (timeSheets == null || timeSheets.isEmpty()) {
+                            continue;
                         }
 
-                        //this is used to add one IExternalWorkItem as one line for one specific release under a workspace
-                        Iterator iter = releaseTimesheet.entrySet().iterator();
-                        while (iter.hasNext()) {
-                            Map.Entry entry = (Map.Entry)iter.next();
-                            Object releaseName = entry.getKey();
-                            ArrayList<TimesheetItem> oneReleaseTimeItems = (ArrayList<TimesheetItem>)entry.getValue();
+                        if (OctaneConstants.TS_GROUP_BY_WORKSPACE.equals(groupBy)) {
+                            // Group by workspace - We aggregate all items into one line for the current workspace
+                            timesheetLines.add(new OctaneExternalWorkItem(workSpace.name,
+                                    timeSheets, startDate, endDate, workSpace.id, null, null));
 
-                            items.add(new OctaneExternalWorkItem(workSpace.name, releaseName.toString(),
-                                    oneReleaseTimeItems, values, startDate, endDate));
+                        } else if (OctaneConstants.TS_GROUP_BY_BACKLOG_ITEM.equals(groupBy)) {
+                            // Group by Backlog items - One item = one line
+                            for (TimesheetItem item : timeSheets) {
+                                timesheetLines.add(new OctaneExternalWorkItem(workSpace.name + SEP + item.getEntityName(),
+                                        Arrays.asList(new TimesheetItem[] {item}), startDate, endDate, workSpace.id, item.getReleaseId() == 0 ? null : String.valueOf(item.getReleaseId()), String.valueOf(item.getEntityId())));
+                            }
 
+                        } else {
+                            // group by Releases
+                            Map<Integer, List<TimesheetItem>> releaseTimesheet = new HashMap<Integer, List<TimesheetItem>>();
+                            Map<Integer, String> releaseIdName = new HashMap<>();
+                            for (TimesheetItem timeItem : timeSheets) {
+                                if (!releaseTimesheet.containsKey(timeItem.getReleaseId())) {
+                                    releaseTimesheet.put(timeItem.getReleaseId(), new ArrayList<TimesheetItem>());
+                                }
+                                releaseTimesheet.get(timeItem.getReleaseId()).add(timeItem);
+                                releaseIdName.put(timeItem.getReleaseId(), timeItem.getReleaseName());
+                            }
+
+                            for (Map.Entry<Integer, List<TimesheetItem>> entry : releaseTimesheet.entrySet()) {
+                                int releaseIdInt = entry.getKey();
+
+                                String releaseId = null;
+                                String releaseName = null;
+                                if (releaseIdInt == 0) {
+                                    releaseId = null;
+                                    releaseName = Providers.getLocalizationProvider(OctaneIntegrationConnector.class).getConnectorText("TS_NO_RELEASE_LABEL");
+                                } else {
+                                    releaseId = String.valueOf(releaseIdInt);
+                                    releaseName = releaseIdName.get(releaseIdInt);
+                                }
+
+
+
+                                ArrayList<TimesheetItem> oneReleaseTimeItems = (ArrayList<TimesheetItem>)entry.getValue();
+
+                                timesheetLines.add(new OctaneExternalWorkItem(workSpace.name + SEP + releaseName,
+                                        oneReleaseTimeItems, startDate, endDate, workSpace.id, releaseId, null));
+                            }
                         }
                     }
                 }
@@ -134,16 +176,18 @@ public class OctaneTimeSheetIntegration extends TimeSheetIntegration {
                     .uncaughtException(Thread.currentThread(), e, OctaneTimeSheetIntegration.class);
         }
 
-        return items;
+        return timesheetLines;
     }
 
     private class OctaneExternalWorkItem extends ExternalWorkItem {
 
-        static final String SEP = ">";
+        String workspaceId;
 
-        String workSpace;
+        String releaseId;
 
-        String releaseName;
+        String backlogItemId;
+
+        String timesheetLineName;
 
         double totalEffort = 0;
 
@@ -155,13 +199,16 @@ public class OctaneTimeSheetIntegration extends TimeSheetIntegration {
 
         Hashtable<String, Long> effortList = new Hashtable<>();
 
-        public OctaneExternalWorkItem(String workSpace, String releaseName, List<TimesheetItem> timeSheets,
-                ValueSet values, String startDate, String finishDate)
+        public OctaneExternalWorkItem(String timesheetLineName, List<TimesheetItem> timeSheets,
+                String startDate, String finishDate, String workspaceId, String releaseId, String backlogItemId)
         {
 
             SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
-            this.workSpace = workSpace;
-            this.releaseName = releaseName;
+            this.timesheetLineName = timesheetLineName;
+            this.workspaceId = workspaceId;
+            this.releaseId = releaseId;
+            this.backlogItemId = backlogItemId;
+
             try {
                 this.startDate = sdf.parse(startDate);
                 this.finishDate = sdf.parse(finishDate);
@@ -178,13 +225,21 @@ public class OctaneTimeSheetIntegration extends TimeSheetIntegration {
         }
 
         @Override public String getName() {
-            return this.workSpace + SEP + this.releaseName;
+            return this.timesheetLineName;
         }
 
         
         @Override
         public Double getTotalEffort() {
             return totalEffort;
+        }
+
+        @Override
+        public TimeSheetLineAgileEntityInfo getLineAgileEntityInfo() {
+            TimeSheetLineAgileEntityInfo lineInfo = new TimeSheetLineAgileEntityInfo(workspaceId);
+            lineInfo.setBacklogItemId(this.backlogItemId);
+            lineInfo.setReleaseId(this.releaseId);
+            return lineInfo;
         }
 
         @Override

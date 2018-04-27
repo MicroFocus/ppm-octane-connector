@@ -89,7 +89,7 @@ public class ClientPublicAPITest {
             for (WorkSpace workSpace : workspacesAll) {
                 List<TimesheetItem> timeSheets = client.getTimeSheetData(Integer.parseInt(shareSpace.id),
                         values.get(OctaneConstants.KEY_USERNAME), startDateStr, endDateStr,
-                        Integer.parseInt(workSpace.id));
+                        Integer.parseInt(workSpace.id), groupBy);
                 Map<String, ArrayList<TimesheetItem>> releaseTimesheet =
                         new HashMap<String, ArrayList<TimesheetItem>>();
                 for (TimesheetItem timeItem : timeSheets) {

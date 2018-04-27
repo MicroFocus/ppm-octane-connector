@@ -129,4 +129,12 @@ public class OctaneConstants {
     public static final String KEY_FIELD_LAST_MODIFIED = "last_modified";
     
     public static final String KEY_FIELD_NAME_DEFAULT_VALUE = "default name value";
+
+    public static final String TS_GROUP_BY = "TS_GROUP_BY";
+
+    public static final String TS_GROUP_BY_RELEASE = "TS_GROUP_BY_RELEASE";
+
+    public static final String TS_GROUP_BY_WORKSPACE = "TS_GROUP_BY_WORKSPACE";
+
+    public static final String TS_GROUP_BY_BACKLOG_ITEM = "TS_GROUP_BY_BACKLOG_ITEM";
 }
