@@ -225,7 +225,7 @@ public class OctaneRequestIntegration extends RequestIntegration {
                 TextField textField = (TextField)field;
                 entityObj.put(key, textField.getText());
             } else if (field instanceof MultiUserField) {
-                if (fieldInfo.getFieldType().equals("userList")) {
+                if (fieldInfo != null && fieldInfo.getFieldType().equals("userList")) {
                     MultiUserField userFields = (MultiUserField)field;
                     JSONObject obj = transformUserField(client, fieldInfo, userFields.getFields(), sharedSpceId);
                     entityObj.put(entry.getKey(), obj);
@@ -286,6 +286,9 @@ public class OctaneRequestIntegration extends RequestIntegration {
     private JSONObject transformUserField(ClientPublicAPI client, FieldInfo userFieldInfo, Set<UserField> fields,
             String shareSpaceId)
     {
+        if (fields == null || fields.isEmpty()) {
+            return null;
+        }
         String[] fullNames = new String[fields.size()];
         int index = 0;
         for (UserField field : fields) {

@@ -28,6 +28,7 @@ import javax.ws.rs.core.MediaType;
 import com.ppm.integration.agilesdk.dm.DataField;
 import com.ppm.integration.agilesdk.dm.MultiUserField;
 import com.ppm.integration.agilesdk.dm.TextField;
+import com.ppm.integration.agilesdk.dm.UserField;
 import org.apache.commons.lang.StringUtils;
 import org.apache.http.HttpStatus;
 import org.apache.log4j.Logger;
@@ -1332,18 +1333,47 @@ public class ClientPublicAPI {
         Iterator<String> sIterator = item.keys();
         while (sIterator.hasNext()) {
             String key = sIterator.next();
-            String value = item.getString(key);
-            if (value.equalsIgnoreCase("null"))
-                value = "";
             if (key.equals(KEY_LAST_UPDATE_DATE)) {
+                String value = item.getString(key);
                 entity.setLastUpdateTime(parserDate(value));
             } else if (key.equals(KEY_ID)) {
+                String value = item.getString(key);
                 entity.setId(value);
-            } else if (fieldInfoMap != null) {
-                if (fieldInfoMap.get(key).getFieldType().equals("userList")) {
-                    MultiUserField userField = new MultiUserField();
-                    entity.addField(key, userField);
-                } else if (fieldInfoMap.get(key).getFieldType().equals("string")) {
+            } else if (fieldInfoMap != null && fieldInfoMap.get(key) != null) {
+                FieldInfo info = fieldInfoMap.get(key);
+                if (info.getFieldType().equals("userList")) {
+                    JSONObject value = item.getJSONObject(key);
+                    if (info.isMultiValue()) {
+                        MultiUserField multiUserField = new MultiUserField();
+                        JSONArray users = value.getJSONArray("data");
+                        for (int i = 0; i < users.size(); i++) {
+                            JSONObject user = users.getJSONObject(i);
+                            UserField userField = new UserField();
+                            if (user.containsKey("full_name")) {
+                                userField.setFullName(user.getString("full_name"));
+                            }
+                            if (user.containsKey("name")) {
+                                userField.setEmail(user.getString("name"));
+                            }
+                            multiUserField.addUserField(userField);
+                        }
+                        entity.addField(key, multiUserField);
+                    } else {
+                        UserField userField = new UserField();
+                        if (value.containsKey("full_name")) {
+                            userField.setFullName(value.getString("full_name"));
+                        }
+                        if (value.containsKey("name")) {
+                            userField.setEmail(value.getString("name"));
+                        }
+                        entity.addField(key, userField);
+                    }
+
+                } else if (info.getFieldType().equals("string")) {
+                    String value = item.getString(key);
+                    if (value == null || value.equals("null")) {
+                        value = "";
+                    }
                     TextField textField = new TextField(value);
                     entity.addField(key, textField);
                 }
