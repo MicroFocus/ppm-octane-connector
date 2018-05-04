@@ -50,6 +50,7 @@ import com.ppm.integration.agilesdk.connector.octane.model.ReleaseTeams;
 import com.ppm.integration.agilesdk.connector.octane.model.Releases;
 import com.ppm.integration.agilesdk.connector.octane.model.SharedSpace;
 import com.ppm.integration.agilesdk.connector.octane.model.SharedSpaces;
+import com.ppm.integration.agilesdk.connector.octane.model.SimpleEntity;
 import com.ppm.integration.agilesdk.connector.octane.model.Sprint;
 import com.ppm.integration.agilesdk.connector.octane.model.Team;
 import com.ppm.integration.agilesdk.connector.octane.model.Teams;
@@ -577,7 +578,7 @@ public class ClientPublicAPI {
         return results;
     }
 
-    public WorkItemRoot getWorkItemRoot(int sharedSpaceId, int workSpaceId) {
+    public WorkItemRoot getWorkItems(int sharedSpaceId, int workSpaceId) {
         WorkItemRoot tempWorkItemRoot = new WorkItemRoot();
         boolean hasNext = true;
         int offset = 0;
@@ -601,6 +602,22 @@ public class ClientPublicAPI {
             }
         } while (hasNext);
         tempWorkItemRoot.ParseDataIntoDetail();
+        return tempWorkItemRoot;
+    }
+
+    public SimpleEntity getWorkItemRoot(int sharedSpaceId, int workSpaceId) {
+        SimpleEntity tempWorkItemRoot = null;
+
+        String url = String.format("%s/api/shared_spaces/%d/workspaces/%d/work_item_roots", baseURL, sharedSpaceId,
+                workSpaceId);
+
+        RestResponse response = sendGet(url);
+        JSONObject obj = JSONObject.fromObject(response.getData());
+        JSONArray roots = JSONArray.fromObject(obj.get("data"));
+        if (roots.size() > 0) {
+            tempWorkItemRoot = wrapperWorkItemRootFromData(roots.get(0));
+        }
+
         return tempWorkItemRoot;
     }
 
@@ -1447,6 +1464,15 @@ public class ClientPublicAPI {
         }
 
         return new JsonPaginatedOctaneGetter().get(url);
+    }
+
+    private SimpleEntity wrapperWorkItemRootFromData(Object data) {
+        SimpleEntity root = new SimpleEntity();
+        JSONObject obj = JSONObject.fromObject(data);
+        root.id = obj.getString("id");
+        root.name = obj.getString("name");
+        root.type = obj.getString("type");
+        return root;
     }
 
     private Map<String, FieldInfo> getFieldInfoMap(String sharedspaceId, String workspaceId, String entityType) {

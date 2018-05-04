@@ -162,7 +162,7 @@ public class OctaneAgileDataIntegration extends AgileDataIntegration {
     protected void SetUpEpicFeatureBacklogItems(ClientPublicAPI client, int sharedSpaceId, int workSpaceId)
             throws IOException
     {
-        WorkItemRoot workItemRoot = client.getWorkItemRoot(sharedSpaceId, workSpaceId);
+        WorkItemRoot workItemRoot = client.getWorkItems(sharedSpaceId, workSpaceId);
         List<WorkItemStory> itemBacklogs = workItemRoot.storyList;
         releaseBacklogItems.addAll(this.parseBacklogItem(itemBacklogs, workSpaceId));
         Map<String, WorkItemFeature> itemFeatureRootMap=workItemRoot.featureList;
