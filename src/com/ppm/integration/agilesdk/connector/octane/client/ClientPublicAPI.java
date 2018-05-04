@@ -27,7 +27,9 @@ import javax.ws.rs.core.MediaType;
 
 import com.ppm.integration.agilesdk.dm.DataField;
 import com.ppm.integration.agilesdk.dm.MultiUserField;
+import com.ppm.integration.agilesdk.dm.StringField;
 import com.ppm.integration.agilesdk.dm.TextField;
+import com.ppm.integration.agilesdk.dm.User;
 import com.ppm.integration.agilesdk.dm.UserField;
 import org.apache.commons.lang.StringUtils;
 import org.apache.http.HttpStatus;
@@ -1366,27 +1368,32 @@ public class ClientPublicAPI {
                 if (info.getFieldType().equals("userList")) {
                     JSONObject value = item.getJSONObject(key);
                     if (info.isMultiValue()) {
-                        MultiUserField multiUserField = new MultiUserField();
+                        MultiUserField multiUserField = null;
                         JSONArray users = value.getJSONArray("data");
-                        for (int i = 0; i < users.size(); i++) {
-                            JSONObject user = users.getJSONObject(i);
-                            UserField userField = new UserField();
-                            if (user.containsKey("full_name")) {
-                                userField.setFullName(user.getString("full_name"));
+                        if (!users.isEmpty()) {
+                            List<User> userList = new ArrayList<User>();
+                            for (int i = 0; i < users.size(); i++) {
+                                JSONObject userObj = users.getJSONObject(i);
+                                User user = null;
+                                if (userObj.containsKey("full_name")) {
+                                    user = new User();
+                                    user.setFullName(userObj.getString("full_name"));
+                                    userList.add(user);
+                                }
                             }
-                            if (user.containsKey("name")) {
-                                userField.setEmail(user.getString("name"));
-                            }
-                            multiUserField.addUserField(userField);
+                            multiUserField = new MultiUserField();
+                            multiUserField.set(userList);
+                            entity.addField(key, multiUserField);
                         }
-                        entity.addField(key, multiUserField);
+
                     } else {
-                        UserField userField = new UserField();
+                        User user = null;
+                        UserField userField = null;
                         if (value.containsKey("full_name")) {
-                            userField.setFullName(value.getString("full_name"));
-                        }
-                        if (value.containsKey("name")) {
-                            userField.setEmail(value.getString("name"));
+                            user = new User();
+                            user.setFullName(value.getString("full_name"));
+                            userField = new UserField();
+                            userField.set(user);
                         }
                         entity.addField(key, userField);
                     }
@@ -1396,8 +1403,9 @@ public class ClientPublicAPI {
                     if (value == null || value.equals("null")) {
                         value = "";
                     }
-                    TextField textField = new TextField(value);
-                    entity.addField(key, textField);
+                    StringField stringField = new StringField();
+                    stringField.set(value);
+                    entity.addField(key, stringField);
                 }
             }
         }

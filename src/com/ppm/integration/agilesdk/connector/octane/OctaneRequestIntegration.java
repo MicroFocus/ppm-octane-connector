@@ -20,13 +20,11 @@ import com.ppm.integration.agilesdk.connector.octane.client.OctaneClientExceptio
 import com.ppm.integration.agilesdk.connector.octane.model.FieldInfo;
 import com.ppm.integration.agilesdk.connector.octane.model.WorkItemRoot;
 import com.ppm.integration.agilesdk.dm.AgileEntityInfo;
-import com.ppm.integration.agilesdk.dm.CodeMeaningField;
 import com.ppm.integration.agilesdk.dm.DataField;
-import com.ppm.integration.agilesdk.dm.DateField;
-import com.ppm.integration.agilesdk.dm.MultiCodeMeaningField;
 import com.ppm.integration.agilesdk.dm.MultiUserField;
 import com.ppm.integration.agilesdk.dm.RequestIntegration;
-import com.ppm.integration.agilesdk.dm.TextField;
+import com.ppm.integration.agilesdk.dm.StringField;
+import com.ppm.integration.agilesdk.dm.User;
 import com.ppm.integration.agilesdk.dm.UserField;
 import com.ppm.integration.agilesdk.model.AgileEntity;
 import com.ppm.integration.agilesdk.model.AgileEntityField;
@@ -219,31 +217,38 @@ public class OctaneRequestIntegration extends RequestIntegration {
                 existName = true;
 
             FieldInfo fieldInfo = fieldInfoMap.get(entry.getKey());
-
             DataField field = entry.getValue();
-            if (field instanceof TextField) {
-                TextField textField = (TextField)field;
-                entityObj.put(key, textField.getText());
-            } else if (field instanceof MultiUserField) {
-                if (fieldInfo != null && fieldInfo.getFieldType().equals("userList")) {
-                    MultiUserField userFields = (MultiUserField)field;
-                    JSONObject obj = transformUserField(client, fieldInfo, userFields.getFields(), sharedSpceId);
-                    entityObj.put(entry.getKey(), obj);
-                }
-            } else if (field instanceof CodeMeaningField) {
 
-            } else if (field instanceof MultiCodeMeaningField) {
-
-            } else if (field instanceof DateField) {
-
+            switch (field.getType()) {
+                case STRING:
+                    StringField stringField = (StringField) field;
+                    entityObj.put(key, stringField.get());
+                    break;
+                case USER:
+                    if (field.isList()) {
+                        MultiUserField userField = (MultiUserField) field;
+                        JSONObject obj = transformUsers(client, fieldInfo,  userField.get(), sharedSpceId);
+                        entityObj.put(entry.getKey(), obj);
+                    } else {
+                        UserField userField = (UserField) field;
+                        JSONObject obj = transformSingleUser(client, fieldInfo,  userField.get(), sharedSpceId);
+                        entityObj.put(entry.getKey(), obj);
+                    }
+                    break;
+                case NUMBER:
+                    break;
+                case DATE:
+                    break;
+                case CODE_MEANING:
+                    break;
             }
         }
 
-        if (!existName) {
-            entityObj.put(OctaneConstants.KEY_FIELD_NAME, OctaneConstants.KEY_FIELD_NAME_DEFAULT_VALUE);
-        }
+
         if (entity.getId() != null) {
             entityObj.put(OctaneConstants.KEY_FIELD_ID, entity.getId());
+        } else if (!existName) {
+            entityObj.put(OctaneConstants.KEY_FIELD_NAME, OctaneConstants.KEY_FIELD_NAME_DEFAULT_VALUE);
         }
 
         JSONObject complexObj = new JSONObject();
@@ -283,16 +288,16 @@ public class OctaneRequestIntegration extends RequestIntegration {
 
     }
 
-    private JSONObject transformUserField(ClientPublicAPI client, FieldInfo userFieldInfo, Set<UserField> fields,
+    private JSONObject transformUsers(ClientPublicAPI client, FieldInfo userFieldInfo, List<User> users,
             String shareSpaceId)
     {
-        if (fields == null || fields.isEmpty()) {
+        if (users == null || users.isEmpty()) {
             return null;
         }
-        String[] fullNames = new String[fields.size()];
+        String[] fullNames = new String[users.size()];
         int index = 0;
-        for (UserField field : fields) {
-            fullNames[index] = field.getFullName();
+        for (User user : users) {
+            fullNames[index] = user.getFullName();
             index++;
         }
         net.sf.json.JSONArray jsonArray = client.getUsersByFullName(shareSpaceId, fullNames);
@@ -320,6 +325,26 @@ public class OctaneRequestIntegration extends RequestIntegration {
             obj.put("id", id);
             return obj;
         }
+    }
+
+    private JSONObject transformSingleUser(ClientPublicAPI client, FieldInfo userFieldInfo, User user,
+            String shareSpaceId)
+    {
+        if (user == null) {
+            return null;
+        }
+        String[] fullNames = new String[]{user.getFullName()};
+
+        net.sf.json.JSONArray jsonArray = client.getUsersByFullName(shareSpaceId, fullNames);
+        if (jsonArray.size() < 1)
+            return null;
+
+        net.sf.json.JSONObject tempObj = jsonArray.getJSONObject(0);
+        String id = (String)tempObj.get("id");
+        JSONObject obj = new JSONObject();
+        obj.put("type", "workspace_user");
+        obj.put("id", id);
+        return obj;
     }
 }
 
