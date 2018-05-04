@@ -218,7 +218,9 @@ public class OctaneRequestIntegration extends RequestIntegration {
 
             FieldInfo fieldInfo = fieldInfoMap.get(entry.getKey());
             DataField field = entry.getValue();
-
+            if (field == null) {
+                continue;
+            }
             switch (field.getType()) {
                 case STRING:
                     StringField stringField = (StringField) field;
