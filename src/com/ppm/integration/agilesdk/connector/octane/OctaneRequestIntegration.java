@@ -18,7 +18,7 @@ import com.ppm.integration.agilesdk.ValueSet;
 import com.ppm.integration.agilesdk.connector.octane.client.ClientPublicAPI;
 import com.ppm.integration.agilesdk.connector.octane.client.OctaneClientException;
 import com.ppm.integration.agilesdk.connector.octane.model.FieldInfo;
-import com.ppm.integration.agilesdk.connector.octane.model.WorkItemRoot;
+import com.ppm.integration.agilesdk.connector.octane.model.SimpleEntity;
 import com.ppm.integration.agilesdk.dm.AgileEntityInfo;
 import com.ppm.integration.agilesdk.dm.DataField;
 import com.ppm.integration.agilesdk.dm.MultiUserField;
@@ -189,7 +189,7 @@ public class OctaneRequestIntegration extends RequestIntegration {
                         new String[] {e.getMessage()});
             }
         } else if (OctaneConstants.SUB_TYPE_STORY.equals(entityType)) {
-            WorkItemRoot root = client.getWorkItemRoot(Integer.parseInt(sharedSpaceId), Integer.parseInt(workSpaceId));
+            SimpleEntity root = client.getWorkItemRoot(Integer.parseInt(sharedSpaceId), Integer.parseInt(workSpaceId));
             String entityStr = buildEntity(client, sharedSpaceId, fieldInfos, entityType, entity, root);
             agileEntity = client.saveStoryInWorkspace(sharedSpaceId, workSpaceId, entityStr, method);
         }
@@ -198,7 +198,7 @@ public class OctaneRequestIntegration extends RequestIntegration {
     }
 
     private String buildEntity(final ClientPublicAPI client, final String sharedSpceId,
-            final List<FieldInfo> fieldInfos, final String entityType, AgileEntity entity, WorkItemRoot root)
+            final List<FieldInfo> fieldInfos, final String entityType, AgileEntity entity, SimpleEntity root)
     {
         JSONArray entityList = new JSONArray();
         JSONObject entityObj = new JSONObject();
