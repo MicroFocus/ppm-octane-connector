@@ -106,6 +106,8 @@ public class OctaneRequestIntegration extends RequestIntegration {
         AgileEntity result = null;
         try {
             result = saveOrUpdateEntity(agileProjectValue, entityType, entity, instanceConfigurationParameters);
+        } catch (OctaneClientException ex) {
+            throw ex;
         } catch (Exception e) {
             throw new OctaneClientException("AGM_APP", "ERROR_HTTP_CONNECTIVITY_ERROR", new String[] {e.getMessage()});
         }
@@ -119,6 +121,8 @@ public class OctaneRequestIntegration extends RequestIntegration {
         AgileEntity result = null;
         try {
             result = saveOrUpdateEntity(agileProjectValue, entityType, entity, instanceConfigurationParameters);
+        } catch (OctaneClientException ex) {
+            throw ex;
         } catch (Exception e) {
             throw new OctaneClientException("AGM_APP", "ERROR_HTTP_CONNECTIVITY_ERROR", new String[] {e.getMessage()});
         }
@@ -182,19 +186,13 @@ public class OctaneRequestIntegration extends RequestIntegration {
         }
         if (OctaneConstants.SUB_TYPE_FEATURE.equals(entityType)) {
             String entityStr = buildEntity(client, sharedSpaceId, fieldInfos, entityType, entity, null);
-            try {
-                agileEntity = client.saveFeatureInWorkspace(sharedSpaceId, workSpaceId, entityStr, method);
-            } catch (Exception e) {
-                throw new OctaneClientException("AGM_APP", "ERROR_HTTP_CONNECTIVITY_ERROR",
-                        new String[] {e.getMessage()});
-            }
+            agileEntity = client.saveFeatureInWorkspace(sharedSpaceId, workSpaceId, entityStr, method);
         } else if (OctaneConstants.SUB_TYPE_STORY.equals(entityType)) {
             SimpleEntity root = client.getWorkItemRoot(Integer.parseInt(sharedSpaceId), Integer.parseInt(workSpaceId));
             String entityStr = buildEntity(client, sharedSpaceId, fieldInfos, entityType, entity, root);
             agileEntity = client.saveStoryInWorkspace(sharedSpaceId, workSpaceId, entityStr, method);
         }
         return agileEntity;
-
     }
 
     private String buildEntity(final ClientPublicAPI client, final String sharedSpceId,
@@ -202,7 +200,6 @@ public class OctaneRequestIntegration extends RequestIntegration {
     {
         JSONArray entityList = new JSONArray();
         JSONObject entityObj = new JSONObject();
-        boolean existName = false;
 
         Map<String, FieldInfo> fieldInfoMap = new HashMap<String, FieldInfo>();
         for (FieldInfo info : fieldInfos) {
@@ -213,9 +210,6 @@ public class OctaneRequestIntegration extends RequestIntegration {
         while (it.hasNext()) {
             Entry<String, DataField> entry = it.next();
             String key = entry.getKey();
-            if (key.equals(OctaneConstants.KEY_FIELD_NAME))
-                existName = true;
-
             FieldInfo fieldInfo = fieldInfoMap.get(entry.getKey());
             DataField field = entry.getValue();
             if (field == null) {
@@ -249,8 +243,6 @@ public class OctaneRequestIntegration extends RequestIntegration {
 
         if (entity.getId() != null) {
             entityObj.put(OctaneConstants.KEY_FIELD_ID, entity.getId());
-        } else if (!existName) {
-            entityObj.put(OctaneConstants.KEY_FIELD_NAME, OctaneConstants.KEY_FIELD_NAME_DEFAULT_VALUE);
         }
 
         JSONObject complexObj = new JSONObject();
