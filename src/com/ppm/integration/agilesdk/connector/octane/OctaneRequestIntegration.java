@@ -19,7 +19,6 @@ import com.ppm.integration.agilesdk.connector.octane.client.ClientPublicAPI;
 import com.ppm.integration.agilesdk.connector.octane.client.OctaneClientException;
 import com.ppm.integration.agilesdk.connector.octane.model.FieldInfo;
 import com.ppm.integration.agilesdk.connector.octane.model.SimpleEntity;
-import com.ppm.integration.agilesdk.dm.AgileEntityInfo;
 import com.ppm.integration.agilesdk.dm.DataField;
 import com.ppm.integration.agilesdk.dm.MultiUserField;
 import com.ppm.integration.agilesdk.dm.RequestIntegration;
@@ -27,9 +26,8 @@ import com.ppm.integration.agilesdk.dm.StringField;
 import com.ppm.integration.agilesdk.dm.User;
 import com.ppm.integration.agilesdk.dm.UserField;
 import com.ppm.integration.agilesdk.model.AgileEntity;
-import com.ppm.integration.agilesdk.model.AgileEntityField;
 import com.ppm.integration.agilesdk.model.AgileEntityFieldInfo;
-import com.ppm.integration.agilesdk.model.AgileEntityFieldInfo.AgileEntityFieldType;
+import com.ppm.integration.agilesdk.model.AgileEntityInfo;
 
 import net.sf.json.JSONArray;
 import net.sf.json.JSONObject;
@@ -71,7 +69,7 @@ public class OctaneRequestIntegration extends RequestIntegration {
         List<FieldInfo> fields = client.getEntityFields(sharedSpaceId, workSpaceId, entityType);
         for (FieldInfo field : fields) {
             AgileEntityFieldInfo info = new AgileEntityFieldInfo();
-            info.setFieldType(AgileEntityFieldType.fromValue(field.getFieldType()));
+            info.setFieldType(field.getFieldType() != null ? field.getFieldType().toUpperCase() : "");
             info.setLabel(field.getLabel());
             info.setId(field.getName());
             info.setListType(field.getListType());
@@ -83,20 +81,6 @@ public class OctaneRequestIntegration extends RequestIntegration {
         }
         Collections.sort(fieldList, new AgileFieldComparator());
         return fieldList;
-    }
-
-    @Override
-    public List<AgileEntityField> getAgileEntityFieldValueList(final String agileProjectValue, final String entityType,
-            final String fieldInfo, final ValueSet instanceConfigurationParameters)
-    {
-        ClientPublicAPI client = ClientPublicAPI.getClient(instanceConfigurationParameters);
-        JSONObject workspaceJson = (JSONObject)JSONSerializer.toJSON(agileProjectValue);
-        String workSpaceId = workspaceJson.getString(OctaneConstants.WORKSPACE_ID);
-        String sharedSpaceId = workspaceJson.getString(OctaneConstants.SHARED_SPACE_ID);
-
-        JSONObject fieldObj = (JSONObject)JSONSerializer.toJSON(fieldInfo);
-        String logicalName = fieldObj.getString(OctaneConstants.KEY_LOGICAL_NAME);
-        return client.getEntityFieldValueList(sharedSpaceId, workSpaceId, logicalName);
     }
 
     @Override
@@ -236,12 +220,6 @@ public class OctaneRequestIntegration extends RequestIntegration {
                         JSONObject obj = transformSingleUser(client, fieldInfo,  userField.get(), sharedSpceId);
                         entityObj.put(entry.getKey(), obj);
                     }
-                    break;
-                case NUMBER:
-                    break;
-                case DATE:
-                    break;
-                case CODE_MEANING:
                     break;
             }
         }
