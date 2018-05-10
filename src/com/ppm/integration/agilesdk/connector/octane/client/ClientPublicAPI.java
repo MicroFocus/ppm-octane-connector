@@ -28,9 +28,6 @@ import javax.ws.rs.core.MediaType;
 import org.apache.commons.lang.StringUtils;
 import org.apache.http.HttpStatus;
 import org.apache.log4j.Logger;
-import org.joda.time.DateTime;
-import org.joda.time.format.DateTimeFormatter;
-import org.joda.time.format.ISODateTimeFormat;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -59,11 +56,6 @@ import com.ppm.integration.agilesdk.connector.octane.model.WorkItemEpic;
 import com.ppm.integration.agilesdk.connector.octane.model.WorkItemRoot;
 import com.ppm.integration.agilesdk.connector.octane.model.WorkSpace;
 import com.ppm.integration.agilesdk.connector.octane.model.WorkSpaces;
-import com.ppm.integration.agilesdk.dm.MultiUserField;
-import com.ppm.integration.agilesdk.dm.StringField;
-import com.ppm.integration.agilesdk.dm.User;
-import com.ppm.integration.agilesdk.dm.UserField;
-import com.ppm.integration.agilesdk.model.AgileEntity;
 
 import net.sf.json.JSONArray;
 import net.sf.json.JSONException;
@@ -94,12 +86,10 @@ public class ClientPublicAPI {
 
     private int retryNumber = 0;
     
-    private static final String DEFAULT_ENTITY_ITEM_URL =
+    public static final String DEFAULT_ENTITY_ITEM_URL =
             "%s/ui/entity-navigation?p=%s/%s&entityType=work_item&id=%s";
 
-    private static final String KEY_LAST_UPDATE_DATE = "last_modified";
-
-    private static final String KEY_ID = "id";
+    public static final String KEY_LAST_UPDATE_DATE = "last_modified";
 
     public ClientPublicAPI(String baseUrl) {
         this.baseURL = baseUrl.trim();
@@ -118,6 +108,10 @@ public class ClientPublicAPI {
         }
 
         return client;
+    }
+
+    public String getBaseURL() {
+        return this.baseURL;
     }
 
     public boolean getAccessTokenWithFormFormat(String clientId, String clientSecret)
@@ -1025,10 +1019,9 @@ public class ClientPublicAPI {
 //        return valueList;
 //    }
 
-    public AgileEntity saveFeatureInWorkspace(final String sharedspaceId, final String workspaceId,
+    public JSONObject saveFeatureInWorkspace(final String sharedspaceId, final String workspaceId,
             final String entity, final String method)
     {
-        AgileEntity agileEntity = null;
         String url =
                 String.format("%s/api/shared_spaces/%s/workspaces/%s/features", baseURL, sharedspaceId, workspaceId);
 
@@ -1041,17 +1034,12 @@ public class ClientPublicAPI {
                     new String[] {getError(response.getData())});
         }
 
-        agileEntity = getCreateEntityFromResponse(response.getData());
-        agileEntity.setEntityUrl(
-                String.format(DEFAULT_ENTITY_ITEM_URL, baseURL, sharedspaceId, workspaceId, agileEntity.getId()));
-        return agileEntity;
+        return getCreateEntityFromResponse(response.getData());
     }
 
-    public AgileEntity saveStoryInWorkspace(final String sharedspaceId, final String workspaceId,
+    public JSONObject saveStoryInWorkspace(final String sharedspaceId, final String workspaceId,
             final String entity, final String method)
     {
-        AgileEntity agileEntity = null;
-
         String url =
                 String.format("%s/api/shared_spaces/%s/workspaces/%s/stories", baseURL, sharedspaceId, workspaceId);
 
@@ -1063,26 +1051,20 @@ public class ClientPublicAPI {
                     new String[] {getError(response.getData())});
         }
 
-        agileEntity = getCreateEntityFromResponse(response.getData());
-        agileEntity.setEntityUrl(
-                String.format(DEFAULT_ENTITY_ITEM_URL, baseURL, sharedspaceId, workspaceId, agileEntity.getId()));
-        return agileEntity;
-
+        return getCreateEntityFromResponse(response.getData());
     }
 
-    private AgileEntity getCreateEntityFromResponse(String jsonData) {
-        JSONObject obj;
-        AgileEntity agileEntity = null;
+    private JSONObject getCreateEntityFromResponse(String jsonData) {
+        JSONObject obj = null;
         try {
-            obj = JSONObject.fromObject(jsonData);
-            JSONArray data = (JSONArray)(obj.get("data"));
+            JSONArray data = JSONObject.fromObject(jsonData).getJSONArray("data");
             if (data.size() > 0)
-                agileEntity = wrapperEntity(data.getJSONObject(0), null);
+                obj = data.getJSONObject(0);
         } catch (JSONException e) {
             throw new OctaneClientException("AGM_APP", "ERROR_HTTP_CONNECTIVITY_ERROR",
                     "Error occurs when parse response data:" + jsonData);
         }
-        return agileEntity;
+        return obj;
 
     }
 
@@ -1247,24 +1229,17 @@ public class ClientPublicAPI {
         return results;
     }
 
-    public AgileEntity getUserStory(String sharedspaceId, String workspaceId, String id) {
-        AgileEntity entity = null;
-
+    public List<JSONObject> getUserStory(String sharedspaceId, String workspaceId, String id) {
         if (id == null || "".equals(id)) {
             return null;
         }
 
         String query = "id=" + id;
         List<JSONObject> workItemsJson = getUserStoriesJson(sharedspaceId, workspaceId, query);
-        if (workItemsJson.size() > 0) {
-            Map<String, FieldInfo> fieldInfoMap  = getFieldInfoMap(sharedspaceId, workspaceId, "story");
-            entity = wrapperEntity(workItemsJson.get(0), fieldInfoMap);
-        }
-
-        return entity;
+        return workItemsJson;
     }
     
-    public List<AgileEntity> getUserStories(String sharedspaceId, String workspaceId, Set<String> ids) {
+    public List<JSONObject> getUserStories(String sharedspaceId, String workspaceId, Set<String> ids) {
         if (ids == null || ids.isEmpty()) {
             return null;
         }
@@ -1272,26 +1247,20 @@ public class ClientPublicAPI {
         String query = "id%20IN%20" + StringUtils.join(ids, ",");
         List<JSONObject> workItemsJson = getUserStoriesJson(sharedspaceId, workspaceId, query);
 
-        return getAgileEntities(workItemsJson, sharedspaceId, workspaceId, "story");
+        return workItemsJson;
     }
 
-    public AgileEntity getFeature(String sharedspaceId, String workspaceId, String id) {
-        AgileEntity entity = null;
-
+    public List<JSONObject> getFeature(String sharedspaceId, String workspaceId, String id) {
         if (id == null || "".equals(id)) {
             return null;
         }
 
         String query = "id=" + id;
         List<JSONObject> workItemsJson = getFeatureJson(sharedspaceId, workspaceId, query);
-        if (workItemsJson.size() > 0) {
-            Map<String, FieldInfo> fieldInfoMap  = getFieldInfoMap(sharedspaceId, workspaceId, "feature");
-            entity = wrapperEntity(workItemsJson.get(0), fieldInfoMap);
-        }
-        return entity;
+        return workItemsJson;
     }
     
-    public List<AgileEntity> getFeatures(String sharedspaceId, String workspaceId, Set<String> ids) {
+    public List<JSONObject> getFeatures(String sharedspaceId, String workspaceId, Set<String> ids) {
         if (ids == null || ids.isEmpty()) {
             return null;
         }
@@ -1299,7 +1268,7 @@ public class ClientPublicAPI {
         String query = "id%20IN%20" + StringUtils.join(ids, ",");
         List<JSONObject> workItemsJson = getFeatureJson(sharedspaceId, workspaceId, query);
 
-       return getAgileEntities(workItemsJson, sharedspaceId, workspaceId, "feature");
+       return workItemsJson;
     }
     
     public void deleteEntity(String sharedspaceId, String workspaceId, String entityType, String entityId) {
@@ -1315,7 +1284,7 @@ public class ClientPublicAPI {
 
     }
 
-    public List<AgileEntity> getUserStoriesAfterDate(String sharedspaceId, String workspaceId, Set<String> ids,
+    public List<JSONObject> getUserStoriesAfterDate(String sharedspaceId, String workspaceId, Set<String> ids,
             Date updateDate)
     {
         if (null == updateDate) {
@@ -1330,10 +1299,10 @@ public class ClientPublicAPI {
 
         List<JSONObject> workItemsJson = getUserStoriesJson(sharedspaceId, workspaceId, query);
 
-        return getAgileEntities(workItemsJson, sharedspaceId, workspaceId, "story");
+        return workItemsJson;
     }
 
-    public List<AgileEntity> getFeaturesAfterDate(String sharedspaceId, String workspaceId, Set<String> ids,
+    public List<JSONObject> getFeaturesAfterDate(String sharedspaceId, String workspaceId, Set<String> ids,
             Date updateDate)
     {
         if (null == updateDate) {
@@ -1348,7 +1317,7 @@ public class ClientPublicAPI {
 
         List<JSONObject> workItemsJson = getFeatureJson(sharedspaceId, workspaceId, query);
 
-        return getAgileEntities(workItemsJson, sharedspaceId, workspaceId, "feature");
+        return workItemsJson;
     }
 
     public JSONArray getUsersByFullName(String sharedspaceId, String[] names) {
@@ -1379,74 +1348,6 @@ public class ClientPublicAPI {
         dateString = sdf.format(dateStr);
 
         return dateString;
-    }
-
-    private AgileEntity wrapperEntity(JSONObject item, Map<String, FieldInfo> fieldInfoMap) {
-
-        AgileEntity entity = new AgileEntity();
-        Iterator<String> sIterator = item.keys();
-        while (sIterator.hasNext()) {
-            String key = sIterator.next();
-            if (key.equals(KEY_LAST_UPDATE_DATE)) {
-                String value = item.getString(key);
-                entity.setLastUpdateTime(parserDate(value));
-            } else if (key.equals(KEY_ID)) {
-                String value = item.getString(key);
-                entity.setId(value);
-            } else if (fieldInfoMap != null && fieldInfoMap.get(key) != null) {
-                FieldInfo info = fieldInfoMap.get(key);
-                if (info.getFieldType().equals("userList")) {
-                    JSONObject value = item.getJSONObject(key);
-                    if (info.isMultiValue()) {
-                        MultiUserField multiUserField = null;
-                        JSONArray users = value.getJSONArray("data");
-                        if (!users.isEmpty()) {
-                            List<User> userList = new ArrayList<User>();
-                            for (int i = 0; i < users.size(); i++) {
-                                JSONObject userObj = users.getJSONObject(i);
-                                User user = null;
-                                if (userObj.containsKey("full_name")) {
-                                    user = new User();
-                                    user.setFullName(userObj.getString("full_name"));
-                                    userList.add(user);
-                                }
-                            }
-                            multiUserField = new MultiUserField();
-                            multiUserField.set(userList);
-                            entity.addField(key, multiUserField);
-                        }
-
-                    } else {
-                        User user = null;
-                        UserField userField = null;
-                        if (value.containsKey("full_name")) {
-                            user = new User();
-                            user.setFullName(value.getString("full_name"));
-                            userField = new UserField();
-                            userField.set(user);
-                        }
-                        entity.addField(key, userField);
-                    }
-
-                } else if (info.getFieldType().equals("string")) {
-                    String value = item.getString(key);
-                    if (value == null || value.equals("null")) {
-                        value = "";
-                    }
-                    StringField stringField = new StringField();
-                    stringField.set(value);
-                    entity.addField(key, stringField);
-                }
-            }
-        }
-        return entity;
-    }
-    
-    private Date parserDate(String dateStr) {
-        DateTimeFormatter parser = ISODateTimeFormat.dateTimeParser();
-        DateTime dateTimeHere = parser.parseDateTime(dateStr);
-        return dateTimeHere.toDate();
-
     }
 
     private List<JSONObject> getUserStoriesJson(String sharedspaceId, String workspaceId, String queryFilter) {
@@ -1489,27 +1390,6 @@ public class ClientPublicAPI {
         root.name = obj.getString("name");
         root.type = obj.getString("type");
         return root;
-    }
-
-    private Map<String, FieldInfo> getFieldInfoMap(String sharedspaceId, String workspaceId, String entityType) {
-        Map<String, FieldInfo> fieldInfoMap = new HashMap<String, FieldInfo>();
-        List<FieldInfo> fieldInfos = getEntityFields(sharedspaceId, workspaceId, entityType);
-        for (FieldInfo info : fieldInfos) {
-            fieldInfoMap.put(info.getName(), info);
-        }
-        return fieldInfoMap;
-    }
-
-    private List<AgileEntity> getAgileEntities(List<JSONObject> workItemsJson, String sharedspaceId, String workspaceId, String entityType) {
-        List<AgileEntity> agileEntities = new ArrayList<>();
-        if (workItemsJson.size() > 0) {
-            Map<String, FieldInfo> fieldInfoMap  = getFieldInfoMap(sharedspaceId, workspaceId, entityType);
-            for (JSONObject workItemJson : workItemsJson) {
-                AgileEntity entity = wrapperEntity(workItemJson, fieldInfoMap);
-                agileEntities.add(entity);
-            }
-        }
-        return agileEntities;
     }
 
     /**

@@ -14,6 +14,10 @@ import java.util.Set;
 
 import javax.ws.rs.HttpMethod;
 
+import org.joda.time.DateTime;
+import org.joda.time.format.DateTimeFormatter;
+import org.joda.time.format.ISODateTimeFormat;
+
 import com.ppm.integration.agilesdk.ValueSet;
 import com.ppm.integration.agilesdk.connector.octane.client.ClientPublicAPI;
 import com.ppm.integration.agilesdk.connector.octane.client.OctaneClientException;
@@ -28,6 +32,8 @@ import com.ppm.integration.agilesdk.dm.UserField;
 import com.ppm.integration.agilesdk.model.AgileEntity;
 import com.ppm.integration.agilesdk.model.AgileEntityFieldInfo;
 import com.ppm.integration.agilesdk.model.AgileEntityInfo;
+import com.ppm.integration.agilesdk.provider.Providers;
+import com.ppm.integration.agilesdk.provider.UserProvider;
 
 import net.sf.json.JSONArray;
 import net.sf.json.JSONObject;
@@ -40,6 +46,8 @@ import net.sf.json.JSONSerializer;
  * @since 10/16/2017
  */
 public class OctaneRequestIntegration extends RequestIntegration {
+
+    private UserProvider up = null;
 
     @Override
     public List<AgileEntityInfo> getAgileEntitiesInfo(final String agileProjectValue,
@@ -126,9 +134,11 @@ public class OctaneRequestIntegration extends RequestIntegration {
         String sharedSpaceId = workspaceJson.getString(OctaneConstants.SHARED_SPACE_ID);
 
         if (OctaneConstants.SUB_TYPE_FEATURE.equals(entityType)) {
-            entities = client.getFeaturesAfterDate(sharedSpaceId, workSpaceId, entityIds, lastUpdateTime);
+            List<JSONObject> featureJson  = client.getFeaturesAfterDate(sharedSpaceId, workSpaceId, entityIds, lastUpdateTime);
+            entities = getAgileEntities(client, featureJson, sharedSpaceId, workSpaceId, "feature");
         } else if (OctaneConstants.SUB_TYPE_STORY.equals(entityType)) {
-            entities = client.getUserStoriesAfterDate(sharedSpaceId, workSpaceId, entityIds, lastUpdateTime);
+            List<JSONObject> userStoryJson = client.getUserStoriesAfterDate(sharedSpaceId, workSpaceId, entityIds, lastUpdateTime);
+            entities = getAgileEntities(client, userStoryJson, sharedSpaceId, workSpaceId, "story");
         }
 
         return entities;
@@ -146,9 +156,18 @@ public class OctaneRequestIntegration extends RequestIntegration {
         String sharedSpaceId = workspaceJson.getString(OctaneConstants.SHARED_SPACE_ID);
 
         if (OctaneConstants.SUB_TYPE_FEATURE.equals(entityType)) {
-            entity = client.getFeature(sharedSpaceId, workSpaceId, entityId);
+            List<JSONObject> featureJson = client.getFeature(sharedSpaceId, workSpaceId, entityId);
+            if (featureJson.size() > 0) {
+                Map<String, FieldInfo> fieldInfoMap  = getFieldInfoMap(client, sharedSpaceId, workSpaceId, "feature");
+                entity = wrapperEntity(featureJson.get(0), fieldInfoMap);
+            }
+
         } else if (OctaneConstants.SUB_TYPE_STORY.equals(entityType)) {
-            entity = client.getUserStory(sharedSpaceId, workSpaceId, entityId);
+            List<JSONObject> userStoryJson = client.getUserStory(sharedSpaceId, workSpaceId, entityId);
+            if (userStoryJson.size() > 0) {
+                Map<String, FieldInfo> fieldInfoMap  = getFieldInfoMap(client, sharedSpaceId, workSpaceId, "story");
+                entity = wrapperEntity(userStoryJson.get(0), fieldInfoMap);
+            }
         }
 
         return entity;
@@ -170,11 +189,17 @@ public class OctaneRequestIntegration extends RequestIntegration {
         }
         if (OctaneConstants.SUB_TYPE_FEATURE.equals(entityType)) {
             String entityStr = buildEntity(client, sharedSpaceId, fieldInfos, entityType, entity, null);
-            agileEntity = client.saveFeatureInWorkspace(sharedSpaceId, workSpaceId, entityStr, method);
+            JSONObject feature = client.saveFeatureInWorkspace(sharedSpaceId, workSpaceId, entityStr, method);
+            agileEntity = wrapperEntity(feature, null);
         } else if (OctaneConstants.SUB_TYPE_STORY.equals(entityType)) {
             SimpleEntity root = client.getWorkItemRoot(Integer.parseInt(sharedSpaceId), Integer.parseInt(workSpaceId));
             String entityStr = buildEntity(client, sharedSpaceId, fieldInfos, entityType, entity, root);
-            agileEntity = client.saveStoryInWorkspace(sharedSpaceId, workSpaceId, entityStr, method);
+            JSONObject userStory = client.saveStoryInWorkspace(sharedSpaceId, workSpaceId, entityStr, method);
+            agileEntity = wrapperEntity(userStory, null);
+        }
+        if (agileEntity != null) {
+            agileEntity.setEntityUrl(
+                    String.format(ClientPublicAPI.DEFAULT_ENTITY_ITEM_URL, client.getBaseURL(), sharedSpaceId, workSpaceId, agileEntity.getId()));
         }
         return agileEntity;
     }
@@ -194,9 +219,16 @@ public class OctaneRequestIntegration extends RequestIntegration {
         while (it.hasNext()) {
             Entry<String, DataField> entry = it.next();
             String key = entry.getKey();
-            FieldInfo fieldInfo = fieldInfoMap.get(entry.getKey());
+            FieldInfo fieldInfo = fieldInfoMap.get(key);
             DataField field = entry.getValue();
             if (field == null) {
+                if (fieldInfo.isMultiValue()) {
+                    JSONObject emptyField = new JSONObject();
+                    emptyField.put("data",  new JSONArray());
+                    entityObj.put(key, emptyField);
+                } else {
+                    entityObj.put(key, new JSONObject(true));
+                }
                 continue;
             }
             switch (field.getType()) {
@@ -218,26 +250,26 @@ public class OctaneRequestIntegration extends RequestIntegration {
             }
         }
 
-
         if (entity.getId() != null) {
             entityObj.put(OctaneConstants.KEY_FIELD_ID, entity.getId());
-        }
-
-        JSONObject complexObj = new JSONObject();
-        if (OctaneConstants.SUB_TYPE_STORY.equals(entityType)) {
-            complexObj.put("id", "phase.story.new");
         } else {
-            complexObj.put("id", "phase.feature.new");
-        }
-        complexObj.put("type", "phase");
-        entityObj.put("phase", complexObj);
+            JSONObject complexObj = new JSONObject();
+            if (OctaneConstants.SUB_TYPE_STORY.equals(entityType)) {
+                complexObj.put("id", "phase.story.new");
+            } else {
+                complexObj.put("id", "phase.feature.new");
+            }
+            complexObj.put("type", "phase");
+            entityObj.put("phase", complexObj);
 
-        if (root != null) {
-            JSONObject parent = new JSONObject();
-            parent.put("id", root.id);
-            parent.put("type", root.type);
-            entityObj.put("parent", parent);
+            if (root != null) {
+                JSONObject parent = new JSONObject();
+                parent.put("id", root.id);
+                parent.put("type", root.type);
+                entityObj.put("parent", parent);
+            }
         }
+
         entityList.add(entityObj);
 
         return entityList.toString();
@@ -318,6 +350,128 @@ public class OctaneRequestIntegration extends RequestIntegration {
         obj.put("id", id);
         return obj;
     }
+
+    private synchronized UserProvider getUserProvider() {
+        if (up == null) {
+            up = Providers.getUserProvider(OctaneIntegrationConnector.class);
+        }
+        return up;
+    }
+
+    private Date parserDate(String dateStr) {
+        DateTimeFormatter parser = ISODateTimeFormat.dateTimeParser();
+        DateTime dateTimeHere = parser.parseDateTime(dateStr);
+        return dateTimeHere.toDate();
+
+    }
+
+    private AgileEntity wrapperEntity(JSONObject item, Map<String, FieldInfo> fieldInfoMap) {
+
+        AgileEntity entity = new AgileEntity();
+        Iterator<String> sIterator = item.keys();
+        while (sIterator.hasNext()) {
+            String key = sIterator.next();
+            if (key.equals(ClientPublicAPI.KEY_LAST_UPDATE_DATE)) {
+                String value = item.getString(key);
+                entity.setLastUpdateTime(parserDate(value));
+            } else if (key.equals("id")) {
+                String value = item.getString(key);
+                entity.setId(value);
+            } else if (fieldInfoMap != null && fieldInfoMap.get(key) != null) {
+                FieldInfo info = fieldInfoMap.get(key);
+                if (info.getFieldType().equals("userList")) {
+                    JSONObject value = item.getJSONObject(key);
+                    if (info.isMultiValue()) {
+                        JSONArray users = value.getJSONArray("data");
+                        if (!users.isEmpty()) {
+                            List<User> userList = new ArrayList<User>();
+                            for (int i = 0; i < users.size(); i++) {
+                                JSONObject userObj = users.getJSONObject(i);
+                                User user = buildUser(userObj);
+                                if (user != null) {
+                                    userList.add(user);
+                                }
+                            }
+                            MultiUserField multiUserField = new MultiUserField();
+                            multiUserField.set(userList);
+                            entity.addField(key, multiUserField);
+                        } else {
+                            entity.addField(key, null);
+                        }
+
+                    } else {
+                        if (canParseJson(value, "name")) {
+                            User user = buildUser(value);
+                            if (user != null) {
+                                UserField userField = new UserField();
+                                userField.set(user);
+                                entity.addField(key, userField);
+                            }
+                        } else {
+                            entity.addField(key, null);
+                        }
+
+                    }
+
+                } else if (info.getFieldType().equals("string")) {
+                    String value = item.getString(key);
+                    if (value == null || value.equals("null")) {
+                        value = "";
+                    }
+                    StringField stringField = new StringField();
+                    stringField.set(value);
+                    entity.addField(key, stringField);
+                }
+            }
+        }
+        return entity;
+    }
+
+    private User buildUser(JSONObject userJson) {
+        User user = null;
+        if (userJson.containsKey("name")) {
+            String email = userJson.getString("name");
+            com.hp.ppm.user.model.User userModel = getUserProvider().getByEmail(email);
+            if (userModel != null) {
+               user = new User();
+                user.setUserId(userModel.getUserId());
+                user.setEmail(userModel.getEmail());
+                user.setFullName(userModel.getFullName());
+                user.setUsername(userModel.getUserName());
+            }
+        }
+        return user;
+    }
+
+    private boolean canParseJson(JSONObject jsonObj, String key) {
+        if (jsonObj != null && jsonObj.containsKey(key)) {
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    private Map<String, FieldInfo> getFieldInfoMap(ClientPublicAPI client, String sharedspaceId, String workspaceId, String entityType) {
+        Map<String, FieldInfo> fieldInfoMap = new HashMap<String, FieldInfo>();
+        List<FieldInfo> fieldInfos = client.getEntityFields(sharedspaceId, workspaceId, entityType);
+        for (FieldInfo info : fieldInfos) {
+            fieldInfoMap.put(info.getName(), info);
+        }
+        return fieldInfoMap;
+    }
+
+    private List<AgileEntity> getAgileEntities(ClientPublicAPI client, List<JSONObject> workItemsJson, String sharedspaceId, String workspaceId, String entityType) {
+        List<AgileEntity> agileEntities = new ArrayList<>();
+        if (workItemsJson != null && workItemsJson.size() > 0) {
+            Map<String, FieldInfo> fieldInfoMap  = getFieldInfoMap(client, sharedspaceId, workspaceId, entityType);
+            for (JSONObject workItemJson : workItemsJson) {
+                AgileEntity entity = wrapperEntity(workItemJson, fieldInfoMap);
+                agileEntities.add(entity);
+            }
+        }
+        return agileEntities;
+    }
+
 }
 
 class AgileFieldComparator implements Comparator<AgileEntityFieldInfo> {
