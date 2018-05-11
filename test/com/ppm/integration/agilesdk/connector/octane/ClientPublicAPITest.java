@@ -10,10 +10,8 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Set;
 
-import com.ppm.integration.agilesdk.dm.DataField;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -28,16 +26,14 @@ import com.ppm.integration.agilesdk.connector.octane.model.EpicEntity;
 import com.ppm.integration.agilesdk.connector.octane.model.Release;
 import com.ppm.integration.agilesdk.connector.octane.model.ReleaseTeam;
 import com.ppm.integration.agilesdk.connector.octane.model.SharedSpace;
+import com.ppm.integration.agilesdk.connector.octane.model.SimpleEntity;
 import com.ppm.integration.agilesdk.connector.octane.model.Sprint;
 import com.ppm.integration.agilesdk.connector.octane.model.Team;
 import com.ppm.integration.agilesdk.connector.octane.model.TimesheetItem;
 import com.ppm.integration.agilesdk.connector.octane.model.WorkItemEpic;
-import com.ppm.integration.agilesdk.connector.octane.model.WorkItemFeature;
-import com.ppm.integration.agilesdk.connector.octane.model.WorkItemRoot;
-import com.ppm.integration.agilesdk.connector.octane.model.WorkItemStory;
 import com.ppm.integration.agilesdk.connector.octane.model.WorkSpace;
-import com.ppm.integration.agilesdk.model.AgileEntity;
-import com.ppm.integration.agilesdk.model.AgileEntityFieldValue;
+
+import net.sf.json.JSONObject;
 
 public class ClientPublicAPITest {
     ValueSet values = new ValueSet();
@@ -90,7 +86,7 @@ public class ClientPublicAPITest {
             for (WorkSpace workSpace : workspacesAll) {
                 List<TimesheetItem> timeSheets = client.getTimeSheetData(Integer.parseInt(shareSpace.id),
                         values.get(OctaneConstants.KEY_USERNAME), startDateStr, endDateStr,
-                        Integer.parseInt(workSpace.id), groupBy);
+                        Integer.parseInt(workSpace.id));
                 Map<String, ArrayList<TimesheetItem>> releaseTimesheet =
                         new HashMap<String, ArrayList<TimesheetItem>>();
                 for (TimesheetItem timeItem : timeSheets) {
@@ -244,29 +240,9 @@ public class ClientPublicAPITest {
         String clientSecret = values.get(OctaneConstants.APP_CLIENT_SECRET);
         boolean isGetAccess = client.getAccessTokenWithFormFormat(clientId, clientSecret);
         Assert.assertTrue(isGetAccess);
-        WorkItemRoot workItemRoot = client.getWorkItemRoot(values.getInteger(OctaneConstants.KEY_SHAREDSPACEID, 1001),
+        SimpleEntity workItemRoot = client.getWorkItemRoot(values.getInteger(OctaneConstants.KEY_SHAREDSPACEID, 1001),
                 values.getInteger(OctaneConstants.KEY_WORKSPACEID, 1002));
         Assert.assertNotNull(workItemRoot);
-        for (WorkItemStory d : workItemRoot.storyList) {
-            System.out.println("name=" + d.name + ", id=" + d.id + ", type=" + d.subType);
-        }
-        Set<String> keySet = workItemRoot.epicList.keySet();
-        for (String key : keySet) {
-            WorkItemEpic tempEpic = workItemRoot.epicList.get(key);
-            System.out.println("                        ");
-            System.out.println("name=" + tempEpic.name + ", id=" + tempEpic.id + ", type=" + tempEpic.subType);
-            System.out.println("------------------------");
-            Set<String> keySetFeature = tempEpic.featureList.keySet();
-            for (String keyFeature : keySetFeature) {
-                WorkItemFeature tempFeature = tempEpic.featureList.get(keyFeature);
-                System.out.println(
-                        "name=" + tempFeature.name + ", id=" + tempFeature.id + ", type=" + tempFeature.subType);
-                System.out.println("--------------");
-                for (WorkItemStory d : tempFeature.storyList) {
-                    System.out.println("name=" + d.name + ", id=" + d.id + ", type=" + d.subType);
-                }
-            }
-        }
     }
 
 
@@ -379,13 +355,13 @@ public class ClientPublicAPITest {
         cal.add(Calendar.DAY_OF_MONTH, -1);
         Date updateDate = cal.getTime();
 
-        List<AgileEntity> result = client.getUserStoriesAfterDate(values.get(OctaneConstants.KEY_SHAREDSPACEID),
+        List<JSONObject> result = client.getUserStoriesAfterDate(values.get(OctaneConstants.KEY_SHAREDSPACEID),
                 values.get(OctaneConstants.KEY_WORKSPACEID), null, null);
-        List<AgileEntity> result1 = client.getUserStoriesAfterDate(values.get(OctaneConstants.KEY_SHAREDSPACEID),
+        List<JSONObject> result1 = client.getUserStoriesAfterDate(values.get(OctaneConstants.KEY_SHAREDSPACEID),
                 values.get(OctaneConstants.KEY_WORKSPACEID), ids, null);
-        List<AgileEntity> result2 = client.getUserStoriesAfterDate(values.get(OctaneConstants.KEY_SHAREDSPACEID),
+        List<JSONObject> result2 = client.getUserStoriesAfterDate(values.get(OctaneConstants.KEY_SHAREDSPACEID),
                 values.get(OctaneConstants.KEY_WORKSPACEID), null, updateDate);
-        List<AgileEntity> result3 = client.getUserStoriesAfterDate(values.get(OctaneConstants.KEY_SHAREDSPACEID),
+        List<JSONObject> result3 = client.getUserStoriesAfterDate(values.get(OctaneConstants.KEY_SHAREDSPACEID),
                 values.get(OctaneConstants.KEY_WORKSPACEID), ids, updateDate);
 
         Assert.assertNull(result);
@@ -419,13 +395,13 @@ public class ClientPublicAPITest {
         cal.add(Calendar.DAY_OF_MONTH, -1);
         Date updateDate = cal.getTime();
 
-        List<AgileEntity> result = client.getFeaturesAfterDate(values.get(OctaneConstants.KEY_SHAREDSPACEID),
+        List<JSONObject> result = client.getFeaturesAfterDate(values.get(OctaneConstants.KEY_SHAREDSPACEID),
                 values.get(OctaneConstants.KEY_WORKSPACEID), null, null);
-        List<AgileEntity> result1 = client.getFeaturesAfterDate(values.get(OctaneConstants.KEY_SHAREDSPACEID),
+        List<JSONObject> result1 = client.getFeaturesAfterDate(values.get(OctaneConstants.KEY_SHAREDSPACEID),
                 values.get(OctaneConstants.KEY_WORKSPACEID), ids, null);
-        List<AgileEntity> result2 = client.getFeaturesAfterDate(values.get(OctaneConstants.KEY_SHAREDSPACEID),
+        List<JSONObject> result2 = client.getFeaturesAfterDate(values.get(OctaneConstants.KEY_SHAREDSPACEID),
                 values.get(OctaneConstants.KEY_WORKSPACEID), null, updateDate);
-        List<AgileEntity> result3 = client.getFeaturesAfterDate(values.get(OctaneConstants.KEY_SHAREDSPACEID),
+        List<JSONObject> result3 = client.getFeaturesAfterDate(values.get(OctaneConstants.KEY_SHAREDSPACEID),
                 values.get(OctaneConstants.KEY_WORKSPACEID), ids, updateDate);
 
         Assert.assertNull(result);
@@ -438,19 +414,14 @@ public class ClientPublicAPITest {
         printAgileEntityList(result3);
     }
 
-    private void printAgileEntityList(List<AgileEntity> agileEntityList) {
-        for (AgileEntity agileEntity : agileEntityList) {
-
-            Iterator<Entry<String, DataField>> iterator = agileEntity.getAllFields();
+    private void printAgileEntityList(List<JSONObject> agileEntityList) {
+        for (JSONObject agileEntity : agileEntityList) {
             System.out.println("\t{");
-            System.out.println("\tID: " + agileEntity.getId());
-            System.out.println("\tlast update time: " + agileEntity.getLastUpdateTime());
+            Iterator<String> iterator = agileEntity.keys();
             while (iterator.hasNext()) {
-
-                Entry<String, DataField> entry = iterator.next();
-                System.out.print("\t\t" + entry.getKey() + ": ");
-                DataField field = entry.getValue();
-                System.out.println(field.toString());
+                String key = iterator.next();
+                System.out.print("\t\t" + key + ": ");
+                System.out.println(agileEntity.get(key).toString());
             }
             System.out.println("\t}");
         }
