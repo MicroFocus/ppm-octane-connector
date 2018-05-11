@@ -223,11 +223,9 @@ public class OctaneRequestIntegration extends RequestIntegration {
             DataField field = entry.getValue();
             if (field == null) {
                 if (fieldInfo.isMultiValue()) {
-                    JSONObject emptyField = new JSONObject();
-                    emptyField.put("data",  new JSONArray());
-                    entityObj.put(key, emptyField);
+                    entityObj.put(key, createNullJSONObject(true));
                 } else {
-                    entityObj.put(key, new JSONObject(true));
+                    entityObj.put(key, createNullJSONObject(false));
                 }
                 continue;
             }
@@ -239,11 +237,13 @@ public class OctaneRequestIntegration extends RequestIntegration {
                 case USER:
                     if (field.isList()) {
                         MultiUserField userField = (MultiUserField) field;
-                        JSONObject obj = transformUsers(client, fieldInfo,  userField.get(), sharedSpceId);
+                        JSONObject obj = transformUsers(client, fieldInfo, userField.get(), sharedSpceId);
                         entityObj.put(entry.getKey(), obj);
                     } else {
                         UserField userField = (UserField) field;
-                        JSONObject obj = transformSingleUser(client, fieldInfo,  userField.get(), sharedSpceId);
+                        List<User> userList = new ArrayList<User>();
+                        userList.add(userField.get());
+                        JSONObject obj = transformUsers(client, fieldInfo, userList, sharedSpceId);
                         entityObj.put(entry.getKey(), obj);
                     }
                     break;
@@ -295,56 +295,42 @@ public class OctaneRequestIntegration extends RequestIntegration {
     private JSONObject transformUsers(ClientPublicAPI client, FieldInfo userFieldInfo, List<User> users,
             String shareSpaceId)
     {
-        if (users == null || users.isEmpty()) {
-            return null;
-        }
-        String[] fullNames = new String[users.size()];
-        int index = 0;
-        for (User user : users) {
-            fullNames[index] = user.getFullName();
-            index++;
-        }
-        net.sf.json.JSONArray jsonArray = client.getUsersByFullName(shareSpaceId, fullNames);
-        if (jsonArray.size() < 1)
-            return null;
-        if (userFieldInfo.isMultiValue()) {
-            JSONObject userList = new JSONObject();
-            JSONArray userArr = new JSONArray();
-            for (int i = 0; i < jsonArray.size(); i++) {
-                net.sf.json.JSONObject tempObj = jsonArray.getJSONObject(i);
-                String id = (String)tempObj.get("id");
-                JSONObject obj = new JSONObject();
-                obj.put("type", "workspace_user");
-                obj.put("id", id);
-                userArr.add(obj);
-            }
-            userList.put("data", userArr);
-            return userList;
+        if (users != null && !users.isEmpty()) {
+            List<String> emails = new ArrayList<String>();
 
+            for (User user : users) {
+                if (user.getEmail() != null) {
+                    emails.add(user.getEmail());
+                }
+            }
+            if (!emails.isEmpty()) {
+                JSONArray emailArray = client.getUsersByEmail(shareSpaceId, emails.toArray(new String[emails.size()]));
+                if (emailArray.size() > 0) {
+                    if (userFieldInfo.isMultiValue()) {
+                        JSONObject userList = new JSONObject();
+                        JSONArray userArr = new JSONArray();
+                        for (int i = 0; i < emailArray.size(); i++) {
+                            JSONObject tempObj = emailArray.getJSONObject(i);
+                            userArr.add(getUserJsonObject(tempObj));
+                        }
+                        userList.put("data", userArr);
+                        return userList;
+                    } else {
+                        return getUserJsonObject(emailArray.getJSONObject(0));
+                    }
+                }
+            }
+        }
+
+        if (userFieldInfo.isMultiValue()) {
+            return createNullJSONObject(true);
         } else {
-            net.sf.json.JSONObject tempObj = jsonArray.getJSONObject(0);
-            String id = (String)tempObj.get("id");
-            JSONObject obj = new JSONObject();
-            obj.put("type", "workspace_user");
-            obj.put("id", id);
-            return obj;
+            return createNullJSONObject(false);
         }
     }
 
-    private JSONObject transformSingleUser(ClientPublicAPI client, FieldInfo userFieldInfo, User user,
-            String shareSpaceId)
-    {
-        if (user == null) {
-            return null;
-        }
-        String[] fullNames = new String[]{user.getFullName()};
-
-        net.sf.json.JSONArray jsonArray = client.getUsersByFullName(shareSpaceId, fullNames);
-        if (jsonArray.size() < 1)
-            return null;
-
-        net.sf.json.JSONObject tempObj = jsonArray.getJSONObject(0);
-        String id = (String)tempObj.get("id");
+    private JSONObject getUserJsonObject(JSONObject tempObj) {
+        String id = tempObj.getString("id");
         JSONObject obj = new JSONObject();
         obj.put("type", "workspace_user");
         obj.put("id", id);
@@ -448,6 +434,16 @@ public class OctaneRequestIntegration extends RequestIntegration {
             return true;
         } else {
             return false;
+        }
+    }
+
+    private JSONObject createNullJSONObject(boolean isMulti) {
+        if (isMulti) {
+            JSONObject nullObj = new JSONObject();
+            nullObj.put("data",  new JSONArray());
+            return nullObj;
+        } else {
+            return new JSONObject(true);
         }
     }
 
