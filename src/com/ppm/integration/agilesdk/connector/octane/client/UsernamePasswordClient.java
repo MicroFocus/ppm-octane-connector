@@ -131,6 +131,9 @@ public class UsernamePasswordClient {
 
     private Resource oneResource(String url, String[] fields, FieldQuery... queries) {
 
+        // Only allowing secure protocols to connect
+        System.setProperty("https.protocols", "TLSv1.2,SSLv3");
+
         Resource rsc = new RestClient(this.config).resource(baseURL + url);
 
         if (fields != null && fields.length > 0) {
