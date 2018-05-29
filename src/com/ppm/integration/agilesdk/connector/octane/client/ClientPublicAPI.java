@@ -22,6 +22,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TimeZone;
 
+import javax.net.ssl.HttpsURLConnection;
 import javax.ws.rs.HttpMethod;
 import javax.ws.rs.core.MediaType;
 
@@ -169,6 +170,12 @@ public class ClientPublicAPI {
                 con = (HttpURLConnection)obj.openConnection(this.proxy);
             } else {
                 con = (HttpURLConnection)obj.openConnection();
+            }
+
+            // Some HTTPS servers (like Octane on AWS) do not negotiate if you start with TLS1. So let's only use TLS1.2
+            if (con instanceof HttpsURLConnection) {
+                // Only allowing secure protocols to connect
+                System.setProperty("https.protocols", "TLSv1.2,SSLv3");
             }
 
             con.setRequestMethod(method);
