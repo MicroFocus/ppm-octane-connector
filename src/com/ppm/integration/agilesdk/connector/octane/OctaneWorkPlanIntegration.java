@@ -662,6 +662,14 @@ public class OctaneWorkPlanIntegration extends WorkPlanIntegration implements Fu
                 final Map<String, Map<String, List<GenericWorkItem>>> workItemsPerReleaseIdAndSprintId = new HashMap<>();
 
                 for (GenericWorkItem wi : workItems) {
+
+                    if (!wi.isDefectOrStory()) {
+                        // We don't want to keep epics and features in the release backlog.
+                        // Also, since they don't have Release (Epic)  or Sprint (Epic/Feature) set, they'll create
+                        // No Sprint/No Release tasks in WP even when not needed.
+                        continue;
+                    }
+
                     String releaseId = wi.getReleaseId();
                     String sprintId = wi.getSprintId();
 

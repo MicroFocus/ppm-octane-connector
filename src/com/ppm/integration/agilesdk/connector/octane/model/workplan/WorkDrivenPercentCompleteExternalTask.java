@@ -38,7 +38,7 @@ public class WorkDrivenPercentCompleteExternalTask extends ExternalTask {
     }
 
     /**
-     * Use this constructor for Summary tasks, that have some values for work done & work remaining.
+     * Use this constructor for Leaf tasks, that have some values for work done & work remaining.
      * If passing null, we consider it to be zero.
      */
     public static WorkDrivenPercentCompleteExternalTask forLeafTask(ExternalTask wrappedTask, double workDone, double workRemaining) {
@@ -46,6 +46,7 @@ public class WorkDrivenPercentCompleteExternalTask extends ExternalTask {
     }
 
     @Override public Double getPercentCompleteOverrideValue() {
+
         double done = getWorkDone();
         double remaining = getWorkRemaining();
 
@@ -54,7 +55,8 @@ public class WorkDrivenPercentCompleteExternalTask extends ExternalTask {
             if (TaskStatus.COMPLETED.equals(getStatus()) || TaskStatus.CANCELLED.equals(getStatus())) {
                 return 100d;
             } else {
-                return 0d;
+                // No problem to have 0% complete for a task in progress even if no effort exists as this percent complete is for the override and not the individual actuals.
+                 return 0d;
             }
         }
 
