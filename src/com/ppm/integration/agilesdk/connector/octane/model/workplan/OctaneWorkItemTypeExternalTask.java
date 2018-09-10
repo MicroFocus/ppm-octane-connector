@@ -21,8 +21,6 @@ public class OctaneWorkItemTypeExternalTask extends BaseOctaneExternalTask {
 
     private WorkplanContext context;
 
-    private double targetPercentComplete = 0.0d;
-
     public OctaneWorkItemTypeExternalTask(String type, List<GenericWorkItem> typeContent, WorkplanContext context) {
         this.type = type;
         this.context = context;
@@ -41,8 +39,10 @@ public class OctaneWorkItemTypeExternalTask extends BaseOctaneExternalTask {
         WorkDrivenPercentCompleteExternalTask workDrivenTask = null;
 
         if (context.showItemsAsTasks) {
+            // This is a summary task.
             workDrivenTask = WorkDrivenPercentCompleteExternalTask.forSummaryTask(this);
         } else {
+            // This is a leaf task.
             double workDone = 0;
             double workRemaining = 0;
             for (ExternalTask child : children) {
@@ -52,8 +52,6 @@ public class OctaneWorkItemTypeExternalTask extends BaseOctaneExternalTask {
             }
             workDrivenTask = WorkDrivenPercentCompleteExternalTask.forLeafTask(this, workDone, workRemaining);
         }
-
-        targetPercentComplete = workDrivenTask.getPercentCompleteOverrideValue();
 
         return workDrivenTask;
     }
@@ -197,7 +195,7 @@ public class OctaneWorkItemTypeExternalTask extends BaseOctaneExternalTask {
                         }
 
                         public double getPercentComplete() {
-                            return targetPercentComplete;
+                            return childActual.getPercentComplete();
                         }
 
                         public long getResourceId() {

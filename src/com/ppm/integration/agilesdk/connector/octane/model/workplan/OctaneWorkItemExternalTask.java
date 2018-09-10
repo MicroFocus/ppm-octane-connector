@@ -118,6 +118,10 @@ public class OctaneWorkItemExternalTask extends BaseOctaneExternalTask {
             }
 
             @Override
+            /**
+             * A workItem Task is always a leaf task, so we must always have percent complete matching the PPM task formula while task is in progress.
+             * If we try to force % complete of a leaf task, PPM will modify ERE value to match % complete, which is not something we want.
+             */
             public double getPercentComplete() {
 
                 if (TaskStatus.COMPLETED.equals(getStatus()) || TaskStatus.CANCELLED.equals(getStatus())) {
@@ -129,12 +133,7 @@ public class OctaneWorkItemExternalTask extends BaseOctaneExternalTask {
                     return 0;
                 }
 
-                // Here we're IN_PROGRESS
-
-                if (OctaneConstants.PERCENT_COMPLETE_STORY_POINTS.equals(context.percentComplete) || OctaneConstants.PERCENT_COMPLETE_ITEMS_COUNT.equals(context.percentComplete)) {
-                    // If we are in story points mode or backlog items count mode and task is not completed, then it's 0% if no actual effort and 1% if any actual effort.
-                    return workItem.getInvestedHours() > 0d ? 1d : 0d;
-                }
+                // Here we're IN_PROGRESS, so % complete must match % work complete, whatever be the % complete for summary tasks.
 
                 if (workItem.getRemainingHours() + workItem.getInvestedHours() == 0) {
                     // We have no work information and task is not completed, so it's zero percent.
