@@ -88,7 +88,6 @@ public class OctaneWorkItemExternalTask extends BaseOctaneExternalTask {
                 } else {
                     return null;
                 }
-
             }
 
             @Override
@@ -125,9 +124,16 @@ public class OctaneWorkItemExternalTask extends BaseOctaneExternalTask {
                     return 100;
                 }
 
-                if (OctaneConstants.PERCENT_COMPLETE_STORY_POINTS.equals(context.percentComplete) || OctaneConstants.PERCENT_COMPLETE_ITEMS_COUNT.equals(context.percentComplete)) {
-                    // If we are in story points mode or backlog items count mode and task is not completed, then it's zero percent.
+                if (!(TaskStatus.ON_HOLD.equals(getStatus()) || TaskStatus.IN_PROGRESS.equals(getStatus()))) {
+                    // Task is READY, IN PLANNING, etc, but is not in progress.
                     return 0;
+                }
+
+                // Here we're IN_PROGRESS
+
+                if (OctaneConstants.PERCENT_COMPLETE_STORY_POINTS.equals(context.percentComplete) || OctaneConstants.PERCENT_COMPLETE_ITEMS_COUNT.equals(context.percentComplete)) {
+                    // If we are in story points mode or backlog items count mode and task is not completed, then it's 0% if no actual effort and 1% if any actual effort.
+                    return workItem.getInvestedHours() > 0d ? 1d : 0d;
                 }
 
                 if (workItem.getRemainingHours() + workItem.getInvestedHours() == 0) {

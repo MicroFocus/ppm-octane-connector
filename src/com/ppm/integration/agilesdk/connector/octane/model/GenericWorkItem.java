@@ -173,4 +173,18 @@ public class GenericWorkItem {
     public Integer getAggregatedStoryPoints() {
         return getInteger("actual_story_points");
     }
+
+    public boolean isDefectOrStory() {
+        switch(getSubType()) {
+            case "defect":
+                return true;
+            case "story":
+                return true;
+            case "quality_story":
+                return true;
+            default:
+                return false;
+        }
+
+    }
 }
