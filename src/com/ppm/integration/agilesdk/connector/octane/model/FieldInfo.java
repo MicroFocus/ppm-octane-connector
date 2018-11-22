@@ -78,6 +78,14 @@ public class FieldInfo {
         try {
             label = dataObj.getString(OctaneConstants.KEY_FIELD_LABEL);
             name = dataObj.getString(OctaneConstants.KEY_FIELD_NAME);
+
+            if ("reference".equals(dataObj.getString(OctaneConstants.KEY_FIELD_FIELD_TYPE))) {
+                fieldType = OctaneConstants.KEY_AUTO_COMPLETE_LIST;
+                listType = true;
+            } else {
+                fieldType = "string";
+            }
+
             if (dataObj.containsKey(OctaneConstants.KEY_FIELD_TYPE_DATA)) {
                 JSONObject typeData = dataObj.getJSONObject(OctaneConstants.KEY_FIELD_TYPE_DATA);
                 JSONArray targets = typeData.getJSONArray(OctaneConstants.KEY_FIELD_TARGETS);
@@ -86,7 +94,7 @@ public class FieldInfo {
                     JSONObject target = targets.getJSONObject(i);
                     if (OctaneConstants.SUB_TYPE_LIST_NODE.equals(target.getString(OctaneConstants.KEY_FIELD_TYPE))) {
                         listType = true;
-                        fieldType = "SUB_TYPE_LIST_NODE";
+                        fieldType = OctaneConstants.KEY_SUB_TYPE_LIST_NODE;
                         logicalName = target.getString(OctaneConstants.KEY_LOGICAL_NAME);
                         break;
                     } else if (OctaneConstants.SUB_TYPE_USER_NODE
@@ -98,8 +106,6 @@ public class FieldInfo {
 
                     }
                 }
-            } else {
-                fieldType = "string";
             }
         } catch (Exception e) {
             throw new OctaneClientException("AGM_APP", "Error when reading JSon data from Octane: "+ e.getMessage());

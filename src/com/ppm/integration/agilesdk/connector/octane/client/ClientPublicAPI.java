@@ -34,6 +34,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.hp.ppm.integration.model.AgileEntityFieldValue;
 import com.ppm.integration.agilesdk.ValueSet;
 import com.ppm.integration.agilesdk.connector.octane.OctaneConstants;
 import com.ppm.integration.agilesdk.connector.octane.model.EpicAttr;
@@ -997,7 +998,9 @@ public class ClientPublicAPI {
                 JSONObject data = fieldsArray.getJSONObject(i);
                 FieldInfo info = new FieldInfo(data);
                 if (info.getFieldType() != null
-                        && (info.getFieldType().equals("string") || info.getFieldType().equals("userList")))
+                        && (info.getFieldType().equals("string") || info.getFieldType().equals("userList")
+                                || info.getFieldType().equals(OctaneConstants.KEY_SUB_TYPE_LIST_NODE)
+                                || info.getFieldType().equals(OctaneConstants.KEY_AUTO_COMPLETE_LIST)))
                 {
                     fieldsList.add(info);
                 }
@@ -1006,25 +1009,49 @@ public class ClientPublicAPI {
         return fieldsList;
     }
 
-    //will be implemented in PPM 9.51
-//    public List<AgileEntityField> getEntityFieldValueList(final String sharedspaceId, final String workspaceId, final String logicalName) {
-//        String url = String.format("%s/api/shared_spaces/%s/workspaces/%s/list_nodes?query=%s%s%s",
-//                baseURL, sharedspaceId, workspaceId, "%22logical_name%20EQ%20^", logicalName, ".*^%22");
-//        RestResponse response = sendGet(url);
-//        List valueList = new ArrayList();
-//        JSONObject dataObj = JSONObject.fromObject(response.getData());
-//        if (dataObj != null) {
-//            JSONArray fieldsArray = dataObj.getJSONArray("data");
-//            for(int i = 0; i < fieldsArray.size(); i++) {
-//                JSONObject data = fieldsArray.getJSONObject(i);
-//                AgileEntityField field = new AgileEntityField();
-//                field.setKey(data.getString(OctaneConstants.KEY_FIELD_ID));
-//                field.setValue(data.getString(OctaneConstants.KEY_FIELD_NAME), null);
-//                valueList.add(field);
-//            }
-//        }
-//        return valueList;
-//    }
+    public List<AgileEntityFieldValue> getEntityFieldListNode(final String sharedSpaceId, final String workSpaceId,
+            final String logicalName)
+    {
+        String url = String.format("%s/api/shared_spaces/%s/workspaces/%s/list_nodes?query=%s%s%s", baseURL,
+                sharedSpaceId, workSpaceId, "%22logical_name%20EQ%20^", logicalName, ".*^%22");
+        RestResponse response = sendGet(url);
+        List<AgileEntityFieldValue> valueList = new ArrayList<AgileEntityFieldValue>();
+        JSONObject dataObj = JSONObject.fromObject(response.getData());
+        if (dataObj != null) {
+            JSONArray fieldsArray = dataObj.getJSONArray("data");
+            for (int i = 0; i < fieldsArray.size(); i++) {
+                JSONObject data = fieldsArray.getJSONObject(i);
+                Map<String, String> map = new HashMap<String, String>();
+                AgileEntityFieldValue fieldValue = new AgileEntityFieldValue();
+                fieldValue.setId(data.getString(OctaneConstants.KEY_FIELD_ID));
+                fieldValue.setName(data.getString(OctaneConstants.KEY_FIELD_NAME));
+                valueList.add(fieldValue);
+            }
+        }
+        return valueList;
+    }
+
+    public List<AgileEntityFieldValue> getEntityFieldValueList(final String sharedSpaceId, final String workSpaceId,
+            final String entityName, final String fieldName)
+    {
+        String url = String.format("%s/api/shared_spaces/%s/workspaces/%s/%s?fields=id,name", baseURL, sharedSpaceId,
+                workSpaceId, fieldName);
+        RestResponse response = sendGet(url);
+        List<AgileEntityFieldValue> valueList = new ArrayList<AgileEntityFieldValue>();
+        JSONObject dataObj = JSONObject.fromObject(response.getData());
+        if (dataObj != null) {
+            JSONArray fieldsArray = dataObj.getJSONArray("data");
+            for (int i = 0; i < fieldsArray.size(); i++) {
+                JSONObject data = fieldsArray.getJSONObject(i);
+                Map<String, String> map = new HashMap<String, String>();
+                AgileEntityFieldValue fieldValue = new AgileEntityFieldValue();
+                fieldValue.setId(data.getString(OctaneConstants.KEY_FIELD_ID));
+                fieldValue.setName(data.getString(OctaneConstants.KEY_FIELD_NAME));
+                valueList.add(fieldValue);
+            }
+        }
+        return valueList;
+    }
 
     public JSONObject saveFeatureInWorkspace(final String sharedspaceId, final String workspaceId,
             final String entity, final String method)
