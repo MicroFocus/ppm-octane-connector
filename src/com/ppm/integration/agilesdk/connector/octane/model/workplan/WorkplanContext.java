@@ -83,11 +83,12 @@ public class WorkplanContext {
             case "In Testing":
             case "Opened":
                 return ExternalTask.TaskStatus.IN_PROGRESS;
+            case "Rejected":
+            case "Duplicate":
+                return ExternalTask.TaskStatus.CANCELLED;
             case "Done":
             case "Closed":
             case "Proposed Closed":
-            case "Rejected":
-            case "Duplicate":
             case "Fixed":
                 return ExternalTask.TaskStatus.COMPLETED;
             case "New":
