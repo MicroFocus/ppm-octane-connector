@@ -94,7 +94,7 @@ public class FieldInfo {
                 fieldType = OctaneConstants.KEY_AUTO_COMPLETE_LIST;
                 listType = true;
             } else {
-                fieldType = "string";
+                fieldType = OctaneConstants.KEY_FIELD_STRING;
             }
 
             if (dataObj.containsKey(OctaneConstants.KEY_FIELD_TYPE_DATA)) {
