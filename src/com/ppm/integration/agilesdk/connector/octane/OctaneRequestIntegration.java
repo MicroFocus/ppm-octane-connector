@@ -18,6 +18,7 @@ import org.joda.time.DateTime;
 import org.joda.time.format.DateTimeFormatter;
 import org.joda.time.format.ISODateTimeFormat;
 
+import com.hp.ppm.integration.model.AgileEntityFieldValue;
 import com.ppm.integration.agilesdk.ValueSet;
 import com.ppm.integration.agilesdk.connector.octane.client.ClientPublicAPI;
 import com.ppm.integration.agilesdk.connector.octane.client.OctaneClientException;
@@ -89,6 +90,53 @@ public class OctaneRequestIntegration extends RequestIntegration {
         }
         Collections.sort(fieldList, new AgileFieldComparator());
         return fieldList;
+    }
+
+    @Override
+    public List<AgileEntityFieldValue> getAgileEntityFieldsValueList(final String agileProjectValue,
+            final String entityType,
+            final ValueSet instanceConfigurationParameters, final String fieldType, final String fieldName)
+    {
+        ClientPublicAPI client = ClientPublicAPI.getClient(instanceConfigurationParameters);
+        JSONObject workspaceJson = (JSONObject)JSONSerializer.toJSON(agileProjectValue);
+        String workSpaceId = workspaceJson.getString(OctaneConstants.WORKSPACE_ID);
+        String sharedSpaceId = workspaceJson.getString(OctaneConstants.SHARED_SPACE_ID);
+        List<AgileEntityFieldValue> fields = null;
+        if (OctaneConstants.KEY_SUB_TYPE_LIST_NODE.equals(fieldType)) {
+            fields = client.getEntityFieldListNode(sharedSpaceId, workSpaceId, fieldName);
+        } else if (OctaneConstants.KEY_AUTO_COMPLETE_LIST.equals(fieldType)) {
+            String newFieldName = null;
+            switch (fieldName) {
+                case "milestone":
+                    newFieldName = "milestones";
+                    break;
+                case "parent":
+                    if ("feature".equals(entityType)) {
+                        newFieldName = "epics";
+                    } else {
+                        newFieldName = "features";
+                    }
+                    break;
+                case "phase":
+                    newFieldName = "phases";
+                    break;
+                case "release":
+                    newFieldName = "releases";
+                    break;
+                case "sprint":
+                    newFieldName = "sprints";
+                    break;
+                case "team":
+                    newFieldName = "teams";
+                    break;
+                default:
+                    newFieldName = fieldName;
+                    break;
+            }
+            fields = client.getEntityFieldValueList(sharedSpaceId, workSpaceId, entityType, newFieldName);
+        }
+
+        return fields;
     }
 
     @Override

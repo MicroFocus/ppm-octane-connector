@@ -34,6 +34,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.hp.ppm.integration.model.AgileEntityFieldValue;
 import com.ppm.integration.agilesdk.ValueSet;
 import com.ppm.integration.agilesdk.connector.octane.OctaneConstants;
 import com.ppm.integration.agilesdk.connector.octane.model.EpicAttr;
@@ -86,7 +87,7 @@ public class ClientPublicAPI {
     private Proxy proxy = null;
 
     private int retryNumber = 0;
-    
+
     public static final String DEFAULT_ENTITY_ITEM_URL =
             "%s/ui/entity-navigation?p=%s/%s&entityType=work_item&id=%s";
 
@@ -975,12 +976,12 @@ public class ClientPublicAPI {
 
         return (List<EpicAttr>)getDataContent(response.getData(), new TypeReference<List<EpicAttr>>(){});
     }
-    
+
     public List<EpicAttr> getEpicParent(final String sharedspaceId, final String workspaceId, final String workitemSubtype) {
         String url = String.format("%s/api/shared_spaces/%s/workspaces/%s/work_items?fields=id&query=%s%s%s",
             baseURL, sharedspaceId, workspaceId, "%22subtype%3D'", workitemSubtype, "'%22");
         RestResponse response = sendGet(url);
-    	
+
         return (List<EpicAttr>)getDataContent(response.getData(), new TypeReference<List<EpicAttr>>(){});
     }
 
@@ -997,7 +998,9 @@ public class ClientPublicAPI {
                 JSONObject data = fieldsArray.getJSONObject(i);
                 FieldInfo info = new FieldInfo(data);
                 if (info.getFieldType() != null
-                        && (info.getFieldType().equals("string") || info.getFieldType().equals("userList")))
+                        && (info.getFieldType().equals("string") || info.getFieldType().equals("userList")
+                                || info.getFieldType().equals(OctaneConstants.KEY_SUB_TYPE_LIST_NODE)
+                                || info.getFieldType().equals(OctaneConstants.KEY_AUTO_COMPLETE_LIST)))
                 {
                     fieldsList.add(info);
                 }
@@ -1006,25 +1009,47 @@ public class ClientPublicAPI {
         return fieldsList;
     }
 
-    //will be implemented in PPM 9.51
-//    public List<AgileEntityField> getEntityFieldValueList(final String sharedspaceId, final String workspaceId, final String logicalName) {
-//        String url = String.format("%s/api/shared_spaces/%s/workspaces/%s/list_nodes?query=%s%s%s",
-//                baseURL, sharedspaceId, workspaceId, "%22logical_name%20EQ%20^", logicalName, ".*^%22");
-//        RestResponse response = sendGet(url);
-//        List valueList = new ArrayList();
-//        JSONObject dataObj = JSONObject.fromObject(response.getData());
-//        if (dataObj != null) {
-//            JSONArray fieldsArray = dataObj.getJSONArray("data");
-//            for(int i = 0; i < fieldsArray.size(); i++) {
-//                JSONObject data = fieldsArray.getJSONObject(i);
-//                AgileEntityField field = new AgileEntityField();
-//                field.setKey(data.getString(OctaneConstants.KEY_FIELD_ID));
-//                field.setValue(data.getString(OctaneConstants.KEY_FIELD_NAME), null);
-//                valueList.add(field);
-//            }
-//        }
-//        return valueList;
-//    }
+    public List<AgileEntityFieldValue> getEntityFieldListNode(final String sharedSpaceId, final String workSpaceId,
+            final String logicalName)
+    {
+        String url = String.format("%s/api/shared_spaces/%s/workspaces/%s/list_nodes?query=%s%s%s", baseURL,
+                sharedSpaceId, workSpaceId, "%22logical_name%20EQ%20^", logicalName, ".*^%22");
+        RestResponse response = sendGet(url);
+        JSONObject dataObj = JSONObject.fromObject(response.getData());
+        List<AgileEntityFieldValue> valueList = parseValueJson(dataObj);
+        return valueList;
+    }
+
+    public List<AgileEntityFieldValue> getEntityFieldValueList(final String sharedSpaceId, final String workSpaceId,
+            final String entityName, final String fieldName)
+    {
+        String url = String.format("%s/api/shared_spaces/%s/workspaces/%s/%s?fields=id,name", baseURL, sharedSpaceId,
+                workSpaceId, fieldName);
+        if("phases".equals(fieldName)){
+            url = String.format("%s&query=%s%s%s", url, "%22entity%20EQ%20'", entityName, "'%22");
+        }
+        RestResponse response = sendGet(url);
+        JSONObject dataObj = JSONObject.fromObject(response.getData());
+        List<AgileEntityFieldValue> valueList = parseValueJson(dataObj);
+
+        return valueList;
+    }
+
+    private List<AgileEntityFieldValue> parseValueJson(JSONObject dataObj){
+        List<AgileEntityFieldValue> valueList = new ArrayList<AgileEntityFieldValue>();
+        if (dataObj != null) {
+            JSONArray fieldsArray = dataObj.getJSONArray("data");
+            for (int i = 0; i < fieldsArray.size(); i++) {
+                JSONObject data = fieldsArray.getJSONObject(i);
+                Map<String, String> map = new HashMap<String, String>();
+                AgileEntityFieldValue fieldValue = new AgileEntityFieldValue();
+                fieldValue.setId(data.getString(OctaneConstants.KEY_FIELD_ID));
+                fieldValue.setName(data.getString(OctaneConstants.KEY_FIELD_NAME));
+                valueList.add(fieldValue);
+            }
+        }
+        return valueList;
+    }
 
     public JSONObject saveFeatureInWorkspace(final String sharedspaceId, final String workspaceId,
             final String entity, final String method)
@@ -1113,7 +1138,7 @@ public class ClientPublicAPI {
         }
         return csrf;
     }
-    
+
     private List<?> getDataContent(String jsonData, TypeReference<?> typeRef) {
         try {
             ObjectMapper mapper = new ObjectMapper();
@@ -1245,7 +1270,7 @@ public class ClientPublicAPI {
         List<JSONObject> workItemsJson = getUserStoriesJson(sharedspaceId, workspaceId, query);
         return workItemsJson;
     }
-    
+
     public List<JSONObject> getUserStories(String sharedspaceId, String workspaceId, Set<String> ids) {
         if (ids == null || ids.isEmpty()) {
             return null;
@@ -1266,7 +1291,7 @@ public class ClientPublicAPI {
         List<JSONObject> workItemsJson = getFeatureJson(sharedspaceId, workspaceId, query);
         return workItemsJson;
     }
-    
+
     public List<JSONObject> getFeatures(String sharedspaceId, String workspaceId, Set<String> ids) {
         if (ids == null || ids.isEmpty()) {
             return null;
@@ -1277,7 +1302,7 @@ public class ClientPublicAPI {
 
        return workItemsJson;
     }
-    
+
     public void deleteEntity(String sharedspaceId, String workspaceId, String entityType, String entityId) {
         String url = String.format("%s/api/shared_spaces/%s/workspaces/%s/%s/%s", baseURL, sharedspaceId, workspaceId,
                 entityType, entityId);
@@ -1393,7 +1418,7 @@ public class ClientPublicAPI {
 
         return new JsonPaginatedOctaneGetter().get(url);
     }
-    
+
     private List<JSONObject> getFeatureJson(String sharedspaceId, String workspaceId, String queryFilter) {
 
         List<FieldInfo> fieldsInfos = getEntityFields(sharedspaceId, workspaceId, "feature");
