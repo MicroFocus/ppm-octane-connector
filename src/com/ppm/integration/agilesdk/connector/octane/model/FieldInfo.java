@@ -6,7 +6,7 @@ import com.ppm.integration.agilesdk.connector.octane.client.OctaneClientExceptio
 import net.sf.json.JSONArray;
 import net.sf.json.JSONObject;
 
-/**
+ /**
  * {@code FieldInfo} description
  * <p/>
  *
@@ -79,11 +79,22 @@ public class FieldInfo {
             label = dataObj.getString(OctaneConstants.KEY_FIELD_LABEL);
             name = dataObj.getString(OctaneConstants.KEY_FIELD_NAME);
 
+            /*
+            * We regard all <reference> type field as AutoCompleteList Field,
+            * Only AutoCompleteList  except <user list> type field can do value mapping
+            * First validate if this field is reference type, if true, then validate <list_node> type
+            * or <user list> type or others.
+            * Separate <list_node> and <AutoCompleteList> is because when get values for these fields,
+            * it will use different API url,  and <user list> type can not do value mapping.
+            *
+            * out put type:
+            * String, user list, list_node(DropDownList), AutoCompleteList
+            * */
             if ("reference".equals(dataObj.getString(OctaneConstants.KEY_FIELD_FIELD_TYPE))) {
                 fieldType = OctaneConstants.KEY_AUTO_COMPLETE_LIST;
                 listType = true;
             } else {
-                fieldType = "string";
+                fieldType = OctaneConstants.KEY_FIELD_STRING;
             }
 
             if (dataObj.containsKey(OctaneConstants.KEY_FIELD_TYPE_DATA)) {
@@ -100,7 +111,7 @@ public class FieldInfo {
                     } else if (OctaneConstants.SUB_TYPE_USER_NODE
                             .equals(target.getString(OctaneConstants.KEY_FIELD_TYPE))) {// multiple
                         listType = false;
-                        fieldType = "userList";
+                        fieldType = OctaneConstants.KEY_FIELD_USER_LIST;
                         multiValue = multiple;
                         break;
 
