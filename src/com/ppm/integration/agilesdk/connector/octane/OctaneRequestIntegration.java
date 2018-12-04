@@ -25,6 +25,8 @@ import com.ppm.integration.agilesdk.connector.octane.client.OctaneClientExceptio
 import com.ppm.integration.agilesdk.connector.octane.model.FieldInfo;
 import com.ppm.integration.agilesdk.connector.octane.model.SimpleEntity;
 import com.ppm.integration.agilesdk.dm.DataField;
+import com.ppm.integration.agilesdk.dm.ListNode;
+import com.ppm.integration.agilesdk.dm.ListNodeField;
 import com.ppm.integration.agilesdk.dm.MultiUserField;
 import com.ppm.integration.agilesdk.dm.RequestIntegration;
 import com.ppm.integration.agilesdk.dm.StringField;
@@ -295,6 +297,15 @@ public class OctaneRequestIntegration extends RequestIntegration {
                         entityObj.put(entry.getKey(), obj);
                     }
                     break;
+                case ListNode:
+                    ListNodeField listNodeField = (ListNodeField) field;
+                    JSONObject complexObj = new JSONObject();                    
+                    
+                    complexObj.put("type", listNodeField.get().getType());
+                    complexObj.put("name", listNodeField.get().getName());                    
+                    complexObj.put("id", listNodeField.get().getId());
+                    
+                    entityObj.put(entry.getKey(), complexObj);
             }
         }
 
@@ -444,9 +455,7 @@ public class OctaneRequestIntegration extends RequestIntegration {
                         } else {
                             entity.addField(key, null);
                         }
-
                     }
-
                 } else if (info.getFieldType().equals("string")) {
                     String value = item.getString(key);
                     if (value == null || value.equals("null")) {
@@ -455,6 +464,25 @@ public class OctaneRequestIntegration extends RequestIntegration {
                     StringField stringField = new StringField();
                     stringField.set(value);
                     entity.addField(key, stringField);
+                } else if (info.getFieldType().equals("SUB_TYPE_LIST_NODE") || info.getFieldType().equals("AUTO_COMPLETE_LIST")) {
+                    JSONObject value = item.getJSONObject(key);
+                    if (canParseJson(value, "name")) {
+                        ListNode listNode = new ListNode();
+                        if(info.getFieldType().equals("SUB_TYPE_LIST_NODE")) {
+                            listNode.setType("list_node");
+                        } else {
+                            listNode.setType(value.getString("type"));
+                        }
+                        listNode.setId(value.getString("id"));
+                        listNode.setName(value.getString("name"));
+                        
+                        ListNodeField listNodeField = new ListNodeField();
+                        listNodeField.set(listNode);
+                        
+                        entity.addField(key, listNodeField);                        
+                    } else {
+                        entity.addField(key, null);
+                    }
                 }
             }
         }
