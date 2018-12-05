@@ -97,16 +97,16 @@ public class OctaneRequestIntegration extends RequestIntegration {
     @Override
     public List<AgileEntityFieldValue> getAgileEntityFieldsValueList(final String agileProjectValue,
             final String entityType,
-            final ValueSet instanceConfigurationParameters, final String fieldType, final String fieldName)
+            final ValueSet instanceConfigurationParameters, final String fieldName, final boolean isLogicalName)
     {
         ClientPublicAPI client = ClientPublicAPI.getClient(instanceConfigurationParameters);
         JSONObject workspaceJson = (JSONObject)JSONSerializer.toJSON(agileProjectValue);
         String workSpaceId = workspaceJson.getString(OctaneConstants.WORKSPACE_ID);
         String sharedSpaceId = workspaceJson.getString(OctaneConstants.SHARED_SPACE_ID);
         List<AgileEntityFieldValue> fields = null;
-        if (OctaneConstants.KEY_SUB_TYPE_LIST_NODE.equals(fieldType)) {
+        if (isLogicalName) {
             fields = client.getEntityFieldListNode(sharedSpaceId, workSpaceId, fieldName);
-        } else if (OctaneConstants.KEY_AUTO_COMPLETE_LIST.equals(fieldType)) {
+        } else {
             String newFieldName = null;
             switch (fieldName) {
                 case "milestone":
@@ -424,7 +424,7 @@ public class OctaneRequestIntegration extends RequestIntegration {
                 entity.setId(value);
             } else if (fieldInfoMap != null && fieldInfoMap.get(key) != null) {
                 FieldInfo info = fieldInfoMap.get(key);
-                if (info.getFieldType().equals("userList")) {
+                if (info.getFieldType().equals(OctaneConstants.KEY_FIELD_USER_LIST)) {
                     JSONObject value = item.getJSONObject(key);
                     if (info.isMultiValue()) {
                         JSONArray users = value.getJSONArray("data");
@@ -456,7 +456,7 @@ public class OctaneRequestIntegration extends RequestIntegration {
                             entity.addField(key, null);
                         }
                     }
-                } else if (info.getFieldType().equals("string")) {
+                } else if (info.getFieldType().equals(OctaneConstants.KEY_FIELD_STRING)) {
                     String value = item.getString(key);
                     if (value == null || value.equals("null")) {
                         value = "";
@@ -469,7 +469,7 @@ public class OctaneRequestIntegration extends RequestIntegration {
                     if (canParseJson(value, "name")) {
                         ListNode listNode = new ListNode();
                         if(info.getFieldType().equals("SUB_TYPE_LIST_NODE")) {
-                            listNode.setType("list_node");
+                            listNode.setType(OctaneConstants.SUB_TYPE_LIST_NODE);
                         } else {
                             listNode.setType(value.getString("type"));
                         }
