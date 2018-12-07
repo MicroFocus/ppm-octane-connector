@@ -988,7 +988,7 @@ public class ClientPublicAPI {
     public List<FieldInfo> getEntityFields(final String sharedspaceId, final String workspaceId, final String entityName) {
         String url = String.format("%s/api/shared_spaces/%s/workspaces/%s/metadata/fields?query=%s%s%s",
                 baseURL, sharedspaceId, workspaceId, "%22entity_name%20EQ%20'", entityName,
-                "';visible_in_ui%20EQ%20true;editable%20EQ%20true;field_type%20IN%20'string','reference'%22");
+                "';visible_in_ui%20EQ%20true;editable%20EQ%20true;field_type%20IN%20'string','reference','memo'%22");
         List fieldsList = new ArrayList();
         RestResponse response = sendGet(url);
         JSONObject dataObj = JSONObject.fromObject(response.getData());
@@ -998,14 +998,25 @@ public class ClientPublicAPI {
                 JSONObject data = fieldsArray.getJSONObject(i);
                 FieldInfo info = new FieldInfo(data);
                 if (info.getFieldType() != null
-                        && (info.getFieldType().equals(OctaneConstants.KEY_FIELD_STRING) || info.getFieldType().equals(OctaneConstants.KEY_FIELD_USER_LIST)
-                                || info.getFieldType().equals(OctaneConstants.KEY_FIELD_REFERENCE)))
+                        && (filterFieldTypes(info.getFieldType())))
                 {
                     fieldsList.add(info);
                 }
             }
         }
         return fieldsList;
+    }
+
+    private boolean filterFieldTypes(String fieldType){
+        switch (fieldType){
+            case OctaneConstants.KEY_FIELD_STRING:
+            case OctaneConstants.KEY_FIELD_USER_LIST:
+            case OctaneConstants.KEY_FIELD_REFERENCE:
+            case OctaneConstants.KEY_FIELD_MEMO:
+                return true;
+            default:
+                return false;
+        }
     }
 
     public List<AgileEntityFieldValue> getEntityFieldListNode(final String sharedSpaceId, final String workSpaceId,

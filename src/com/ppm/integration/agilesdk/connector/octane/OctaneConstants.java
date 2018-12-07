@@ -120,6 +120,7 @@ public class OctaneConstants {
     public static final String KEY_FIELD_USER_LIST = "userList";
     public static final String KEY_FIELD_STRING = "string";
     public static final String KEY_FIELD_REFERENCE = "reference";
+    public static final String KEY_FIELD_MEMO = "memo";
     public static final String KEY_FIELD_DESCRIPTION = "description";
     public static final String KEY_FIELD_OWNER = "owner";
     public static final String KEY_FIELD_PHASE = "phase";
