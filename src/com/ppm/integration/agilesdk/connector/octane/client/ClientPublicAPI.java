@@ -998,9 +998,8 @@ public class ClientPublicAPI {
                 JSONObject data = fieldsArray.getJSONObject(i);
                 FieldInfo info = new FieldInfo(data);
                 if (info.getFieldType() != null
-                        && (info.getFieldType().equals("string") || info.getFieldType().equals("userList")
-                                || info.getFieldType().equals(OctaneConstants.KEY_SUB_TYPE_LIST_NODE)
-                                || info.getFieldType().equals(OctaneConstants.KEY_AUTO_COMPLETE_LIST)))
+                        && (info.getFieldType().equals(OctaneConstants.KEY_FIELD_STRING) || info.getFieldType().equals(OctaneConstants.KEY_FIELD_USER_LIST)
+                                || info.getFieldType().equals(OctaneConstants.KEY_FIELD_REFERENCE)))
                 {
                     fieldsList.add(info);
                 }

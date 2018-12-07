@@ -80,18 +80,17 @@ public class FieldInfo {
             name = dataObj.getString(OctaneConstants.KEY_FIELD_NAME);
 
             /*
-            * We regard all <reference> type field as AutoCompleteList Field,
-            * Only AutoCompleteList  except <user list> type field can do value mapping
-            * First validate if this field is reference type, if true, then validate <list_node> type
-            * or <user list> type or others.
-            * Separate <list_node> and <AutoCompleteList> is because when get values for these fields,
-            * it will use different API url,  and <user list> type can not do value mapping.
+            * We regard all <reference> type field as <list type > field, default list type is true
+            * all reference field with list type true can do value mapping, except <user list> type field,
+            * we regard user type as special field type
+            * First validate if this field is reference type, if true, then validate <user list> type or others.
+            * if <user list> type, then set <list type> false for the field
             *
             * out put type:
-            * String, user list, list_node(DropDownList), AutoCompleteList
+            * string, userList, reference
             * */
-            if ("reference".equals(dataObj.getString(OctaneConstants.KEY_FIELD_FIELD_TYPE))) {
-                fieldType = OctaneConstants.KEY_AUTO_COMPLETE_LIST;
+            if (OctaneConstants.KEY_FIELD_REFERENCE.equals(dataObj.getString(OctaneConstants.KEY_FIELD_FIELD_TYPE))) {
+                fieldType = OctaneConstants.KEY_FIELD_REFERENCE;
                 listType = true;
             } else {
                 fieldType = OctaneConstants.KEY_FIELD_STRING;
@@ -105,7 +104,6 @@ public class FieldInfo {
                     JSONObject target = targets.getJSONObject(i);
                     if (OctaneConstants.SUB_TYPE_LIST_NODE.equals(target.getString(OctaneConstants.KEY_FIELD_TYPE))) {
                         listType = true;
-                        fieldType = OctaneConstants.KEY_SUB_TYPE_LIST_NODE;
                         logicalName = target.getString(OctaneConstants.KEY_LOGICAL_NAME);
                         break;
                     } else if (OctaneConstants.SUB_TYPE_USER_NODE

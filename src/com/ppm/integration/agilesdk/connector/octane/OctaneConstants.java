@@ -108,8 +108,7 @@ public class OctaneConstants {
     public static final String SUB_TYPE_LIST_NODE = "list_node";
     public static final String SUB_TYPE_USER_NODE = "workspace_user";
     public static final String KEY_LOGICAL_NAME = "logical_name";
-    public static final String KEY_SUB_TYPE_LIST_NODE = "SUB_TYPE_LIST_NODE";
-    public static final String KEY_AUTO_COMPLETE_LIST = "AUTO_COMPLETE_LIST";
+
     public static final String KEY_FIELD_ID = "id";
     public static final String KEY_FIELD_NAME = "name";
     public static final String KEY_FIELD_LABEL = "label";
@@ -120,7 +119,7 @@ public class OctaneConstants {
     public static final String KEY_FIELD_FIELD_TYPE = "field_type";
     public static final String KEY_FIELD_USER_LIST = "userList";
     public static final String KEY_FIELD_STRING = "string";
-
+    public static final String KEY_FIELD_REFERENCE = "reference";
     public static final String KEY_FIELD_DESCRIPTION = "description";
     public static final String KEY_FIELD_OWNER = "owner";
     public static final String KEY_FIELD_PHASE = "phase";
@@ -132,7 +131,7 @@ public class OctaneConstants {
     public static final String KEY_FIELD_CREATE_TIME = "creation_time";
     public static final String KEY_FIELD_VERSION_STAMP = "version_stamp";
     public static final String KEY_FIELD_LAST_MODIFIED = "last_modified";
-    public static final String KEY_FIELD_REFERENCE = "reference";
+
     
     public static final String KEY_FIELD_NAME_DEFAULT_VALUE = "default name value";
 
