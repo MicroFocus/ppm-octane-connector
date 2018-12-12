@@ -27,6 +27,7 @@ import com.ppm.integration.agilesdk.connector.octane.model.SimpleEntity;
 import com.ppm.integration.agilesdk.dm.DataField;
 import com.ppm.integration.agilesdk.dm.ListNode;
 import com.ppm.integration.agilesdk.dm.ListNodeField;
+import com.ppm.integration.agilesdk.dm.MemoField;
 import com.ppm.integration.agilesdk.dm.MultiUserField;
 import com.ppm.integration.agilesdk.dm.RequestIntegration;
 import com.ppm.integration.agilesdk.dm.StringField;
@@ -306,6 +307,10 @@ public class OctaneRequestIntegration extends RequestIntegration {
                     complexObj.put("id", listNodeField.get().getId());
                     
                     entityObj.put(entry.getKey(), complexObj);
+                case MEMO:
+                    MemoField memeoField = (MemoField)field;
+                    entityObj.put(key, memeoField.get());
+                    break;
             }
         }
 
@@ -483,6 +488,14 @@ public class OctaneRequestIntegration extends RequestIntegration {
                     } else {
                         entity.addField(key, null);
                     }
+                } else if (info.getFieldType().equals(OctaneConstants.KEY_FIELD_MEMO)) {
+                    String value = item.getString(key);
+                    if (value == null || value.equals("null")) {
+                        value = "";
+                    }
+                    MemoField memoField = new MemoField();
+                    memoField.set(value);
+                    entity.addField(key, memoField);
                 }
             }
         }
