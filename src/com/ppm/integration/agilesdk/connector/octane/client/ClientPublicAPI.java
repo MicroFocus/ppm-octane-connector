@@ -1011,7 +1011,8 @@ public class ClientPublicAPI {
         switch (fieldType){
             case OctaneConstants.KEY_FIELD_STRING:
             case OctaneConstants.KEY_FIELD_USER_LIST:
-            case OctaneConstants.KEY_FIELD_REFERENCE:
+            case OctaneConstants.KEY_AUTO_COMPLETE_LIST:
+            case OctaneConstants.KEY_SUB_TYPE_LIST_NODE:
             case OctaneConstants.KEY_FIELD_MEMO:
                 return true;
             default:

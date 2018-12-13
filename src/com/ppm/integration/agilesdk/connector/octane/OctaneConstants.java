@@ -109,6 +109,8 @@ public class OctaneConstants {
     public static final String SUB_TYPE_USER_NODE = "workspace_user";
     public static final String KEY_LOGICAL_NAME = "logical_name";
 
+    public static final String KEY_SUB_TYPE_LIST_NODE = "SUB_TYPE_LIST_NODE";
+    public static final String KEY_AUTO_COMPLETE_LIST = "AUTO_COMPLETE_LIST";
     public static final String KEY_FIELD_ID = "id";
     public static final String KEY_FIELD_NAME = "name";
     public static final String KEY_FIELD_LABEL = "label";
