@@ -83,10 +83,14 @@ public class OctaneRequestIntegration extends RequestIntegration {
             AgileEntityFieldInfo info = new AgileEntityFieldInfo();
             info.setFieldType(field.getFieldType() != null ? field.getFieldType().toUpperCase() : "");
             info.setLabel(field.getLabel());
-            info.setId(field.getName());
             info.setListType(field.getListType());
+            String fieldName = field.getName();
+            if("product_areas".equals(fieldName)){
+                fieldName = "application_modules";
+            }
+            info.setId(fieldName);
             JSONObject valueObj = new JSONObject();
-            valueObj.put(OctaneConstants.KEY_FIELD_NAME, field.getName());
+            valueObj.put(OctaneConstants.KEY_FIELD_NAME, fieldName);
             valueObj.put(OctaneConstants.KEY_LOGICAL_NAME, field.getLogicalName());
             info.setListIdentifier(valueObj.toString());
             fieldList.add(info);
@@ -307,6 +311,7 @@ public class OctaneRequestIntegration extends RequestIntegration {
                     complexObj.put("id", listNodeField.get().getId());
                     
                     entityObj.put(entry.getKey(), complexObj);
+                    break;
                 case MEMO:
                     MemoField memeoField = (MemoField)field;
                     entityObj.put(key, memeoField.get());

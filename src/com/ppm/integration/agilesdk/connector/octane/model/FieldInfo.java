@@ -90,7 +90,7 @@ public class FieldInfo {
             * string, userList, reference
             * */
             if (OctaneConstants.KEY_FIELD_REFERENCE.equals(dataObj.getString(OctaneConstants.KEY_FIELD_FIELD_TYPE))) {
-                fieldType = OctaneConstants.KEY_FIELD_REFERENCE;
+                fieldType = OctaneConstants.KEY_AUTO_COMPLETE_LIST;
                 listType = true;
             } else if(OctaneConstants.KEY_FIELD_MEMO.equals(dataObj.getString(OctaneConstants.KEY_FIELD_FIELD_TYPE))){
                 fieldType = OctaneConstants.KEY_FIELD_MEMO;
@@ -105,6 +105,7 @@ public class FieldInfo {
                 for (int i = 0; i < targets.size(); i++) {
                     JSONObject target = targets.getJSONObject(i);
                     if (OctaneConstants.SUB_TYPE_LIST_NODE.equals(target.getString(OctaneConstants.KEY_FIELD_TYPE))) {
+                        fieldType = OctaneConstants.KEY_SUB_TYPE_LIST_NODE;
                         listType = true;
                         logicalName = target.getString(OctaneConstants.KEY_LOGICAL_NAME);
                         break;
