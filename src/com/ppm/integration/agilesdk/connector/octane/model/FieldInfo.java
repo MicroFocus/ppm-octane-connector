@@ -102,6 +102,7 @@ public class FieldInfo {
                 JSONObject typeData = dataObj.getJSONObject(OctaneConstants.KEY_FIELD_TYPE_DATA);
                 JSONArray targets = typeData.getJSONArray(OctaneConstants.KEY_FIELD_TARGETS);
                 boolean multiple = typeData.getBoolean(OctaneConstants.KEY_FIELD_MUlTIPLE);
+                multiValue = multiple;
                 for (int i = 0; i < targets.size(); i++) {
                     JSONObject target = targets.getJSONObject(i);
                     if (OctaneConstants.SUB_TYPE_LIST_NODE.equals(target.getString(OctaneConstants.KEY_FIELD_TYPE))) {
@@ -113,9 +114,7 @@ public class FieldInfo {
                             .equals(target.getString(OctaneConstants.KEY_FIELD_TYPE))) {// multiple
                         listType = false;
                         fieldType = OctaneConstants.KEY_FIELD_USER_LIST;
-                        multiValue = multiple;
                         break;
-
                     }
                 }
             }

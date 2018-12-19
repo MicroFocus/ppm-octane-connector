@@ -85,14 +85,12 @@ public class OctaneRequestIntegration extends RequestIntegration {
             info.setLabel(field.getLabel());
             info.setListType(field.getListType());
             String fieldName = field.getName();
-            if("product_areas".equals(fieldName)){
-                fieldName = "application_modules";
-            }
             info.setId(fieldName);
             JSONObject valueObj = new JSONObject();
             valueObj.put(OctaneConstants.KEY_FIELD_NAME, fieldName);
             valueObj.put(OctaneConstants.KEY_LOGICAL_NAME, field.getLogicalName());
             info.setListIdentifier(valueObj.toString());
+            info.setMultiValue(field.isMultiValue());
             fieldList.add(info);
         }
         Collections.sort(fieldList, new AgileFieldComparator());
@@ -114,27 +112,27 @@ public class OctaneRequestIntegration extends RequestIntegration {
         } else {
             String newFieldName = null;
             switch (fieldName) {
-                case "milestone":
-                    newFieldName = "milestones";
+                case OctaneConstants.KEY_FIELD_MILESTONE:
+                    newFieldName = OctaneConstants.KEY_FIELD_MILESTONE_API_NAME;
                     break;
-                case "parent":
-                    if ("feature".equals(entityType)) {
-                        newFieldName = "epics";
+                case OctaneConstants.KEY_FIELD_PARENT:
+                    if (OctaneConstants.SUB_TYPE_FEATURE.equals(entityType)) {
+                        newFieldName = OctaneConstants.KEY_FIELD_EPIC_API_NAME;
                     } else {
-                        newFieldName = "features";
+                        newFieldName = OctaneConstants.KEY_FIELD_FEATURE_API_NAME;
                     }
                     break;
-                case "phase":
-                    newFieldName = "phases";
+                case OctaneConstants.KEY_FIELD_PHASE:
+                    newFieldName = OctaneConstants.KEY_FIELD_PHASE_API_NAME;
                     break;
-                case "release":
-                    newFieldName = "releases";
+                case OctaneConstants.KEY_FIELD_RELEASE:
+                    newFieldName = OctaneConstants.KEY_FIELD_RELEASE_API_NAME;
                     break;
-                case "sprint":
-                    newFieldName = "sprints";
+                case OctaneConstants.KEY_FIELD_SPRINT:
+                    newFieldName = OctaneConstants.KEY_FIELD_SPRINT_API_NAME;
                     break;
-                case "team":
-                    newFieldName = "teams";
+                case OctaneConstants.KEY_FIELD_TEAM:
+                    newFieldName = OctaneConstants.KEY_FIELD_TEAM_API_NAME;
                     break;
                 default:
                     newFieldName = fieldName;
