@@ -998,7 +998,7 @@ public class ClientPublicAPI {
                 JSONObject data = fieldsArray.getJSONObject(i);
                 FieldInfo info = new FieldInfo(data);
                 if (info.getFieldType() != null
-                        && (filterFieldTypes(info.getFieldType())))
+                        && (filterFieldTypes(info)))
                 {
                     fieldsList.add(info);
                 }
@@ -1007,14 +1007,27 @@ public class ClientPublicAPI {
         return fieldsList;
     }
 
-    private boolean filterFieldTypes(String fieldType){
+    private boolean filterFieldTypes(FieldInfo field){
+        String fieldType = field.getFieldType();
         switch (fieldType){
             case OctaneConstants.KEY_FIELD_STRING:
             case OctaneConstants.KEY_FIELD_USER_LIST:
-            case OctaneConstants.KEY_AUTO_COMPLETE_LIST:
             case OctaneConstants.KEY_SUB_TYPE_LIST_NODE:
             case OctaneConstants.KEY_FIELD_MEMO:
                 return true;
+            case OctaneConstants.KEY_AUTO_COMPLETE_LIST:
+                //hide special fields
+                switch (field.getName()){
+                    case OctaneConstants.KEY_FIELD_MILESTONE:
+                    case OctaneConstants.KEY_FIELD_PARENT:
+                    case OctaneConstants.KEY_FIELD_PHASE:
+                    case OctaneConstants.KEY_FIELD_RELEASE:
+                    case OctaneConstants.KEY_FIELD_SPRINT:
+                    case OctaneConstants.KEY_FIELD_TEAM:
+                        return false;
+                    default:
+                        return true;
+                }
             default:
                 return false;
         }
