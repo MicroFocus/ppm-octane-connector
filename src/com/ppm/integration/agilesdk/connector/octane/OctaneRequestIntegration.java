@@ -302,12 +302,32 @@ public class OctaneRequestIntegration extends RequestIntegration {
                     break;
                 case ListNode:
                     ListNodeField listNodeField = (ListNodeField) field;
-                    JSONObject complexObj = new JSONObject();                    
+                    JSONObject complexObj = new JSONObject();          
                     
-                    complexObj.put("type", listNodeField.get().getType());
-                    complexObj.put("name", listNodeField.get().getName());                    
-                    complexObj.put("id", listNodeField.get().getId());
-                    
+                    if(listNodeField.get().isMultiple()) {
+                        String[] nameArr = listNodeField.get().getName().split(OctaneConstants.SPLIT_CHAR);
+                        String[] idArr = listNodeField.get().getId().split(OctaneConstants.SPLIT_CHAR); 
+                        
+                        complexObj.put("total_count", nameArr.length);
+                        
+                        JSONArray tempArr = new JSONArray();
+                        for (int i = 0; i < nameArr.length; i++) {                            
+                            JSONObject tempObj = new JSONObject(); 
+                            tempObj.put("type", listNodeField.get().getType());
+                            tempObj.put("name", nameArr[i]);                    
+                            tempObj.put("id", idArr[i]);
+                            tempObj.put("index", i);        
+                            tempArr.add(tempObj);
+                        }
+                        complexObj.put("data", tempArr);
+                        
+                    } else {                    
+                        complexObj.put("type", listNodeField.get().getType());
+                        complexObj.put("name", listNodeField.get().getName());                    
+                        complexObj.put("id", listNodeField.get().getId());
+                        complexObj.put("multiple", listNodeField.get().isMultiple());
+                    }
+                        
                     entityObj.put(entry.getKey(), complexObj);
                     break;
                 case MEMO:
@@ -415,8 +435,9 @@ public class OctaneRequestIntegration extends RequestIntegration {
         DateTimeFormatter parser = ISODateTimeFormat.dateTimeParser();
         DateTime dateTimeHere = parser.parseDateTime(dateStr);
         return dateTimeHere.toDate();
-
     }
+    
+    
 
     private AgileEntity wrapperEntity(JSONObject item, Map<String, FieldInfo> fieldInfoMap) {
 
@@ -474,20 +495,48 @@ public class OctaneRequestIntegration extends RequestIntegration {
                     entity.addField(key, stringField);
                 } else if (info.getFieldType().equals("SUB_TYPE_LIST_NODE") || info.getFieldType().equals("AUTO_COMPLETE_LIST")) {
                     JSONObject value = item.getJSONObject(key);
-                    if (canParseJson(value, "name")) {
-                        ListNode listNode = new ListNode();
-                        if(info.getFieldType().equals("SUB_TYPE_LIST_NODE")) {
-                            listNode.setType(OctaneConstants.SUB_TYPE_LIST_NODE);
-                        } else {
-                            listNode.setType(value.getString("type"));
+                    if(canParseJson(value, "name") || canParseJson(value, "data")) {
+                        String ids = "";
+                        String names = "";
+                        if (info.isMultiValue()) {
+                            JSONArray listNodes = value.getJSONArray("data");
+                            if (!listNodes.isEmpty()) {
+                                for (int i = 0; i < listNodes.size(); i++) {
+                                    JSONObject listNode = listNodes.getJSONObject(i);
+                                    String id = listNode.getString("id");
+                                    String name = listNode.getString("name");                                    
+                                    
+                                    if(id != null && name != null) {                        
+                                        ids = id + OctaneConstants.SPLIT_CHAR + ids;
+                                        names = name + OctaneConstants.SPLIT_CHAR + names;
+                                    }
+                                }                         
+                            }
+                            
+                            if(ids != null && !ids.isEmpty()) {
+                                ids = ids.substring(0, ids.length() - OctaneConstants.SPLIT_CHAR.length());
+                                names = names.substring(0, names.length() - OctaneConstants.SPLIT_CHAR.length());
+                            }
                         }
-                        listNode.setId(value.getString("id"));
-                        listNode.setName(value.getString("name"));
                         
-                        ListNodeField listNodeField = new ListNodeField();
-                        listNodeField.set(listNode);
-                        
-                        entity.addField(key, listNodeField);                        
+                        if(ids != null && !ids.isEmpty()) {
+                            ListNode listNode = new ListNode();
+                            if(info.getFieldType().equals("SUB_TYPE_LIST_NODE")) {
+                                listNode.setType(OctaneConstants.SUB_TYPE_LIST_NODE);
+                            } else {
+                                listNode.setType(value.getString("type"));
+                            }
+                            listNode.setId(ids);
+                            listNode.setName(names);
+                            listNode.setMultiple(info.isMultiValue());
+                            
+                            ListNodeField listNodeField = new ListNodeField();
+                            listNodeField.set(listNode);
+                            
+                            entity.addField(key, listNodeField); 
+                        } else{
+                            entity.addField(key, null);
+                        }                        
                     } else {
                         entity.addField(key, null);
                     }
