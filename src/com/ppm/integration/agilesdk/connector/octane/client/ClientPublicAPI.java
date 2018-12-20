@@ -1024,6 +1024,10 @@ public class ClientPublicAPI {
                     case OctaneConstants.KEY_FIELD_RELEASE:
                     case OctaneConstants.KEY_FIELD_SPRINT:
                     case OctaneConstants.KEY_FIELD_TEAM:
+                    case OctaneConstants.KEY_FIELD_APPLICATION:
+                    case OctaneConstants.KEY_FIELD_APPLICATION_API_NAME:
+                    case OctaneConstants.KEY_FIELD_REQUIREMENT:
+                    case OctaneConstants.KEY_FIELD_USER_TAG:
                         return false;
                     default:
                         return true;
