@@ -155,4 +155,6 @@ public class OctaneConstants {
     public static final String TS_GROUP_BY_WORKSPACE = "TS_GROUP_BY_WORKSPACE";
 
     public static final String TS_GROUP_BY_BACKLOG_ITEM = "TS_GROUP_BY_BACKLOG_ITEM";
+    
+    public static final String SPLIT_CHAR = "#@#";
 }
