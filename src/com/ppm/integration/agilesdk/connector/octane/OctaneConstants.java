@@ -145,6 +145,10 @@ public class OctaneConstants {
     public static final String KEY_FIELD_SPRINT_API_NAME = "sprints";
     public static final String KEY_FIELD_TEAM = "team";
     public static final String KEY_FIELD_TEAM_API_NAME = "teams";
+    public static final String KEY_FIELD_APPLICATION = "application_modules";
+    public static final String KEY_FIELD_APPLICATION_API_NAME = "product_areas";
+    public static final String KEY_FIELD_REQUIREMENT = "requirements";
+    public static final String KEY_FIELD_USER_TAG = "user_tags";
     
     public static final String KEY_FIELD_NAME_DEFAULT_VALUE = "default name value";
 
