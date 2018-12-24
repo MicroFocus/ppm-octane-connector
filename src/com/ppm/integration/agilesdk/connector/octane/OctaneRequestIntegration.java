@@ -517,6 +517,9 @@ public class OctaneRequestIntegration extends RequestIntegration {
                                 ids = ids.substring(0, ids.length() - OctaneConstants.SPLIT_CHAR.length());
                                 names = names.substring(0, names.length() - OctaneConstants.SPLIT_CHAR.length());
                             }
+                        } else {
+                            ids = value.getString("id");
+                            names = value.getString("name");
                         }
                         
                         if(ids != null && !ids.isEmpty()) {
