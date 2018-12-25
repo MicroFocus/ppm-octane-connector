@@ -109,6 +109,8 @@ public class OctaneConstants {
     public static final String SUB_TYPE_USER_NODE = "workspace_user";
     public static final String KEY_LOGICAL_NAME = "logical_name";
 
+    public static final String KEY_SUB_TYPE_LIST_NODE = "SUB_TYPE_LIST_NODE";
+    public static final String KEY_AUTO_COMPLETE_LIST = "AUTO_COMPLETE_LIST";
     public static final String KEY_FIELD_ID = "id";
     public static final String KEY_FIELD_NAME = "name";
     public static final String KEY_FIELD_LABEL = "label";
@@ -123,16 +125,30 @@ public class OctaneConstants {
     public static final String KEY_FIELD_MEMO = "memo";
     public static final String KEY_FIELD_DESCRIPTION = "description";
     public static final String KEY_FIELD_OWNER = "owner";
-    public static final String KEY_FIELD_PHASE = "phase";
     public static final String KEY_FIELD_AUTHOR = "author";
     public static final String KEY_FIELD_STORY_POINTS = "story_points";
     public static final String KEY_FIELD_REMAINING_HOURS = "remaining_hours";
     public static final String KEY_FIELD_ESTIMATED_HOURS = "estimated_hours";
-    public static final String KEY_FIELD_TEAM = "team";
     public static final String KEY_FIELD_CREATE_TIME = "creation_time";
     public static final String KEY_FIELD_VERSION_STAMP = "version_stamp";
     public static final String KEY_FIELD_LAST_MODIFIED = "last_modified";
-
+    public static final String KEY_FIELD_MILESTONE = "milestone";
+    public static final String KEY_FIELD_MILESTONE_API_NAME = "milestones";
+    public static final String KEY_FIELD_PARENT = "parent";
+    public static final String KEY_FIELD_EPIC_API_NAME = "epics";
+    public static final String KEY_FIELD_FEATURE_API_NAME = "features";
+    public static final String KEY_FIELD_PHASE = "phase";
+    public static final String KEY_FIELD_PHASE_API_NAME = "phases";
+    public static final String KEY_FIELD_RELEASE = "release";
+    public static final String KEY_FIELD_RELEASE_API_NAME = "releases";
+    public static final String KEY_FIELD_SPRINT = "sprint";
+    public static final String KEY_FIELD_SPRINT_API_NAME = "sprints";
+    public static final String KEY_FIELD_TEAM = "team";
+    public static final String KEY_FIELD_TEAM_API_NAME = "teams";
+    public static final String KEY_FIELD_APPLICATION = "application_modules";
+    public static final String KEY_FIELD_APPLICATION_API_NAME = "product_areas";
+    public static final String KEY_FIELD_REQUIREMENT = "requirements";
+    public static final String KEY_FIELD_USER_TAG = "user_tags";
     
     public static final String KEY_FIELD_NAME_DEFAULT_VALUE = "default name value";
 
@@ -143,6 +159,16 @@ public class OctaneConstants {
     public static final String TS_GROUP_BY_WORKSPACE = "TS_GROUP_BY_WORKSPACE";
 
     public static final String TS_GROUP_BY_BACKLOG_ITEM = "TS_GROUP_BY_BACKLOG_ITEM";
+    
+    public static final String SPLIT_CHAR = "#@#";
+
+    // internationalization at front-end
+    public static final String OCTANE_FIELD_TYPE_STRING = "OCTANE_FIELD_TYPE_STRING";
+    public static final String OCTANE_FIELD_TYPE_MEMO = "OCTANE_FIELD_TYPE_MEMO";
+    public static final String OCTANE_FIELD_TYPE_USER_LIST = "OCTANE_FIELD_TYPE_USER_LIST";
+    public static final String OCTANE_FIELD_TYPE_SUB_TYPE_LIST_NODE = "OCTANE_FIELD_TYPE_SUB_TYPE_LIST_NODE";
+    public static final String OCTANE_FIELD_TYPE_AUTO_COMPLETE_LIST = "OCTANE_FIELD_TYPE_AUTO_COMPLETE_LIST";
 
     public static final String SSO_IDENTIFIER = "SSO_IDENTIFIER";
+
 }

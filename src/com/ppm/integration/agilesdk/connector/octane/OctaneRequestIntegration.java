@@ -82,13 +82,16 @@ public class OctaneRequestIntegration extends RequestIntegration {
         for (FieldInfo field : fields) {
             AgileEntityFieldInfo info = new AgileEntityFieldInfo();
             info.setFieldType(field.getFieldType() != null ? field.getFieldType().toUpperCase() : "");
+            info.setFieldTypeMeaning(field.getFieldTypeMeaning() != null ? field.getFieldTypeMeaning() : "");
             info.setLabel(field.getLabel());
-            info.setId(field.getName());
             info.setListType(field.getListType());
+            String fieldName = field.getName();
+            info.setId(fieldName);
             JSONObject valueObj = new JSONObject();
-            valueObj.put(OctaneConstants.KEY_FIELD_NAME, field.getName());
+            valueObj.put(OctaneConstants.KEY_FIELD_NAME, fieldName);
             valueObj.put(OctaneConstants.KEY_LOGICAL_NAME, field.getLogicalName());
             info.setListIdentifier(valueObj.toString());
+            info.setMultiValue(field.isMultiValue());
             fieldList.add(info);
         }
         Collections.sort(fieldList, new AgileFieldComparator());
@@ -110,27 +113,27 @@ public class OctaneRequestIntegration extends RequestIntegration {
         } else {
             String newFieldName = null;
             switch (fieldName) {
-                case "milestone":
-                    newFieldName = "milestones";
+                case OctaneConstants.KEY_FIELD_MILESTONE:
+                    newFieldName = OctaneConstants.KEY_FIELD_MILESTONE_API_NAME;
                     break;
-                case "parent":
-                    if ("feature".equals(entityType)) {
-                        newFieldName = "epics";
+                case OctaneConstants.KEY_FIELD_PARENT:
+                    if (OctaneConstants.SUB_TYPE_FEATURE.equals(entityType)) {
+                        newFieldName = OctaneConstants.KEY_FIELD_EPIC_API_NAME;
                     } else {
-                        newFieldName = "features";
+                        newFieldName = OctaneConstants.KEY_FIELD_FEATURE_API_NAME;
                     }
                     break;
-                case "phase":
-                    newFieldName = "phases";
+                case OctaneConstants.KEY_FIELD_PHASE:
+                    newFieldName = OctaneConstants.KEY_FIELD_PHASE_API_NAME;
                     break;
-                case "release":
-                    newFieldName = "releases";
+                case OctaneConstants.KEY_FIELD_RELEASE:
+                    newFieldName = OctaneConstants.KEY_FIELD_RELEASE_API_NAME;
                     break;
-                case "sprint":
-                    newFieldName = "sprints";
+                case OctaneConstants.KEY_FIELD_SPRINT:
+                    newFieldName = OctaneConstants.KEY_FIELD_SPRINT_API_NAME;
                     break;
-                case "team":
-                    newFieldName = "teams";
+                case OctaneConstants.KEY_FIELD_TEAM:
+                    newFieldName = OctaneConstants.KEY_FIELD_TEAM_API_NAME;
                     break;
                 default:
                     newFieldName = fieldName;
@@ -300,13 +303,34 @@ public class OctaneRequestIntegration extends RequestIntegration {
                     break;
                 case ListNode:
                     ListNodeField listNodeField = (ListNodeField) field;
-                    JSONObject complexObj = new JSONObject();                    
+                    JSONObject complexObj = new JSONObject();          
                     
-                    complexObj.put("type", listNodeField.get().getType());
-                    complexObj.put("name", listNodeField.get().getName());                    
-                    complexObj.put("id", listNodeField.get().getId());
-                    
+                    if(listNodeField.get().isMultiple()) {
+                        String[] nameArr = listNodeField.get().getName().split(OctaneConstants.SPLIT_CHAR);
+                        String[] idArr = listNodeField.get().getId().split(OctaneConstants.SPLIT_CHAR); 
+                        
+                        complexObj.put("total_count", nameArr.length);
+                        
+                        JSONArray tempArr = new JSONArray();
+                        for (int i = 0; i < nameArr.length; i++) {                            
+                            JSONObject tempObj = new JSONObject(); 
+                            tempObj.put("type", listNodeField.get().getType());
+                            tempObj.put("name", nameArr[i]);                    
+                            tempObj.put("id", idArr[i]);
+                            tempObj.put("index", i);        
+                            tempArr.add(tempObj);
+                        }
+                        complexObj.put("data", tempArr);
+                        
+                    } else {                    
+                        complexObj.put("type", listNodeField.get().getType());
+                        complexObj.put("name", listNodeField.get().getName());                    
+                        complexObj.put("id", listNodeField.get().getId());
+                        complexObj.put("multiple", listNodeField.get().isMultiple());
+                    }
+                        
                     entityObj.put(entry.getKey(), complexObj);
+                    break;
                 case MEMO:
                     MemoField memeoField = (MemoField)field;
                     entityObj.put(key, memeoField.get());
@@ -412,8 +436,9 @@ public class OctaneRequestIntegration extends RequestIntegration {
         DateTimeFormatter parser = ISODateTimeFormat.dateTimeParser();
         DateTime dateTimeHere = parser.parseDateTime(dateStr);
         return dateTimeHere.toDate();
-
     }
+    
+    
 
     private AgileEntity wrapperEntity(JSONObject item, Map<String, FieldInfo> fieldInfoMap) {
 
@@ -471,20 +496,51 @@ public class OctaneRequestIntegration extends RequestIntegration {
                     entity.addField(key, stringField);
                 } else if (info.getFieldType().equals("SUB_TYPE_LIST_NODE") || info.getFieldType().equals("AUTO_COMPLETE_LIST")) {
                     JSONObject value = item.getJSONObject(key);
-                    if (canParseJson(value, "name")) {
-                        ListNode listNode = new ListNode();
-                        if(info.getFieldType().equals("SUB_TYPE_LIST_NODE")) {
-                            listNode.setType(OctaneConstants.SUB_TYPE_LIST_NODE);
+                    if(canParseJson(value, "name") || canParseJson(value, "data")) {
+                        String ids = "";
+                        String names = "";
+                        if (info.isMultiValue()) {
+                            JSONArray listNodes = value.getJSONArray("data");
+                            if (!listNodes.isEmpty()) {
+                                for (int i = 0; i < listNodes.size(); i++) {
+                                    JSONObject listNode = listNodes.getJSONObject(i);
+                                    String id = listNode.getString("id");
+                                    String name = listNode.getString("name");                                    
+                                    
+                                    if(id != null && name != null) {                        
+                                        ids = id + OctaneConstants.SPLIT_CHAR + ids;
+                                        names = name + OctaneConstants.SPLIT_CHAR + names;
+                                    }
+                                }                         
+                            }
+                            
+                            if(ids != null && !ids.isEmpty()) {
+                                ids = ids.substring(0, ids.length() - OctaneConstants.SPLIT_CHAR.length());
+                                names = names.substring(0, names.length() - OctaneConstants.SPLIT_CHAR.length());
+                            }
                         } else {
-                            listNode.setType(value.getString("type"));
+                            ids = value.getString("id");
+                            names = value.getString("name");
                         }
-                        listNode.setId(value.getString("id"));
-                        listNode.setName(value.getString("name"));
                         
-                        ListNodeField listNodeField = new ListNodeField();
-                        listNodeField.set(listNode);
-                        
-                        entity.addField(key, listNodeField);                        
+                        if(ids != null && !ids.isEmpty()) {
+                            ListNode listNode = new ListNode();
+                            if(info.getFieldType().equals("SUB_TYPE_LIST_NODE")) {
+                                listNode.setType(OctaneConstants.SUB_TYPE_LIST_NODE);
+                            } else {
+                                listNode.setType(value.getString("type"));
+                            }
+                            listNode.setId(ids);
+                            listNode.setName(names);
+                            listNode.setMultiple(info.isMultiValue());
+                            
+                            ListNodeField listNodeField = new ListNodeField();
+                            listNodeField.set(listNode);
+                            
+                            entity.addField(key, listNodeField); 
+                        } else{
+                            entity.addField(key, null);
+                        }                        
                     } else {
                         entity.addField(key, null);
                     }
