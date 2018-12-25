@@ -82,6 +82,10 @@ public class ClientPublicAPI {
 
     private Integer sharedSpaceId = null;
 
+    private Integer currentUserName = null;
+
+    private String CURRENT_USER_URL = "/api/current_user";
+
     private String cookies;
 
     private Proxy proxy = null;
@@ -90,6 +94,10 @@ public class ClientPublicAPI {
 
     public static final String DEFAULT_ENTITY_ITEM_URL =
             "%s/ui/entity-navigation?p=%s/%s&entityType=work_item&id=%s";
+
+    private String SHART_SSO_GRANT_TOOL_TOKEN = "/authentication/grant_tool_token";
+    
+    private String STORE_TOOL_TOKEN = "/authentication/store_tool_token";
 
     public static final String KEY_LAST_UPDATE_DATE = "last_modified";
 
@@ -153,6 +161,21 @@ public class ClientPublicAPI {
             if (csrf != null) {
                 headers.put("HPSSO-HEADER-CSRF", csrf);
             }
+        }
+
+        return sendRequest(url, method, jsonData, headers);
+    }
+
+    private RestResponse sendSSORequest(String url, String method, String jsonData) {
+
+        Map<String, String> headers = new HashMap<>();
+
+        headers.put("cookie", this.cookies);
+        headers.put("HPECLIENTTYPE", "MICRO_FOCUS_SPRINTER");
+        headers.put("ALM_OCTANE_TECH_PREVIEW", "true");
+
+        if (jsonData != null) {
+            headers.put("Content-Type", MediaType.APPLICATION_JSON);
         }
 
         return sendRequest(url, method, jsonData, headers);
@@ -1521,4 +1544,41 @@ public class ClientPublicAPI {
     }
 
     // https://mqast010pngx.saas.hpe.com/api/shared_spaces/22001/workspaces/1002/work_items?fields=sprint,owner,name,invested_hours,phase,release,remaining_hours,estimated_hours,story_points,subtype&query=%22id%20%3D%2059004%20%7C%7C%20parent%20%3D%20%7Bid%20%3D%2059004%7D%20%7C%7C%20parent%20%3D%20%7Bparent%20%3D%20%7Bid%20%3D%2059004%7D%7D%22
+
+    public String getSSOURL() {
+        String url = baseURL + SHART_SSO_GRANT_TOOL_TOKEN;
+        RestResponse response = sendGet(url);
+        if (HttpStatus.SC_OK == response.getStatusCode()) {
+            return response.getData();
+        } else {
+            throw new OctaneClientException("OCTANE_APP", "Fail to retrive SSO URL");
+        }
+    }
+    
+    public String getSSOAuthentication(String identifier) {
+        String url = baseURL + SHART_SSO_GRANT_TOOL_TOKEN;
+        JSONObject identifierObj = new JSONObject();
+        identifierObj.put("identifier", identifier);
+        RestResponse response = sendSSORequest(url, HttpMethod.POST, identifierObj.toString());
+        String result = null;
+        String userName = null;
+        if (HttpStatus.SC_OK == response.getStatusCode()) {
+            result = response.getData();
+            JSONObject obj = JSONObject.fromObject(result);
+            String cookie = obj.getString("access_token");
+            String cookieKey = obj.getString("cookie_name");
+            this.cookies = cookieKey + "=" + cookie;
+            RestResponse currentUser = sendSSORequest(baseURL + CURRENT_USER_URL, HttpMethod.GET, null);
+            if (HttpStatus.SC_OK == currentUser.getStatusCode()) {
+                JSONObject user = JSONObject.fromObject(currentUser.getData());
+                userName = user.get("name").toString();
+            } else {
+                throw new OctaneClientException("OCTANE_APP", "Fail to retrive user information");
+            }
+        } else {
+            throw new OctaneClientException("OCTANE_APP", "Please authenticate first");
+        }
+
+        return userName;
+    }
 }

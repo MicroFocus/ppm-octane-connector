@@ -1,17 +1,5 @@
 package com.ppm.integration.agilesdk.connector.octane;
 
-import com.hp.ppm.tm.model.TimeSheet;
-import com.mercury.itg.integration.plugin.fundation.project.TimeSheetSearchItemExclude;
-import com.ppm.integration.agilesdk.ValueSet;
-import com.ppm.integration.agilesdk.connector.octane.client.*;
-import com.ppm.integration.agilesdk.connector.octane.model.SharedSpace;
-import com.ppm.integration.agilesdk.connector.octane.model.TimesheetItem;
-import com.ppm.integration.agilesdk.connector.octane.model.WorkSpace;
-import com.ppm.integration.agilesdk.provider.LocalizationProvider;
-import com.ppm.integration.agilesdk.provider.Providers;
-import com.ppm.integration.agilesdk.tm.*;
-import com.ppm.integration.agilesdk.ui.*;
-
 import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -23,14 +11,32 @@ import java.util.Date;
 import java.util.GregorianCalendar;
 import java.util.HashMap;
 import java.util.Hashtable;
-import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.commons.lang.StringUtils;
 import org.apache.log4j.Logger;
 import org.apache.wink.client.ClientRuntimeException;
+
+import com.hp.ppm.tm.model.TimeSheet;
+import com.ppm.integration.agilesdk.ValueSet;
+import com.ppm.integration.agilesdk.connector.octane.client.ClientPublicAPI;
+import com.ppm.integration.agilesdk.connector.octane.client.OctaneClientException;
+import com.ppm.integration.agilesdk.connector.octane.client.OctaneClientHelper;
+import com.ppm.integration.agilesdk.connector.octane.client.OctaneConnectivityExceptionHandler;
+import com.ppm.integration.agilesdk.connector.octane.model.SharedSpace;
+import com.ppm.integration.agilesdk.connector.octane.model.TimesheetItem;
+import com.ppm.integration.agilesdk.connector.octane.model.WorkSpace;
+import com.ppm.integration.agilesdk.provider.Providers;
+import com.ppm.integration.agilesdk.tm.ExternalWorkItem;
+import com.ppm.integration.agilesdk.tm.ExternalWorkItemEffortBreakdown;
+import com.ppm.integration.agilesdk.tm.TimeSheetIntegration;
+import com.ppm.integration.agilesdk.tm.TimeSheetIntegrationContext;
+import com.ppm.integration.agilesdk.tm.TimeSheetLineAgileEntityInfo;
+import com.ppm.integration.agilesdk.ui.Field;
+import com.ppm.integration.agilesdk.ui.LineBreaker;
+import com.ppm.integration.agilesdk.ui.Link;
+import com.ppm.integration.agilesdk.ui.SelectList;
 
 public class OctaneTimeSheetIntegration extends TimeSheetIntegration {
 
@@ -51,8 +57,9 @@ public class OctaneTimeSheetIntegration extends TimeSheetIntegration {
     }
 
     @Override public List<Field> getMappingConfigurationFields(ValueSet paramValueSet) {
-        return Arrays.asList(new Field[] {new PlainText(OctaneConstants.KEY_USERNAME, "USERNAME", "", true),
-                new PasswordText(OctaneConstants.KEY_PASSWORD, "PASSWORD", "", true),
+        return Arrays.asList(new Field[] {
+                new Link("auth", "AUTHENTICATION_LINK", "defaultValue", "true", true, "javascript:void(0);",
+                        "openSSOLink()"),
                 new LineBreaker(),
                 new SelectList(OctaneConstants.TS_GROUP_BY,"TS_GROUP_BY",OctaneConstants.TS_GROUP_BY_RELEASE,true)
                         .addLevel(OctaneConstants.TS_GROUP_BY, "TS_GROUP_BY")
@@ -77,6 +84,12 @@ public class OctaneTimeSheetIntegration extends TimeSheetIntegration {
         return items;
     }
 
+    @Override
+    public String getSSOurl(ValueSet values) {
+        ClientPublicAPI clientP = OctaneClientHelper.setupClientPublicAPI(values);
+        return clientP.getSSOURL();
+    }
+
     public List<ExternalWorkItem> getExternalWorkItemsByTasks(TimeSheetIntegrationContext context,
             final ValueSet values) throws ParseException
     {
@@ -84,26 +97,27 @@ public class OctaneTimeSheetIntegration extends TimeSheetIntegration {
 
         try {
 
-            boolean passAuth = false;
-            final UsernamePasswordClient simpleClient =
-                    OctaneClientHelper.setupClient(new UsernamePasswordClient(values.get(OctaneConstants.KEY_BASE_URL)), values);
-            if (simpleClient.getCookies() != null || simpleClient.getCookies().equals("")) {
-                passAuth = true;
-            }
-            //the auth is in this method: setupClient(new UsernamePasswordClient(values.get(AgmConstants.KEY_BASE_URL)),values);
-
             TimeSheet currentTimeSheet = context.currentTimeSheet();
             final String startDate = convertDate(currentTimeSheet.getPeriodStartDate().toGregorianCalendar().getTime());
             final String endDate = convertDate(currentTimeSheet.getPeriodEndDate().toGregorianCalendar().getTime());
 
             ClientPublicAPI clientP = OctaneClientHelper.setupClientPublicAPI(values);
             
+            String identifier = values.get(OctaneConstants.SSO_IDENTIFIER);
+            if (identifier == null) {
+                throw new OctaneClientException("OCTANE_APP", "SSO identifier lose");
+            }
+            String userName = clientP.getSSOAuthentication(identifier);
+            if (userName == null) {
+                throw new OctaneClientException("OCTANE_APP", "You need to authenticate");
+            }
+
             String clientId = values.get(OctaneConstants.APP_CLIENT_ID);
             String clientSecret = values.get(OctaneConstants.APP_CLIENT_SECRET);
             String groupBy = values.get(OctaneConstants.TS_GROUP_BY);
 
 
-            if (clientP.getAccessTokenWithFormFormat(clientId, clientSecret) && passAuth) {
+            if (clientP.getAccessTokenWithFormFormat(clientId, clientSecret)) {
                 List<SharedSpace> shareSpaces = clientP.getSharedSpaces();
                 List<WorkSpace> workspacesAll = new ArrayList<WorkSpace>();
                 for (SharedSpace shareSpace : shareSpaces) {
@@ -111,7 +125,7 @@ public class OctaneTimeSheetIntegration extends TimeSheetIntegration {
                     workspacesAll.addAll(workspaces);
                     for (WorkSpace workSpace : workspacesAll) {
                         List<TimesheetItem> timeSheets = clientP.getTimeSheetData(Integer.parseInt(shareSpace.id),
-                                values.get(OctaneConstants.KEY_USERNAME), startDate.toString(), endDate.toString(),
+                                userName, startDate.toString(), endDate.toString(),
                                 Integer.parseInt(workSpace.id));
 
                         if (timeSheets == null || timeSheets.isEmpty()) {
