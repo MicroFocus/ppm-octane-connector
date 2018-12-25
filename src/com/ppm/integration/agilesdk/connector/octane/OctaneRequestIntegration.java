@@ -82,6 +82,7 @@ public class OctaneRequestIntegration extends RequestIntegration {
         for (FieldInfo field : fields) {
             AgileEntityFieldInfo info = new AgileEntityFieldInfo();
             info.setFieldType(field.getFieldType() != null ? field.getFieldType().toUpperCase() : "");
+            info.setFieldTypeMeaning(field.getFieldTypeMeaning() != null ? field.getFieldTypeMeaning() : "");
             info.setLabel(field.getLabel());
             info.setListType(field.getListType());
             String fieldName = field.getName();
