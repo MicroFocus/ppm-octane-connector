@@ -273,7 +273,7 @@ public class ClientPublicAPI {
         } catch (IOException e) {
             retryNumber = 0;
             logger.error("error in http connectivity:", e);
-            throw new OctaneClientException("AGM_APP", "error in http connectivity: "+ e.getMessage());
+            throw new OctaneClientException("AGM_APP", "ERROR_IN_HTTP_CONNECTIVITY", new String[] {e.getMessage()});
         }
     }
 
@@ -1569,7 +1569,7 @@ public class ClientPublicAPI {
         if (HttpStatus.SC_OK == response.getStatusCode()) {
             return response.getData();
         } else {
-            throw new OctaneClientException("OCTANE_APP", "Fail to retrive SSO URL");
+            throw new OctaneClientException("OCTANE_APP", "FAIL_TO_RETRIEVE_SSO_URL");
         }
     }
     
@@ -1591,10 +1591,10 @@ public class ClientPublicAPI {
                 JSONObject user = JSONObject.fromObject(currentUser.getData());
                 userName = user.get("name").toString();
             } else {
-                throw new OctaneClientException("OCTANE_APP", "Fail to retrive user information");
+                throw new OctaneClientException("OCTANE_APP", "FAIL_TO_RETRIEVE_USER_INFO");
             }
         } else {
-            throw new OctaneClientException("OCTANE_APP", "Please authenticate first");
+            throw new OctaneClientException("OCTANE_APP", "TIP_TO_AUTHENTICATION");
         }
 
         return userName;

@@ -105,11 +105,11 @@ public class OctaneTimeSheetIntegration extends TimeSheetIntegration {
             
             String identifier = values.get(OctaneConstants.SSO_IDENTIFIER);
             if (identifier == null) {
-                throw new OctaneClientException("OCTANE_APP", "SSO identifier lose");
+                throw new OctaneClientException("OCTANE_APP", "LOSE_AUTHORIZE_IDENTIFIER");
             }
             String userName = clientP.getSSOAuthentication(identifier);
             if (userName == null) {
-                throw new OctaneClientException("OCTANE_APP", "You need to authenticate");
+                throw new OctaneClientException("OCTANE_APP", "FAIL_TO_RETRIEVE_USER_INFO");
             }
 
             String clientId = values.get(OctaneConstants.APP_CLIENT_ID);
