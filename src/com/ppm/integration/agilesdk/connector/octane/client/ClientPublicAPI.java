@@ -58,6 +58,7 @@ import com.ppm.integration.agilesdk.connector.octane.model.WorkItemEpic;
 import com.ppm.integration.agilesdk.connector.octane.model.WorkItemRoot;
 import com.ppm.integration.agilesdk.connector.octane.model.WorkSpace;
 import com.ppm.integration.agilesdk.connector.octane.model.WorkSpaces;
+import com.ppm.integration.agilesdk.tm.AuthenticationInfo;
 
 import net.sf.json.JSONArray;
 import net.sf.json.JSONException;
@@ -1573,13 +1574,13 @@ public class ClientPublicAPI {
         }
     }
     
-    public String getSSOAuthentication(String identifier) {
+    public AuthenticationInfo getSSOAuthentication(String identifier) {
+        AuthenticationInfo userInfo = new AuthenticationInfo();
         String url = baseURL + SHART_SSO_GRANT_TOOL_TOKEN;
         JSONObject identifierObj = new JSONObject();
         identifierObj.put("identifier", identifier);
         RestResponse response = sendSSORequest(url, HttpMethod.POST, identifierObj.toString());
         String result = null;
-        String userName = null;
         if (HttpStatus.SC_OK == response.getStatusCode()) {
             result = response.getData();
             JSONObject obj = JSONObject.fromObject(result);
@@ -1589,7 +1590,9 @@ public class ClientPublicAPI {
             RestResponse currentUser = sendSSORequest(baseURL + CURRENT_USER_URL, HttpMethod.GET, null);
             if (HttpStatus.SC_OK == currentUser.getStatusCode()) {
                 JSONObject user = JSONObject.fromObject(currentUser.getData());
-                userName = user.get("name").toString();
+                userInfo.setLoginName(user.get("name").toString());
+                userInfo.setEmail(user.get("email").toString());
+                userInfo.setFullName(user.get("full_name").toString());
             } else {
                 throw new OctaneClientException("OCTANE_APP", "FAIL_TO_RETRIEVE_USER_INFO");
             }
@@ -1597,6 +1600,6 @@ public class ClientPublicAPI {
             throw new OctaneClientException("OCTANE_APP", "TIP_TO_AUTHENTICATION");
         }
 
-        return userName;
+        return userInfo;
     }
 }

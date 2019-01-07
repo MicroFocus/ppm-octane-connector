@@ -28,6 +28,7 @@ import com.ppm.integration.agilesdk.connector.octane.model.SharedSpace;
 import com.ppm.integration.agilesdk.connector.octane.model.TimesheetItem;
 import com.ppm.integration.agilesdk.connector.octane.model.WorkSpace;
 import com.ppm.integration.agilesdk.provider.Providers;
+import com.ppm.integration.agilesdk.tm.AuthenticationInfo;
 import com.ppm.integration.agilesdk.tm.ExternalWorkItem;
 import com.ppm.integration.agilesdk.tm.ExternalWorkItemEffortBreakdown;
 import com.ppm.integration.agilesdk.tm.TimeSheetIntegration;
@@ -90,6 +91,13 @@ public class OctaneTimeSheetIntegration extends TimeSheetIntegration {
         return clientP.getSSOURL();
     }
 
+    @Override
+    public AuthenticationInfo getAuthenticationInfo(ValueSet values, String identifier) {
+        ClientPublicAPI clientP = OctaneClientHelper.setupClientPublicAPI(values);
+        AuthenticationInfo userInfo = clientP.getSSOAuthentication(identifier);
+        return userInfo;
+    }
+
     public List<ExternalWorkItem> getExternalWorkItemsByTasks(TimeSheetIntegrationContext context,
             final ValueSet values) throws ParseException
     {
@@ -107,7 +115,7 @@ public class OctaneTimeSheetIntegration extends TimeSheetIntegration {
             if (identifier == null) {
                 throw new OctaneClientException("OCTANE_APP", "LOSE_AUTHORIZE_IDENTIFIER");
             }
-            String userName = clientP.getSSOAuthentication(identifier);
+            String userName = clientP.getSSOAuthentication(identifier).getLoginName();
             if (userName == null) {
                 throw new OctaneClientException("OCTANE_APP", "FAIL_TO_RETRIEVE_USER_INFO");
             }
