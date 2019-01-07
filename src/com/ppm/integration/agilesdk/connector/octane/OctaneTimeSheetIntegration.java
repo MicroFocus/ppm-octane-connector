@@ -115,8 +115,8 @@ public class OctaneTimeSheetIntegration extends TimeSheetIntegration {
             if (identifier == null) {
                 throw new OctaneClientException("OCTANE_APP", "LOSE_AUTHORIZE_IDENTIFIER");
             }
-            String userName = clientP.getSSOAuthentication(identifier).getLoginName();
-            if (userName == null) {
+            AuthenticationInfo userInfo = clientP.getSSOAuthentication(identifier);
+            if (userInfo == null) {
                 throw new OctaneClientException("OCTANE_APP", "FAIL_TO_RETRIEVE_USER_INFO");
             }
 
@@ -133,7 +133,7 @@ public class OctaneTimeSheetIntegration extends TimeSheetIntegration {
                     workspacesAll.addAll(workspaces);
                     for (WorkSpace workSpace : workspacesAll) {
                         List<TimesheetItem> timeSheets = clientP.getTimeSheetData(Integer.parseInt(shareSpace.id),
-                                userName, startDate.toString(), endDate.toString(),
+                                userInfo.getLoginName(), startDate.toString(), endDate.toString(),
                                 Integer.parseInt(workSpace.id));
 
                         if (timeSheets == null || timeSheets.isEmpty()) {
