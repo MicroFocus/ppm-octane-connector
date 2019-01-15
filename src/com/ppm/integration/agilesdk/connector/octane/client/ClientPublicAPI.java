@@ -129,7 +129,7 @@ public class ClientPublicAPI {
     {
         String url = String.format("%s/authentication/sign_in", baseURL);
         String data =
-                String.format("{\"client_id\":\"%s\",\"client_secret\":\"%s\",\"enable_csrf\": \"true\"}", clientId,
+                String.format("{\"client_id\":\"%s\",\"client_secret\":\"%s\",\"enable_csrf\": \"false\"}", clientId,
                         clientSecret);
         Map<String, String> headers = new HashMap<>();
         headers.put("Content-Type", MediaType.APPLICATION_JSON);
@@ -151,31 +151,10 @@ public class ClientPublicAPI {
         Map<String, String> headers = new HashMap<>();
 
         headers.put("Cookie", this.cookies);
-        headers.put("HPECLIENTTYPE", "HPE_MQM_UI");
-
-        if (jsonData != null ) {
-            headers.put("Content-Type", MediaType.APPLICATION_JSON);
-        }
-
-        if (!HttpMethod.GET.equals(method)) {
-            String csrf = this.getCSRF(this.cookies);
-            if (csrf != null) {
-                headers.put("HPSSO-HEADER-CSRF", csrf);
-            }
-        }
-
-        return sendRequest(url, method, jsonData, headers);
-    }
-
-    private RestResponse sendSSORequest(String url, String method, String jsonData) {
-
-        Map<String, String> headers = new HashMap<>();
-
-        headers.put("cookie", this.cookies);
-        headers.put("HPECLIENTTYPE", "MICRO_FOCUS_SPRINTER");
+        headers.put("HPECLIENTTYPE", "HPE_PPM");
         headers.put("ALM_OCTANE_TECH_PREVIEW", "true");
 
-        if (jsonData != null) {
+        if (jsonData != null ) {
             headers.put("Content-Type", MediaType.APPLICATION_JSON);
         }
 
@@ -952,9 +931,16 @@ public class ClientPublicAPI {
             throw new OctaneClientException("AGM_APP", "An error occurred when creating the release. Make sure a release with this name doesn't already exist.", new String[] { response.getData() });
         }
 
-        Releases tempReleases = new Releases();
-        tempReleases.SetCollection(response.getData());
-        return tempReleases.getCollection().get(0);
+        JSONObject obj = JSONObject.fromObject(response.getData());
+        JSONArray releases = (JSONArray)obj.get("data");
+        JSONObject oneRelease = releases.getJSONObject(0);
+        Release tempRelease = new Release();
+        if (oneRelease != null) {
+            tempRelease.ParseData(oneRelease.toString());
+            tempRelease.setName(releaseName);
+        }
+
+        return tempRelease;
     }
 
     private String getListNodeIdForLogicalName(String nodeListLogicalName) {
@@ -1012,7 +998,8 @@ public class ClientPublicAPI {
     public List<FieldInfo> getEntityFields(final String sharedspaceId, final String workspaceId, final String entityName) {
         String url = String.format("%s/api/shared_spaces/%s/workspaces/%s/metadata/fields?query=%s%s%s",
                 baseURL, sharedspaceId, workspaceId, "%22entity_name%20EQ%20'", entityName,
-                "';visible_in_ui%20EQ%20true;editable%20EQ%20true;field_type%20IN%20'string','reference','memo'%22");
+                "';editable%20EQ%20true;field_type%20IN%20'string','reference','memo'%22");
+        // "';visible_in_ui%20EQ%20true;editable%20EQ%20true;field_type%20IN%20'string','reference','memo'%22");
         List fieldsList = new ArrayList();
         RestResponse response = sendGet(url);
         JSONObject dataObj = JSONObject.fromObject(response.getData());
@@ -1118,7 +1105,9 @@ public class ClientPublicAPI {
                     new String[] {getError(response.getData())});
         }
 
-        return getCreateEntityFromResponse(response.getData());
+        JSONObject obj = getCreateEntityFromResponse(response.getData());
+
+        return this.getFeature(sharedspaceId, workspaceId, obj.getString("id")).get(0);
     }
 
     public JSONObject saveStoryInWorkspace(final String sharedspaceId, final String workspaceId,
@@ -1134,8 +1123,9 @@ public class ClientPublicAPI {
             throw new OctaneClientException("AGM_APP", "ERROR_AGILE_ENTITY_SAVE_ERROR",
                     new String[] {getError(response.getData())});
         }
+        JSONObject obj = getCreateEntityFromResponse(response.getData());
 
-        return getCreateEntityFromResponse(response.getData());
+        return this.getFeature(sharedspaceId, workspaceId, obj.getString("id")).get(0);
     }
 
     private JSONObject getCreateEntityFromResponse(String jsonData) {
@@ -1179,16 +1169,6 @@ public class ClientPublicAPI {
         JSONObject entityObj = new JSONObject();
         entityObj.put("data", sourceObj);
         return entityObj.toString();
-    }
-
-    private String getCSRF(final String cookies) {
-        String csrf = null;
-        int csrfStart = cookies.indexOf("HPSSO_COOKIE_CSRF=");
-        if (csrfStart > -1) {
-            int csrfEnd = cookies.indexOf(";", csrfStart);
-            csrf = cookies.substring(csrfStart + 18, csrfEnd);
-        }
-        return csrf;
     }
 
     private List<?> getDataContent(String jsonData, TypeReference<?> typeRef) {
@@ -1579,7 +1559,7 @@ public class ClientPublicAPI {
         String url = baseURL + SHART_SSO_GRANT_TOOL_TOKEN;
         JSONObject identifierObj = new JSONObject();
         identifierObj.put("identifier", identifier);
-        RestResponse response = sendSSORequest(url, HttpMethod.POST, identifierObj.toString());
+        RestResponse response = sendRequest(url, HttpMethod.POST, identifierObj.toString());
         String result = null;
         if (HttpStatus.SC_OK == response.getStatusCode()) {
             result = response.getData();
@@ -1587,7 +1567,7 @@ public class ClientPublicAPI {
             String cookie = obj.getString("access_token");
             String cookieKey = obj.getString("cookie_name");
             this.cookies = cookieKey + "=" + cookie;
-            RestResponse currentUser = sendSSORequest(baseURL + CURRENT_USER_URL, HttpMethod.GET, null);
+            RestResponse currentUser = sendRequest(baseURL + CURRENT_USER_URL, HttpMethod.GET, null);
             if (HttpStatus.SC_OK == currentUser.getStatusCode()) {
                 JSONObject user = JSONObject.fromObject(currentUser.getData());
                 userInfo.setLoginName(user.get("name").toString());
