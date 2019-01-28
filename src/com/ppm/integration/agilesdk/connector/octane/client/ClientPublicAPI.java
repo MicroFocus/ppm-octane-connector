@@ -1125,7 +1125,7 @@ public class ClientPublicAPI {
         }
         JSONObject obj = getCreateEntityFromResponse(response.getData());
 
-        return this.getFeature(sharedspaceId, workspaceId, obj.getString("id")).get(0);
+        return this.getUserStory(sharedspaceId, workspaceId, obj.getString("id")).get(0);
     }
 
     private JSONObject getCreateEntityFromResponse(String jsonData) {
