@@ -120,7 +120,9 @@ public class FieldInfo {
                     JSONObject target = targets.getJSONObject(i);
                     if (OctaneConstants.SUB_TYPE_LIST_NODE.equals(target.getString(OctaneConstants.KEY_FIELD_TYPE))) {
                         fieldType = OctaneConstants.KEY_SUB_TYPE_LIST_NODE;
-                        fieldTypeMeaning = OctaneConstants.OCTANE_FIELD_TYPE_SUB_TYPE_LIST_NODE;
+                        if(dataObj.getBoolean(OctaneConstants.KEY_FIELD_USER_DEFINED)){
+                            fieldTypeMeaning = OctaneConstants.OCTANE_FIELD_TYPE_SUB_TYPE_LIST_NODE;
+                        }
                         listType = true;
                         logicalName = target.getString(OctaneConstants.KEY_LOGICAL_NAME);
                         break;

@@ -119,6 +119,7 @@ public class OctaneConstants {
     public static final String KEY_FIELD_MUlTIPLE = "multiple";
     public static final String KEY_FIELD_TYPE = "type";
     public static final String KEY_FIELD_FIELD_TYPE = "field_type";
+    public static final String KEY_FIELD_USER_DEFINED = "is_user_defined";
     public static final String KEY_FIELD_USER_LIST = "userList";
     public static final String KEY_FIELD_STRING = "string";
     public static final String KEY_FIELD_REFERENCE = "reference";
