@@ -1026,6 +1026,8 @@ public class ClientPublicAPI {
             case OctaneConstants.KEY_SUB_TYPE_LIST_NODE:
             case OctaneConstants.KEY_FIELD_MEMO:
                 return true;
+            //hide some reference fields(eg: phase, team) whose real field
+            //type is actually auto complete list field. not implement in 9.52
             case OctaneConstants.KEY_AUTO_COMPLETE_LIST:
             default:
                 return false;
