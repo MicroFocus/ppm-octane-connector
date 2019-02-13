@@ -1044,23 +1044,9 @@ public class ClientPublicAPI {
             case OctaneConstants.KEY_SUB_TYPE_LIST_NODE:
             case OctaneConstants.KEY_FIELD_MEMO:
                 return true;
+            //hide some reference fields(eg: phase, team) whose real field
+            //type is actually auto complete list field. not implement in 9.52
             case OctaneConstants.KEY_AUTO_COMPLETE_LIST:
-                //hide special fields
-                switch (field.getName()){
-                    case OctaneConstants.KEY_FIELD_MILESTONE:
-                    case OctaneConstants.KEY_FIELD_PARENT:
-                    case OctaneConstants.KEY_FIELD_PHASE:
-                    case OctaneConstants.KEY_FIELD_RELEASE:
-                    case OctaneConstants.KEY_FIELD_SPRINT:
-                    case OctaneConstants.KEY_FIELD_TEAM:
-                    case OctaneConstants.KEY_FIELD_APPLICATION:
-                    case OctaneConstants.KEY_FIELD_APPLICATION_API_NAME:
-                    case OctaneConstants.KEY_FIELD_REQUIREMENT:
-                    case OctaneConstants.KEY_FIELD_USER_TAG:
-                        return false;
-                    default:
-                        return true;
-                }
             default:
                 return false;
         }
@@ -1143,7 +1129,7 @@ public class ClientPublicAPI {
         }
         JSONObject obj = getCreateEntityFromResponse(response.getData());
 
-        return this.getFeature(sharedspaceId, workspaceId, obj.getString("id")).get(0);
+        return this.getUserStory(sharedspaceId, workspaceId, obj.getString("id")).get(0);
     }
 
     private JSONObject getCreateEntityFromResponse(String jsonData) {

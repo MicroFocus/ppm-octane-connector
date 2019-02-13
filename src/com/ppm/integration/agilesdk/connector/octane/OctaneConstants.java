@@ -119,6 +119,7 @@ public class OctaneConstants {
     public static final String KEY_FIELD_MUlTIPLE = "multiple";
     public static final String KEY_FIELD_TYPE = "type";
     public static final String KEY_FIELD_FIELD_TYPE = "field_type";
+    public static final String KEY_FIELD_USER_DEFINED = "is_user_defined";
     public static final String KEY_FIELD_USER_LIST = "userList";
     public static final String KEY_FIELD_STRING = "string";
     public static final String KEY_FIELD_REFERENCE = "reference";
@@ -166,8 +167,8 @@ public class OctaneConstants {
     public static final String OCTANE_FIELD_TYPE_STRING = "OCTANE_FIELD_TYPE_STRING";
     public static final String OCTANE_FIELD_TYPE_MEMO = "OCTANE_FIELD_TYPE_MEMO";
     public static final String OCTANE_FIELD_TYPE_USER_LIST = "OCTANE_FIELD_TYPE_USER_LIST";
-    public static final String OCTANE_FIELD_TYPE_SUB_TYPE_LIST_NODE = "OCTANE_FIELD_TYPE_SUB_TYPE_LIST_NODE";
-    public static final String OCTANE_FIELD_TYPE_AUTO_COMPLETE_LIST = "OCTANE_FIELD_TYPE_AUTO_COMPLETE_LIST";
+    public static final String OCTANE_FIELD_TYPE_LIST = "OCTANE_FIELD_TYPE_LIST";
+    public static final String OCTANE_FIELD_TYPE_REFERENCE = "OCTANE_FIELD_TYPE_REFERENCE";
 
     public static final String SSO_IDENTIFIER = "SSO_IDENTIFIER";
 
