@@ -167,7 +167,9 @@ public class ClientPublicAPI {
 
         Map<String, String> headers = new HashMap<>();
 
-        headers.put("cookie", this.cookies);
+        if (this.cookies != null) {
+            headers.put("Cookie", this.cookies);
+        }
         headers.put("HPECLIENTTYPE", "HPE_MQM_UI");
         headers.put("ALM_OCTANE_TECH_PREVIEW", "true");
 
