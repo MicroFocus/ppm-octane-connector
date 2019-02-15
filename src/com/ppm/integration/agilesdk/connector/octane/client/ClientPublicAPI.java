@@ -150,11 +150,30 @@ public class ClientPublicAPI {
 
         Map<String, String> headers = new HashMap<>();
 
+        if (this.cookies != null) {
         headers.put("Cookie", this.cookies);
-        headers.put("HPECLIENTTYPE", "HPE_PPM");
+        }
+        // headers.put("HPECLIENTTYPE", "HPE_PPM");
+        headers.put("HPECLIENTTYPE", "HPE_MQM_UI");
+
+        if (jsonData != null) {
+            headers.put("Content-Type", MediaType.APPLICATION_JSON);
+        }
+
+        return sendRequest(url, method, jsonData, headers);
+    }
+
+    private RestResponse sendSSORequest(String url, String method, String jsonData) {
+
+        Map<String, String> headers = new HashMap<>();
+
+        if (this.cookies != null) {
+            headers.put("Cookie", this.cookies);
+        }
+        headers.put("HPECLIENTTYPE", "HPE_MQM_UI");
         headers.put("ALM_OCTANE_TECH_PREVIEW", "true");
 
-        if (jsonData != null ) {
+        if (jsonData != null) {
             headers.put("Content-Type", MediaType.APPLICATION_JSON);
         }
 
@@ -640,7 +659,8 @@ public class ClientPublicAPI {
     * */
     public WorkItemEpic getEpicActualStoryPointsAndPath(int sharedSpaceId, int workSpaceId, String epicId) {
 
-        String url = String.format("%s/api/shared_spaces/%d/workspaces/%d/epics/%s?fields=name,path,actual_story_points",
+        String url =
+                String.format("%s/api/shared_spaces/%d/workspaces/%d/epics/%s?fields=name,path,actual_story_points",
                 baseURL, sharedSpaceId, workSpaceId, epicId);
 
         RestResponse response = sendGet(url);
@@ -998,7 +1018,7 @@ public class ClientPublicAPI {
     public List<FieldInfo> getEntityFields(final String sharedspaceId, final String workspaceId, final String entityName) {
         String url = String.format("%s/api/shared_spaces/%s/workspaces/%s/metadata/fields?query=%s%s%s",
                 baseURL, sharedspaceId, workspaceId, "%22entity_name%20EQ%20'", entityName,
-                "';editable%20EQ%20true;field_type%20IN%20'string','reference','memo'%22");
+                "';visible_in_ui%20EQ%20true;editable%20EQ%20true;field_type%20IN%20'string','reference','memo'%22");
         // "';visible_in_ui%20EQ%20true;editable%20EQ%20true;field_type%20IN%20'string','reference','memo'%22");
         List fieldsList = new ArrayList();
         RestResponse response = sendGet(url);
@@ -1545,7 +1565,7 @@ public class ClientPublicAPI {
         String url = baseURL + SHART_SSO_GRANT_TOOL_TOKEN;
         JSONObject identifierObj = new JSONObject();
         identifierObj.put("identifier", identifier);
-        RestResponse response = sendRequest(url, HttpMethod.POST, identifierObj.toString());
+        RestResponse response = sendSSORequest(url, HttpMethod.POST, identifierObj.toString());
         String result = null;
         if (HttpStatus.SC_OK == response.getStatusCode()) {
             result = response.getData();
@@ -1553,7 +1573,7 @@ public class ClientPublicAPI {
             String cookie = obj.getString("access_token");
             String cookieKey = obj.getString("cookie_name");
             this.cookies = cookieKey + "=" + cookie;
-            RestResponse currentUser = sendRequest(baseURL + CURRENT_USER_URL, HttpMethod.GET, null);
+            RestResponse currentUser = sendSSORequest(baseURL + CURRENT_USER_URL, HttpMethod.GET, null);
             if (HttpStatus.SC_OK == currentUser.getStatusCode()) {
                 JSONObject user = JSONObject.fromObject(currentUser.getData());
                 userInfo.setLoginName(user.get("name").toString());
