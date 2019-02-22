@@ -20,8 +20,7 @@ public class FieldInfo {
     private Boolean listType = false;
     //fieldType means fieldTypeCode,
     //which is opposite to PPM
-    private String fieldType;
-    private String fieldTypeMeaning;
+    private String fieldType;    
     private boolean multiValue = false;
 
     public FieldInfo(JSONObject jsonObject) {
@@ -60,22 +59,14 @@ public class FieldInfo {
         this.listType = listType;
     }
 
-     public String getFieldType() {
-         return fieldType;
-     }
-
-     public void setFieldType(String fieldType) {
-         this.fieldType = fieldType;
-     }
-
-     public String getFieldTypeMeaning() {
-         return fieldTypeMeaning;
-     }
-
-     public void setFieldTypeMeaning(String fieldTypeMeaning) {
-         this.fieldTypeMeaning = fieldTypeMeaning;
-     }
-
+    public String getFieldType() {
+        return fieldType;
+    }
+    
+    public void setFieldType(String fieldType) {
+        this.fieldType = fieldType;
+    }
+    
     public boolean isMultiValue() {
         return multiValue;
     }
@@ -100,15 +91,12 @@ public class FieldInfo {
             * string, userList, reference
             * */
             if (OctaneConstants.KEY_FIELD_REFERENCE.equals(dataObj.getString(OctaneConstants.KEY_FIELD_FIELD_TYPE))) {
-                fieldType = OctaneConstants.KEY_AUTO_COMPLETE_LIST;
-                fieldTypeMeaning = OctaneConstants.OCTANE_FIELD_TYPE_REFERENCE;
+                fieldType = OctaneConstants.KEY_AUTO_COMPLETE_LIST;                
                 listType = true;
             } else if(OctaneConstants.KEY_FIELD_MEMO.equals(dataObj.getString(OctaneConstants.KEY_FIELD_FIELD_TYPE))){
-                fieldType = OctaneConstants.KEY_FIELD_MEMO;
-                fieldTypeMeaning = OctaneConstants.OCTANE_FIELD_TYPE_MEMO;
+                fieldType = OctaneConstants.KEY_FIELD_MEMO;                
             }else {
-                fieldType = OctaneConstants.KEY_FIELD_STRING;
-                fieldTypeMeaning = OctaneConstants.OCTANE_FIELD_TYPE_STRING;
+                fieldType = OctaneConstants.KEY_FIELD_STRING;                
             }
 
             if (dataObj.containsKey(OctaneConstants.KEY_FIELD_TYPE_DATA)) {
@@ -119,18 +107,14 @@ public class FieldInfo {
                 for (int i = 0; i < targets.size(); i++) {
                     JSONObject target = targets.getJSONObject(i);
                     if (OctaneConstants.SUB_TYPE_LIST_NODE.equals(target.getString(OctaneConstants.KEY_FIELD_TYPE))) {
-                        fieldType = OctaneConstants.KEY_SUB_TYPE_LIST_NODE;
-                        if(dataObj.getBoolean(OctaneConstants.KEY_FIELD_USER_DEFINED)){
-                            fieldTypeMeaning = OctaneConstants.OCTANE_FIELD_TYPE_LIST;
-                        }
+                        fieldType = OctaneConstants.KEY_SUB_TYPE_LIST_NODE;                        
                         listType = true;
                         logicalName = target.getString(OctaneConstants.KEY_LOGICAL_NAME);
                         break;
                     } else if (OctaneConstants.SUB_TYPE_USER_NODE
                             .equals(target.getString(OctaneConstants.KEY_FIELD_TYPE))) {// multiple
                         listType = false;
-                        fieldType = OctaneConstants.KEY_FIELD_USER_LIST;
-                        fieldTypeMeaning = OctaneConstants.OCTANE_FIELD_TYPE_USER_LIST;
+                        fieldType = OctaneConstants.KEY_FIELD_USER_LIST;                        
                         break;
                     }
                 }
