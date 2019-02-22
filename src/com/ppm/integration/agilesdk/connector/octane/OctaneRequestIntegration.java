@@ -18,7 +18,6 @@ import org.joda.time.DateTime;
 import org.joda.time.format.DateTimeFormatter;
 import org.joda.time.format.ISODateTimeFormat;
 
-import com.hp.ppm.dm.model.DataFieldBean.DATA_TYPE;
 import com.hp.ppm.integration.model.AgileEntityFieldValue;
 import com.ppm.integration.agilesdk.ValueSet;
 import com.ppm.integration.agilesdk.connector.octane.client.ClientPublicAPI;
@@ -26,6 +25,7 @@ import com.ppm.integration.agilesdk.connector.octane.client.OctaneClientExceptio
 import com.ppm.integration.agilesdk.connector.octane.model.FieldInfo;
 import com.ppm.integration.agilesdk.connector.octane.model.SimpleEntity;
 import com.ppm.integration.agilesdk.dm.DataField;
+import com.ppm.integration.agilesdk.dm.DataField.DATA_TYPE;
 import com.ppm.integration.agilesdk.dm.ListNode;
 import com.ppm.integration.agilesdk.dm.ListNodeField;
 import com.ppm.integration.agilesdk.dm.MemoField;
@@ -326,7 +326,7 @@ public class OctaneRequestIntegration extends RequestIntegration {
                     JSONObject complexObj = new JSONObject();          
                     
                     String type = "";
-                    if(fieldInfo.getFieldType().equals(OctaneConstants.KEY_FIELD_SUB_TYPE_LIST_NODE)) {
+                    if(OctaneConstants.KEY_FIELD_SUB_TYPE_LIST_NODE.equals(fieldInfo.getFieldType())) {
                         type = OctaneConstants.SUB_TYPE_LIST_NODE;
                     } else {
                         type = fieldInfo.getName();
