@@ -18,6 +18,7 @@ import org.joda.time.DateTime;
 import org.joda.time.format.DateTimeFormatter;
 import org.joda.time.format.ISODateTimeFormat;
 
+import com.hp.ppm.dm.model.DataFieldBean.DATA_TYPE;
 import com.hp.ppm.integration.model.AgileEntityFieldValue;
 import com.ppm.integration.agilesdk.ValueSet;
 import com.ppm.integration.agilesdk.connector.octane.client.ClientPublicAPI;
@@ -81,8 +82,7 @@ public class OctaneRequestIntegration extends RequestIntegration {
         List<FieldInfo> fields = client.getEntityFields(sharedSpaceId, workSpaceId, entityType);
         for (FieldInfo field : fields) {
             AgileEntityFieldInfo info = new AgileEntityFieldInfo();
-            info.setFieldType(field.getFieldType() != null ? field.getFieldType().toUpperCase() : "");
-            info.setFieldTypeMeaning(field.getFieldTypeMeaning() != null ? field.getFieldTypeMeaning() : "");
+            info.setFieldType(getAgileFieldtype(field.getFieldType()));            
             info.setLabel(field.getLabel());
             info.setListType(field.getListType());
             String fieldName = field.getName();
@@ -96,6 +96,26 @@ public class OctaneRequestIntegration extends RequestIntegration {
         }
         Collections.sort(fieldList, new AgileFieldComparator());
         return fieldList;
+    }
+    
+    private String getAgileFieldtype(String fieldType) {
+        if(fieldType == null) {
+            return "";
+        }
+        
+        switch(fieldType) {
+            case OctaneConstants.KEY_FIELD_STRING:
+                return DATA_TYPE.STRING.name();
+            case OctaneConstants.KEY_FIELD_MEMO:
+                return DATA_TYPE.MEMO.name();
+            case OctaneConstants.KEY_FIELD_USER_LIST:
+                return DATA_TYPE.USER.name();
+            case OctaneConstants.KEY_FIELD_SUB_TYPE_LIST_NODE:
+            case OctaneConstants.KEY_FIELD_AUTO_COMPLETE_LIST:
+                return DATA_TYPE.ListNode.name();
+            default :
+                return DATA_TYPE.STRING.name();                
+        }
     }
 
     @Override
@@ -305,7 +325,14 @@ public class OctaneRequestIntegration extends RequestIntegration {
                     ListNodeField listNodeField = (ListNodeField) field;
                     JSONObject complexObj = new JSONObject();          
                     
-                    if(listNodeField.get().isMultiple()) {
+                    String type = "";
+                    if(fieldInfo.getFieldType().equals(OctaneConstants.KEY_FIELD_SUB_TYPE_LIST_NODE)) {
+                        type = OctaneConstants.SUB_TYPE_LIST_NODE;
+                    } else {
+                        type = fieldInfo.getName();
+                    }
+                    
+                    if(fieldInfo.isMultiValue()) {
                         String[] nameArr = listNodeField.get().getName().split(OctaneConstants.SPLIT_CHAR);
                         String[] idArr = listNodeField.get().getId().split(OctaneConstants.SPLIT_CHAR); 
                         
@@ -314,7 +341,7 @@ public class OctaneRequestIntegration extends RequestIntegration {
                         JSONArray tempArr = new JSONArray();
                         for (int i = 0; i < nameArr.length; i++) {                            
                             JSONObject tempObj = new JSONObject(); 
-                            tempObj.put("type", listNodeField.get().getType());
+                            tempObj.put("type", type);
                             tempObj.put("name", nameArr[i]);                    
                             tempObj.put("id", idArr[i]);
                             tempObj.put("index", i);        
@@ -323,10 +350,10 @@ public class OctaneRequestIntegration extends RequestIntegration {
                         complexObj.put("data", tempArr);
                         
                     } else {                    
-                        complexObj.put("type", listNodeField.get().getType());
+                        complexObj.put("type", type);
                         complexObj.put("name", listNodeField.get().getName());                    
                         complexObj.put("id", listNodeField.get().getId());
-                        complexObj.put("multiple", listNodeField.get().isMultiple());
+                        complexObj.put("multiple", fieldInfo.isMultiValue());
                     }
                         
                     entityObj.put(entry.getKey(), complexObj);
@@ -494,7 +521,7 @@ public class OctaneRequestIntegration extends RequestIntegration {
                     StringField stringField = new StringField();
                     stringField.set(value);
                     entity.addField(key, stringField);
-                } else if (info.getFieldType().equals("SUB_TYPE_LIST_NODE") || info.getFieldType().equals("AUTO_COMPLETE_LIST")) {
+                } else if (info.getFieldType().equals(OctaneConstants.KEY_FIELD_SUB_TYPE_LIST_NODE) || info.getFieldType().equals(OctaneConstants.KEY_FIELD_AUTO_COMPLETE_LIST)) {
                     JSONObject value = item.getJSONObject(key);
                     if(canParseJson(value, "name") || canParseJson(value, "data")) {
                         String ids = "";
@@ -524,15 +551,9 @@ public class OctaneRequestIntegration extends RequestIntegration {
                         }
                         
                         if(ids != null && !ids.isEmpty()) {
-                            ListNode listNode = new ListNode();
-                            if(info.getFieldType().equals("SUB_TYPE_LIST_NODE")) {
-                                listNode.setType(OctaneConstants.SUB_TYPE_LIST_NODE);
-                            } else {
-                                listNode.setType(value.getString("type"));
-                            }
+                            ListNode listNode = new ListNode();                            
                             listNode.setId(ids);
-                            listNode.setName(names);
-                            listNode.setMultiple(info.isMultiValue());
+                            listNode.setName(names);                            
                             
                             ListNodeField listNodeField = new ListNodeField();
                             listNodeField.set(listNode);
@@ -612,7 +633,6 @@ public class OctaneRequestIntegration extends RequestIntegration {
         }
         return agileEntities;
     }
-
 }
 
 class AgileFieldComparator implements Comparator<AgileEntityFieldInfo> {
