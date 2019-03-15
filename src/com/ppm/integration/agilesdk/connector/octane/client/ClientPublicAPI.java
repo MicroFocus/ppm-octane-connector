@@ -391,8 +391,12 @@ public class ClientPublicAPI {
         String key;
         for (int i = 1; (key = con.getHeaderFieldKey(i)) != null; i++) {
             if (key.equalsIgnoreCase("set-cookie")) {
-                cookieVal = cookieVal + con.getHeaderField(i) + ";";
+                String[] fields = con.getHeaderField(i).split(";\\s*");
+                if (fields.length > 0) {
+                    cookieVal = cookieVal + fields[0] + ";";
+                }
             }
+
         }
         return cookieVal;
     }
