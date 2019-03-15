@@ -6,6 +6,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.io.UnsupportedEncodingException;
+import java.net.HttpCookie;
 import java.net.HttpURLConnection;
 import java.net.InetSocketAddress;
 import java.net.Proxy;
@@ -391,8 +392,12 @@ public class ClientPublicAPI {
         String key;
         for (int i = 1; (key = con.getHeaderFieldKey(i)) != null; i++) {
             if (key.equalsIgnoreCase("set-cookie")) {
-                cookieVal = cookieVal + con.getHeaderField(i) + ";";
+                List<HttpCookie> cookie = HttpCookie.parse(con.getHeaderField(i));
+                if (cookie.size() > 0) {
+                    cookieVal = cookieVal + cookie.get(0).getName() + "=" + cookie.get(0).getValue() + ";";
+                }
             }
+
         }
         return cookieVal;
     }
