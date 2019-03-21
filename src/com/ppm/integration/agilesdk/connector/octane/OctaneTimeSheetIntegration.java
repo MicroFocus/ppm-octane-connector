@@ -128,10 +128,8 @@ public class OctaneTimeSheetIntegration extends TimeSheetIntegration {
             if (clientP.getAccessTokenWithFormFormat(clientId, clientSecret)) {
                 List<SharedSpace> shareSpaces = clientP.getSharedSpaces();
                 for (SharedSpace shareSpace : shareSpaces) {
-                    List<WorkSpace> workspacesAll = new ArrayList<WorkSpace>();
                     List<WorkSpace> workspaces = clientP.getWorkSpaces(Integer.parseInt(shareSpace.id));
-                    workspacesAll.addAll(workspaces);
-                    for (WorkSpace workSpace : workspacesAll) {
+                    for (WorkSpace workSpace : workspaces) {
                         List<TimesheetItem> timeSheets = clientP.getTimeSheetData(Integer.parseInt(shareSpace.id),
                                 userInfo.getLoginName(), startDate.toString(), endDate.toString(),
                                 Integer.parseInt(workSpace.id));
