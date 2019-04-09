@@ -113,6 +113,8 @@ public class OctaneRequestIntegration extends RequestIntegration {
             case OctaneConstants.KEY_FIELD_SUB_TYPE_LIST_NODE:
             case OctaneConstants.KEY_FIELD_AUTO_COMPLETE_LIST:
                 return DATA_TYPE.ListNode.name();
+            case OctaneConstants.KEY_FIELD_INTEGER:
+                return DATA_TYPE.INTEGER.name();
             default :
                 return DATA_TYPE.STRING.name();                
         }

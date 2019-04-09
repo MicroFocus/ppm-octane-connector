@@ -95,6 +95,8 @@ public class FieldInfo {
                 listType = true;
             } else if(OctaneConstants.KEY_FIELD_MEMO.equals(dataObj.getString(OctaneConstants.KEY_FIELD_FIELD_TYPE))){
                 fieldType = OctaneConstants.KEY_FIELD_MEMO;                
+            } else if(OctaneConstants.KEY_FIELD_INTEGER.equals(dataObj.getString(OctaneConstants.KEY_FIELD_FIELD_TYPE))){
+                fieldType = OctaneConstants.KEY_FIELD_INTEGER;
             }else {
                 fieldType = OctaneConstants.KEY_FIELD_STRING;                
             }
