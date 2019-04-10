@@ -307,8 +307,13 @@ public class OctaneRequestIntegration extends RequestIntegration {
             }
             switch (field.getType()) {
                 case STRING:
-                    StringField stringField = (StringField) field;
-                    entityObj.put(key, stringField.get());
+                    if(fieldInfo.getFieldType().equals(OctaneConstants.KEY_FIELD_STRING)) {
+                        StringField stringField = (StringField) field;
+                        entityObj.put(key, stringField.get());
+                    } else if(fieldInfo.getFieldType().equals(OctaneConstants.KEY_FIELD_INTEGER)){
+                        StringField stringField = (StringField) field;
+                        entityObj.put(key, new Long(stringField.get()));
+                    }
                     break;
                 case USER:
                     if (field.isList()) {
@@ -515,7 +520,7 @@ public class OctaneRequestIntegration extends RequestIntegration {
                             entity.addField(key, null);
                         }
                     }
-                } else if (info.getFieldType().equals(OctaneConstants.KEY_FIELD_STRING)) {
+                } else if (info.getFieldType().equals(OctaneConstants.KEY_FIELD_STRING) || info.getFieldType().equals(OctaneConstants.KEY_FIELD_INTEGER)) {
                     String value = item.getString(key);
                     if (value == null || value.equals("null")) {
                         value = "";
