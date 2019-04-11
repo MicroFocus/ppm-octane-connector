@@ -312,8 +312,8 @@ public class OctaneRequestIntegration extends RequestIntegration {
                         entityObj.put(key, stringField.get());
                     } else if(fieldInfo.getFieldType().equals(OctaneConstants.KEY_FIELD_INTEGER)){
                         StringField stringField = (StringField) field;
-                        try { 
-                            entityObj.put(key, new Long(stringField.get()));
+                        try {
+                            entityObj.put(key, new Double(stringField.get()));
                         } catch(NumberFormatException e) {
                             entityObj.put(key, stringField.get());
                         }
@@ -360,10 +360,14 @@ public class OctaneRequestIntegration extends RequestIntegration {
                         }
                         complexObj.put("data", tempArr);
                         
-                    } else {                    
+                    } else {    
                         complexObj.put("type", type);
-                        complexObj.put("name", listNodeField.get().getName());                    
-                        complexObj.put("id", listNodeField.get().getId());
+                        complexObj.put("name", listNodeField.get().getName());
+                        if(listNodeField.get().getId() == null || listNodeField.get().getId().equals("")) {
+                            complexObj.put("id", type + "." + key + "." + listNodeField.get().getName());
+                        } else {
+                            complexObj.put("id", listNodeField.get().getId());
+                        }
                         complexObj.put("multiple", fieldInfo.isMultiValue());
                     }
                         
