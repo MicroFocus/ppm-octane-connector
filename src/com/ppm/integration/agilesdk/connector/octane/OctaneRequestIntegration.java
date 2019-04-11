@@ -312,7 +312,11 @@ public class OctaneRequestIntegration extends RequestIntegration {
                         entityObj.put(key, stringField.get());
                     } else if(fieldInfo.getFieldType().equals(OctaneConstants.KEY_FIELD_INTEGER)){
                         StringField stringField = (StringField) field;
-                        entityObj.put(key, new Long(stringField.get()));
+                        try { 
+                            entityObj.put(key, new Long(stringField.get()));
+                        } catch(NumberFormatException e) {
+                            entityObj.put(key, stringField.get());
+                        }
                     }
                     break;
                 case USER:
