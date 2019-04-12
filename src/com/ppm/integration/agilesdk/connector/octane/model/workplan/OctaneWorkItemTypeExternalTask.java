@@ -1,14 +1,14 @@
 package com.ppm.integration.agilesdk.connector.octane.model.workplan;
 
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
+
 import com.ppm.integration.agilesdk.connector.octane.OctaneConstants;
 import com.ppm.integration.agilesdk.connector.octane.model.GenericWorkItem;
 import com.ppm.integration.agilesdk.connector.octane.model.OctaneUtils;
 import com.ppm.integration.agilesdk.pm.ExternalTask;
 import com.ppm.integration.agilesdk.pm.ExternalTaskActuals;
-
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
 
 /**
  * This class groups together items of a same type (stories, defects, quality stories).
@@ -101,6 +101,11 @@ public class OctaneWorkItemTypeExternalTask extends BaseOctaneExternalTask {
         }
 
         return children;
+    }
+
+    @Override
+    public String getId() {
+        return "WORKPLAN_TYPE_NAME_" + type.toUpperCase();
     }
 
     @Override
