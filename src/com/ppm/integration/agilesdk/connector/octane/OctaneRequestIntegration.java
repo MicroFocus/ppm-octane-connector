@@ -360,11 +360,14 @@ public class OctaneRequestIntegration extends RequestIntegration {
                         complexObj.put("data", tempArr);
                         
                     } else {    
-                        complexObj.put("type", type);
-                        complexObj.put("name", listNodeField.get().getName());
-                        if(listNodeField.get().getId() == null || listNodeField.get().getId().equals("")) {
-                            complexObj.put("id", type + "." + key + "." + listNodeField.get().getName());
-                        } else {
+                        complexObj.put("type", type);                        
+                        if(listNodeField.get().getId() == null || listNodeField.get().getId().equals("")) {     
+                            if(fieldInfo.isUserDefined()) {
+                                complexObj.put("id", listNodeField.get().getName() + "_ln");
+                            } else {
+                                complexObj.put("id", fieldInfo.getLogicalName() + "." + listNodeField.get().getName());
+                            }
+                        } else {                            
                             complexObj.put("id", listNodeField.get().getId());
                         }
                         complexObj.put("multiple", fieldInfo.isMultiValue());
