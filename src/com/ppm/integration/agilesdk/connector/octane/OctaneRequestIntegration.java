@@ -307,16 +307,15 @@ public class OctaneRequestIntegration extends RequestIntegration {
             }
             switch (field.getType()) {
                 case STRING:
-                    if(fieldInfo.getFieldType().equals(OctaneConstants.KEY_FIELD_STRING)) {
-                        StringField stringField = (StringField) field;
-                        entityObj.put(key, stringField.get());
-                    } else if(fieldInfo.getFieldType().equals(OctaneConstants.KEY_FIELD_INTEGER)){
-                        StringField stringField = (StringField) field;
+                    StringField stringField = (StringField) field;
+                    if(fieldInfo.getFieldType().equals(OctaneConstants.KEY_FIELD_INTEGER)){ 
                         try {
                             entityObj.put(key, new Double(stringField.get()));
                         } catch(NumberFormatException e) {
                             entityObj.put(key, stringField.get());
                         }
+                    } else {                
+                        entityObj.put(key, stringField.get());
                     }
                     break;
                 case USER:
@@ -375,7 +374,15 @@ public class OctaneRequestIntegration extends RequestIntegration {
                     break;
                 case MEMO:
                     MemoField memeoField = (MemoField)field;
-                    entityObj.put(key, memeoField.get());
+                    if(fieldInfo.getFieldType().equals(OctaneConstants.KEY_FIELD_INTEGER)) {
+                        try {
+                            entityObj.put(key, new Double(memeoField.get()));
+                        } catch(NumberFormatException e) {
+                            entityObj.put(key, memeoField.get());
+                        }
+                    } else {
+                        entityObj.put(key, memeoField.get());
+                    }                    
                     break;
             }
         }
