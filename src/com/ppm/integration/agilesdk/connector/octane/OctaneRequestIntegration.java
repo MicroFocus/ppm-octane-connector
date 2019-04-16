@@ -113,6 +113,8 @@ public class OctaneRequestIntegration extends RequestIntegration {
             case OctaneConstants.KEY_FIELD_SUB_TYPE_LIST_NODE:
             case OctaneConstants.KEY_FIELD_AUTO_COMPLETE_LIST:
                 return DATA_TYPE.ListNode.name();
+            case OctaneConstants.KEY_FIELD_INTEGER:
+                return DATA_TYPE.INTEGER.name();
             default :
                 return DATA_TYPE.STRING.name();                
         }
@@ -306,7 +308,15 @@ public class OctaneRequestIntegration extends RequestIntegration {
             switch (field.getType()) {
                 case STRING:
                     StringField stringField = (StringField) field;
-                    entityObj.put(key, stringField.get());
+                    if(fieldInfo.getFieldType().equals(OctaneConstants.KEY_FIELD_INTEGER)){ 
+                        try {
+                            entityObj.put(key, new Double(stringField.get()));
+                        } catch(NumberFormatException e) {
+                            entityObj.put(key, stringField.get());
+                        }
+                    } else {                
+                        entityObj.put(key, stringField.get());
+                    }
                     break;
                 case USER:
                     if (field.isList()) {
@@ -349,10 +359,17 @@ public class OctaneRequestIntegration extends RequestIntegration {
                         }
                         complexObj.put("data", tempArr);
                         
-                    } else {                    
-                        complexObj.put("type", type);
-                        complexObj.put("name", listNodeField.get().getName());                    
-                        complexObj.put("id", listNodeField.get().getId());
+                    } else {    
+                        complexObj.put("type", type);                        
+                        if(listNodeField.get().getId() == null || listNodeField.get().getId().equals("")) {     
+                            if(fieldInfo.isUserDefined()) {
+                                complexObj.put("id", listNodeField.get().getName() + "_ln");
+                            } else {
+                                complexObj.put("id", fieldInfo.getLogicalName() + "." + listNodeField.get().getName());
+                            }
+                        } else {                            
+                            complexObj.put("id", listNodeField.get().getId());
+                        }
                         complexObj.put("multiple", fieldInfo.isMultiValue());
                     }
                         
@@ -360,7 +377,15 @@ public class OctaneRequestIntegration extends RequestIntegration {
                     break;
                 case MEMO:
                     MemoField memeoField = (MemoField)field;
-                    entityObj.put(key, memeoField.get());
+                    if(fieldInfo.getFieldType().equals(OctaneConstants.KEY_FIELD_INTEGER)) {
+                        try {
+                            entityObj.put(key, new Double(memeoField.get()));
+                        } catch(NumberFormatException e) {
+                            entityObj.put(key, memeoField.get());
+                        }
+                    } else {
+                        entityObj.put(key, memeoField.get());
+                    }                    
                     break;
             }
         }
@@ -513,7 +538,7 @@ public class OctaneRequestIntegration extends RequestIntegration {
                             entity.addField(key, null);
                         }
                     }
-                } else if (info.getFieldType().equals(OctaneConstants.KEY_FIELD_STRING)) {
+                } else if (info.getFieldType().equals(OctaneConstants.KEY_FIELD_STRING) || info.getFieldType().equals(OctaneConstants.KEY_FIELD_INTEGER)) {
                     String value = item.getString(key);
                     if (value == null || value.equals("null")) {
                         value = "";

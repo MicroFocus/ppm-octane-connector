@@ -22,6 +22,7 @@ public class FieldInfo {
     //which is opposite to PPM
     private String fieldType;    
     private boolean multiValue = false;
+    private boolean isUserDefined = false;
 
     public FieldInfo(JSONObject jsonObject) {
         parseData(jsonObject);
@@ -75,10 +76,20 @@ public class FieldInfo {
         this.multiValue = multiValue;
     }
 
-    private void parseData(final JSONObject dataObj) {
+     public boolean isUserDefined() {
+         return isUserDefined;
+     }
+
+     public void setUserDefined(boolean userDefined) {
+         isUserDefined = userDefined;
+     }
+
+     private void parseData(final JSONObject dataObj) {
         try {
             label = dataObj.getString(OctaneConstants.KEY_FIELD_LABEL);
             name = dataObj.getString(OctaneConstants.KEY_FIELD_NAME);
+            //9.53 add isUserDefined attribute
+            isUserDefined= dataObj.getBoolean(OctaneConstants.KEY_FIELD_USER_DEFINED);
 
             /*
             * We regard all <reference> type field as <list type > field, default list type is true
@@ -95,6 +106,8 @@ public class FieldInfo {
                 listType = true;
             } else if(OctaneConstants.KEY_FIELD_MEMO.equals(dataObj.getString(OctaneConstants.KEY_FIELD_FIELD_TYPE))){
                 fieldType = OctaneConstants.KEY_FIELD_MEMO;                
+            } else if(OctaneConstants.KEY_FIELD_INTEGER.equals(dataObj.getString(OctaneConstants.KEY_FIELD_FIELD_TYPE))){
+                fieldType = OctaneConstants.KEY_FIELD_INTEGER;
             }else {
                 fieldType = OctaneConstants.KEY_FIELD_STRING;                
             }
