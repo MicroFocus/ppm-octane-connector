@@ -1,10 +1,13 @@
 package com.ppm.integration.agilesdk.connector.octane.model.workplan;
 
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
+import java.util.Map;
+
 import com.ppm.integration.agilesdk.connector.octane.model.GenericWorkItem;
 import com.ppm.integration.agilesdk.connector.octane.model.OctaneUtils;
 import com.ppm.integration.agilesdk.pm.ExternalTask;
-
-import java.util.*;
 
 /**
  * Created by canaud on 9/14/2017.
@@ -34,6 +37,11 @@ public class OctaneEpicExternalTask extends BaseOctaneExternalTask {
         }
 
         return children;
+    }
+
+    @Override
+    public String getId() {
+        return epic.getId();
     }
 
     @Override
