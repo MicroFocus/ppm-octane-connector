@@ -122,6 +122,7 @@ public class OctaneConstants {
     public static final String KEY_FIELD_USER_DEFINED = "is_user_defined";
     public static final String KEY_FIELD_USER_LIST = "userList";
     public static final String KEY_FIELD_STRING = "string";
+    public static final String KEY_FIELD_INTEGER = "integer";
     public static final String KEY_FIELD_SUB_TYPE_LIST_NODE = "SUB_TYPE_LIST_NODE";
     public static final String KEY_FIELD_AUTO_COMPLETE_LIST = "AUTO_COMPLETE_LIST";    
     public static final String KEY_FIELD_REFERENCE = "reference";
