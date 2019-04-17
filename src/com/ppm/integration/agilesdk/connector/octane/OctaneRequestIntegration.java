@@ -297,6 +297,14 @@ public class OctaneRequestIntegration extends RequestIntegration {
             String key = entry.getKey();
             FieldInfo fieldInfo = fieldInfoMap.get(key);
             DataField field = entry.getValue();
+            if(OctaneConstants.KEY_FIELD_RELEASE.equals(key)){
+                // when create a request which has mapping <release>, but not fill <release>,
+                // if update other field and keep <release> empty, it will
+                // param "" for <release> field, regard this as null
+                if(null != field && null != field.get() && "".equals(field.get().toString().trim())){
+                    field = null;
+                }
+            }
             if (field == null) {
                 // cover case: user clear the <phase> field. if param null,
                 // Octane will throw unfriendly error message
