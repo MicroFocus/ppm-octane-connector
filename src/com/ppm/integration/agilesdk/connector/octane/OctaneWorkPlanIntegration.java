@@ -1,5 +1,21 @@
 package com.ppm.integration.agilesdk.connector.octane;
 
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Date;
+import java.util.GregorianCalendar;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
+import org.apache.commons.lang3.StringUtils;
+import org.apache.log4j.Logger;
+
 import com.hp.ppm.integration.model.WorkplanMapping;
 import com.hp.ppm.user.service.api.UserService;
 import com.kintana.core.util.mlu.DateFormatter;
@@ -9,28 +25,40 @@ import com.mercury.itg.core.model.Context;
 import com.mercury.itg.core.user.impl.UserImpl;
 import com.ppm.integration.agilesdk.FunctionIntegration;
 import com.ppm.integration.agilesdk.ValueSet;
-import com.ppm.integration.agilesdk.connector.octane.client.OctaneEntityDropdown;
-import com.ppm.integration.agilesdk.connector.octane.model.*;
-import com.ppm.integration.agilesdk.connector.octane.model.workplan.*;
-import com.ppm.integration.agilesdk.pm.LinkedTaskAgileEntityInfo;
 import com.ppm.integration.agilesdk.connector.octane.client.ClientPublicAPI;
+import com.ppm.integration.agilesdk.connector.octane.client.OctaneEntityDropdown;
+import com.ppm.integration.agilesdk.connector.octane.model.EpicAttr;
+import com.ppm.integration.agilesdk.connector.octane.model.GenericWorkItem;
+import com.ppm.integration.agilesdk.connector.octane.model.OctaneUtils;
+import com.ppm.integration.agilesdk.connector.octane.model.Release;
+import com.ppm.integration.agilesdk.connector.octane.model.SharedSpace;
+import com.ppm.integration.agilesdk.connector.octane.model.Sprint;
+import com.ppm.integration.agilesdk.connector.octane.model.WorkSpace;
+import com.ppm.integration.agilesdk.connector.octane.model.workplan.OctaneEpicExternalTask;
+import com.ppm.integration.agilesdk.connector.octane.model.workplan.OctaneReleaseExternalTask;
+import com.ppm.integration.agilesdk.connector.octane.model.workplan.OctaneRootBacklogExternalTask;
+import com.ppm.integration.agilesdk.connector.octane.model.workplan.WorkDrivenPercentCompleteExternalTask;
+import com.ppm.integration.agilesdk.connector.octane.model.workplan.WorkplanContext;
 import com.ppm.integration.agilesdk.pm.ExternalTask;
 import com.ppm.integration.agilesdk.pm.ExternalWorkPlan;
+import com.ppm.integration.agilesdk.pm.LinkedTaskAgileEntityInfo;
 import com.ppm.integration.agilesdk.pm.WorkPlanIntegration;
 import com.ppm.integration.agilesdk.pm.WorkPlanIntegrationContext;
 import com.ppm.integration.agilesdk.provider.LocalizationProvider;
 import com.ppm.integration.agilesdk.provider.Providers;
-import com.ppm.integration.agilesdk.ui.*;
-
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
-import java.util.*;
+import com.ppm.integration.agilesdk.ui.CheckBox;
+import com.ppm.integration.agilesdk.ui.DatePicker;
+import com.ppm.integration.agilesdk.ui.DynamicDropdown;
+import com.ppm.integration.agilesdk.ui.Field;
+import com.ppm.integration.agilesdk.ui.FieldAppearance;
+import com.ppm.integration.agilesdk.ui.LineBreaker;
+import com.ppm.integration.agilesdk.ui.LineHr;
+import com.ppm.integration.agilesdk.ui.NumberText;
+import com.ppm.integration.agilesdk.ui.PlainText;
 
 import net.sf.json.JSONArray;
 import net.sf.json.JSONObject;
 import net.sf.json.JSONSerializer;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.log4j.Logger;
 
 public class OctaneWorkPlanIntegration extends WorkPlanIntegration implements FunctionIntegration {
 
@@ -694,7 +722,8 @@ public class OctaneWorkPlanIntegration extends WorkPlanIntegration implements Fu
                 List <Release> sortedReleases = getSortedReleases(workItemsPerReleaseIdAndSprintId.keySet(), releasesMap);
 
                 for (Release release : sortedReleases) {
-                    rootTasks.add(WorkDrivenPercentCompleteExternalTask.forSummaryTask(new OctaneReleaseExternalTask(release, workItemsPerReleaseIdAndSprintId.get(release.getId()), wpContext)));
+                    rootTasks.add(WorkDrivenPercentCompleteExternalTask.forSummaryTask(new OctaneReleaseExternalTask(
+                            release, workItemsPerReleaseIdAndSprintId.get(release.getId()), wpContext)));
                 }
 
                 break;
@@ -758,7 +787,7 @@ public class OctaneWorkPlanIntegration extends WorkPlanIntegration implements Fu
 
                 // We always start with Backlog tasks
                 if (!featuresInBacklog.isEmpty() || !itemsInBacklog.isEmpty()) {
-                    rootTasks.add(WorkDrivenPercentCompleteExternalTask.forSummaryTask(new OctaneRootBacklogExternalTask(featuresInBacklog, itemsInBacklog, featuresItems, wpContext)));
+                    rootTasks.add(WorkDrivenPercentCompleteExternalTask.forSummaryTask(new OctaneRootBacklogExternalTask(featuresInBacklog, itemsInBacklog, featuresItems, wpContext,itemsInBacklog.get(0).getId())));
                 }
 
                 // Then the Epics / Features / Backlog Items hierarchy.
@@ -863,5 +892,10 @@ public class OctaneWorkPlanIntegration extends WorkPlanIntegration implements Fu
         }
 
         return info;
+    }
+
+    @Override
+    public boolean supportTimesheetingAgainstExternalWorkPlan() {
+        return true;
     }
 }
