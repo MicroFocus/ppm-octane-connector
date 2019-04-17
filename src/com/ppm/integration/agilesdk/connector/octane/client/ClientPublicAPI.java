@@ -1416,10 +1416,10 @@ public class ClientPublicAPI {
         return userList;
     }
 
-    public JSONArray getUsersByEmail(String sharedspaceId, String[] emails) {
+    public JSONArray getUsersByNames(String sharedspaceId, String[] names) {
         String query = "";
-        if (null != emails && emails.length > 0) {
-            query += "\"name IN '" + StringUtils.join(emails, "','") + "'\"";
+        if (null != names && names.length > 0) {
+            query += "\"name IN '" + StringUtils.join(names, "','") + "'\"";
         } else {
             return null;
         }

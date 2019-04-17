@@ -14,6 +14,7 @@ import java.util.Set;
 
 import javax.ws.rs.HttpMethod;
 
+import org.apache.commons.lang.StringUtils;
 import org.joda.time.DateTime;
 import org.joda.time.format.DateTimeFormatter;
 import org.joda.time.format.ISODateTimeFormat;
@@ -314,21 +315,35 @@ public class OctaneRequestIntegration extends RequestIntegration {
                         } catch(NumberFormatException e) {
                             entityObj.put(key, stringField.get());
                         }
-                    } else {                
+                    } else if(fieldInfo.getFieldType().equals(OctaneConstants.KEY_FIELD_USER_LIST)){
+                        List<String> usernames = new ArrayList<String>();
+                        usernames.add(stringField.get());
+                        entityObj.put(key, transformUsernames(client, fieldInfo, usernames, sharedSpceId));                        
+                    } else {
                         entityObj.put(key, stringField.get());
                     }
                     break;
                 case USER:
-                    if (field.isList()) {
-                        MultiUserField userField = (MultiUserField) field;
-                        JSONObject obj = transformUsers(client, fieldInfo, userField.get(), sharedSpceId);
-                        entityObj.put(entry.getKey(), obj);
+                    if(fieldInfo.getFieldType().equals(OctaneConstants.KEY_FIELD_STRING) || fieldInfo.getFieldType().equals(OctaneConstants.KEY_FIELD_MEMO)) {
+                        if (field.isList()) {
+                            MultiUserField userField = (MultiUserField) field;
+                            entityObj.put(entry.getKey(), getFullnames(userField.get()));
+                        } else {
+                            UserField userField = (UserField) field;
+                            entityObj.put(entry.getKey(), userField.get().getFullName());
+                        }
                     } else {
-                        UserField userField = (UserField) field;
-                        List<User> userList = new ArrayList<User>();
-                        userList.add(userField.get());
-                        JSONObject obj = transformUsers(client, fieldInfo, userList, sharedSpceId);
-                        entityObj.put(entry.getKey(), obj);
+                        if (field.isList()) {
+                            MultiUserField userField = (MultiUserField) field;
+                            JSONObject obj = transformUsers(client, fieldInfo, userField.get(), sharedSpceId);
+                            entityObj.put(entry.getKey(), obj);
+                        } else {
+                            UserField userField = (UserField) field;
+                            List<User> userList = new ArrayList<User>();
+                            userList.add(userField.get());
+                            JSONObject obj = transformUsers(client, fieldInfo, userList, sharedSpceId);
+                            entityObj.put(entry.getKey(), obj);
+                        }
                     }
                     break;
                 case ListNode:
@@ -383,6 +398,10 @@ public class OctaneRequestIntegration extends RequestIntegration {
                         } catch(NumberFormatException e) {
                             entityObj.put(key, memeoField.get());
                         }
+                    } else if(fieldInfo.getFieldType().equals(OctaneConstants.KEY_FIELD_USER_LIST)){
+                        List<String> usernames = new ArrayList<String>();
+                        usernames.add(memeoField.get());
+                        entityObj.put(key, transformUsernames(client, fieldInfo, usernames, sharedSpceId));                        
                     } else {
                         entityObj.put(key, memeoField.get());
                     }                    
@@ -431,42 +450,65 @@ public class OctaneRequestIntegration extends RequestIntegration {
         }
 
     }
-
-    private JSONObject transformUsers(ClientPublicAPI client, FieldInfo userFieldInfo, List<User> users,
-            String shareSpaceId)
-    {
-        if (users != null && !users.isEmpty()) {
-            List<String> emails = new ArrayList<String>();
-
-            for (User user : users) {
-                if (user.getEmail() != null) {
-                    emails.add(user.getEmail());
-                }
-            }
-            if (!emails.isEmpty()) {
-                JSONArray emailArray = client.getUsersByEmail(shareSpaceId, emails.toArray(new String[emails.size()]));
-                if (emailArray.size() > 0) {
-                    if (userFieldInfo.isMultiValue()) {
-                        JSONObject userList = new JSONObject();
-                        JSONArray userArr = new JSONArray();
-                        for (int i = 0; i < emailArray.size(); i++) {
-                            JSONObject tempObj = emailArray.getJSONObject(i);
-                            userArr.add(getUserJsonObject(tempObj));
-                        }
-                        userList.put("data", userArr);
-                        return userList;
-                    } else {
-                        return getUserJsonObject(emailArray.getJSONObject(0));
+    
+    private JSONObject transformUsernames(ClientPublicAPI client, FieldInfo userFieldInfo, List<String> usernames,
+            String shareSpaceId) {
+        if (!usernames.isEmpty()) {
+            JSONArray usernamesArray = client.getUsersByNames(shareSpaceId, usernames.toArray(new String[usernames.size()]));
+            if (usernamesArray.size() > 0) {
+                if (userFieldInfo.isMultiValue()) {
+                    JSONObject userList = new JSONObject();
+                    JSONArray userArr = new JSONArray();
+                    for (int i = 0; i < usernamesArray.size(); i++) {
+                        JSONObject tempObj = usernamesArray.getJSONObject(i);
+                        userArr.add(getUserJsonObject(tempObj));
                     }
+                    userList.put("data", userArr);
+                    return userList;
+                } else {
+                    return getUserJsonObject(usernamesArray.getJSONObject(0));
                 }
             }
         }
-
+        
         if (userFieldInfo.isMultiValue()) {
             return createNullJSONObject(true);
         } else {
             return createNullJSONObject(false);
         }
+    }
+    
+    private String getFullnames(List<User> users) {
+        String usernames = "";
+        
+        if (users != null && !users.isEmpty()) {
+            for (User user : users) {
+                if (user.getFullName() != null) {
+                    usernames += user.getFullName() + OctaneConstants.MULTI_JOIN_CHAR;
+                }
+            }            
+        }
+        
+        if(usernames.length() > 0) {
+            usernames = usernames.substring(0, usernames.length() - OctaneConstants.MULTI_JOIN_CHAR.length());
+        }
+        
+        return usernames;
+    }
+
+    private JSONObject transformUsers(ClientPublicAPI client, FieldInfo userFieldInfo, List<User> users,
+            String shareSpaceId) {
+        List<String> usernames = new ArrayList<String>();
+        
+        if (users != null && !users.isEmpty()) {
+            for (User user : users) {
+                if (user.getUsername() != null) {
+                    usernames.add(user.getUsername());
+                }
+            }            
+        }
+
+        return transformUsernames(client, userFieldInfo, usernames, shareSpaceId);
     }
 
     private JSONObject getUserJsonObject(JSONObject tempObj) {
@@ -605,17 +647,14 @@ public class OctaneRequestIntegration extends RequestIntegration {
     }
 
     private User buildUser(JSONObject userJson) {
-        User user = null;
+        User user = new User();
         if (userJson.containsKey("name")) {
-            String email = userJson.getString("name");
-            com.hp.ppm.user.model.User userModel = getUserProvider().getByEmail(email);
-            if (userModel != null) {
-               user = new User();
-                user.setUserId(userModel.getUserId());
-                user.setEmail(userModel.getEmail());
-                user.setFullName(userModel.getFullName());
-                user.setUsername(userModel.getUserName());
-            }
+            String name = userJson.getString("name");      
+            user.setUsername(name);
+            if (userJson.containsKey("full_name")) {
+                String fullName = userJson.getString("full_name");   
+                user.setFullName(fullName);
+            }           
         }
         return user;
     }

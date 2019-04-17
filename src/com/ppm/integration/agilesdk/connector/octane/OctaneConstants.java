@@ -165,6 +165,8 @@ public class OctaneConstants {
     public static final String TS_GROUP_BY_BACKLOG_ITEM = "TS_GROUP_BY_BACKLOG_ITEM";
     
     public static final String SPLIT_CHAR = "#@#";
+    
+    public static  final String MULTI_JOIN_CHAR = ";";
 
     // internationalization at front-end
     public static final String OCTANE_FIELD_TYPE_STRING = "OCTANE_FIELD_TYPE_STRING";
