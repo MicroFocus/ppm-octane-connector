@@ -298,18 +298,24 @@ public class OctaneRequestIntegration extends RequestIntegration {
             FieldInfo fieldInfo = fieldInfoMap.get(key);
             DataField field = entry.getValue();
             if (field == null) {
-                if (fieldInfo.isMultiValue()) {
-                    entityObj.put(key, createNullJSONObject(true));
-                } else {
-                    entityObj.put(key, createNullJSONObject(false));
+                // cover case: user clear the <phase> field. if param null,
+                // Octane will throw unfriendly error message
+                if(OctaneConstants.KEY_FIELD_PHASE.equals(key)){
+                    field = new StringField();
+                    field.set("");
+                }else{
+                    if (fieldInfo.isMultiValue()) {
+                        entityObj.put(key, createNullJSONObject(true));
+                    } else {
+                        entityObj.put(key, createNullJSONObject(false));
+                    }
+                    continue;
                 }
-                continue;
             }
             switch (field.getType()) {
                 // String and Memo field use same logic
                 case STRING:
                 case MEMO:
-                    String fieldName = fieldInfo.getName();
                     if(OctaneConstants.KEY_FIELD_INTEGER.equals(fieldInfo.getFieldType())) {
                         try {
                             entityObj.put(key, new Double((String)field.get()));
@@ -317,28 +323,27 @@ public class OctaneRequestIntegration extends RequestIntegration {
                             entityObj.put(key, field.get());
                         }
                     } else {
-                        switch (fieldName){
+                        switch (key){
                             case OctaneConstants.KEY_FIELD_PHASE:
                             case OctaneConstants.KEY_FIELD_RELEASE:
                                 List<AgileEntityFieldValue> valueList = client
-                                        .getEntityFieldValueList(sharedSpaceId, workSpaceId, entityType, getFieldNameInAPI(fieldName));
+                                        .getEntityFieldValueList(sharedSpaceId, workSpaceId, entityType, getFieldNameInAPI(key));
                                 String value = (String)field.get();
-
+                                value = null == value ? "" : value;
                                 JSONObject complexObj = new JSONObject();
                                 complexObj.put("id", value);
-                                complexObj.put("type", fieldName);
+                                complexObj.put("type", key);
                                 for (AgileEntityFieldValue agileFieldValue: valueList) {
-                                    if(agileFieldValue.getName().equals(value)){
+                                    if(agileFieldValue.getName().equalsIgnoreCase(value)){
                                         complexObj.put("id", agileFieldValue.getId());
                                         break;
                                     }
                                 }
-                                entityObj.put(fieldName, complexObj);
+                                entityObj.put(key, complexObj);
                                 break;
                             default:
                                 entityObj.put(key, field.get());
                         }
-
                     }
                     break;
                 case USER:
