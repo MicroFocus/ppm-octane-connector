@@ -102,8 +102,16 @@ public class FieldInfo {
             * string, userList, reference
             * */
             if (OctaneConstants.KEY_FIELD_REFERENCE.equals(dataObj.getString(OctaneConstants.KEY_FIELD_FIELD_TYPE))) {
-                fieldType = OctaneConstants.KEY_AUTO_COMPLETE_LIST;                
-                listType = true;
+                fieldType = OctaneConstants.KEY_AUTO_COMPLETE_LIST;
+                //limit user can not do value mapping with below field
+                switch(name){
+                    case OctaneConstants.KEY_FIELD_PHASE:
+                    case OctaneConstants.KEY_FIELD_RELEASE:
+                        listType = false;
+                        break;
+                    default:
+                        listType = true;
+                }
             } else if(OctaneConstants.KEY_FIELD_MEMO.equals(dataObj.getString(OctaneConstants.KEY_FIELD_FIELD_TYPE))){
                 fieldType = OctaneConstants.KEY_FIELD_MEMO;                
             } else if(OctaneConstants.KEY_FIELD_INTEGER.equals(dataObj.getString(OctaneConstants.KEY_FIELD_FIELD_TYPE))){

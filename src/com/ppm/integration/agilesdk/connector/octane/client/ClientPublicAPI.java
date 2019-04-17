@@ -1052,9 +1052,16 @@ public class ClientPublicAPI {
             case OctaneConstants.KEY_FIELD_MEMO:
             case OctaneConstants.KEY_FIELD_INTEGER:
                 return true;
-            //hide some reference fields(eg: phase, team) whose real field
-            //type is actually auto complete list field. not implement in 9.52
+            //hide some reference fields(eg: sprint, team) whose real field
+            //type is actually auto complete list field.
             case OctaneConstants.KEY_AUTO_COMPLETE_LIST:
+                String fieldName = field.getName();
+                switch (fieldName){
+                    //open phase, release
+                    case OctaneConstants.KEY_FIELD_PHASE:
+                    case OctaneConstants.KEY_FIELD_RELEASE:
+                        return true;
+                }
             default:
                 return false;
         }
@@ -1076,7 +1083,7 @@ public class ClientPublicAPI {
     {
         String url = String.format("%s/api/shared_spaces/%s/workspaces/%s/%s?fields=id,name", baseURL, sharedSpaceId,
                 workSpaceId, fieldName);
-        if("phases".equals(fieldName)){
+        if(OctaneConstants.KEY_FIELD_PHASE_API_NAME.equals(fieldName)){
             url = String.format("%s&query=%s%s%s", url, "%22entity%20EQ%20'", entityName, "'%22");
         }
         RestResponse response = sendGet(url);
