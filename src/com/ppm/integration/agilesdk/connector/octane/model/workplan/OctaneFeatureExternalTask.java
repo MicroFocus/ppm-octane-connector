@@ -16,7 +16,7 @@ public class OctaneFeatureExternalTask extends BaseOctaneExternalTask {
 
     public OctaneFeatureExternalTask(GenericWorkItem feature, List<GenericWorkItem> featureItems, WorkplanContext context) {
         this.feature = feature;
-        this.children = createBacklogItemsChildrenByType(featureItems, context);
+        this.children = createBacklogItemsChildrenByType(featureItems, context, feature.getId());
     }
 
     @Override

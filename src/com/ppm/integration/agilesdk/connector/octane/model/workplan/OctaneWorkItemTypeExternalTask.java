@@ -15,19 +15,23 @@ import com.ppm.integration.agilesdk.pm.ExternalTaskActuals;
  */
 public class OctaneWorkItemTypeExternalTask extends BaseOctaneExternalTask {
 
+    private String parentId;
+
     private String type;
 
     private List<ExternalTask> children;
 
     private WorkplanContext context;
 
-    public OctaneWorkItemTypeExternalTask(String type, List<GenericWorkItem> typeContent, WorkplanContext context) {
+    public OctaneWorkItemTypeExternalTask(String type, List<GenericWorkItem> typeContent, WorkplanContext context,
+            String parentId) {
         this.type = type;
         this.context = context;
 
         // We always generate children, but we don't always return them as children tasks;
         // it depends whether we insert all items as tasks or not.
         this.children = createChildren(typeContent, context);
+        this.parentId = parentId;
     }
 
     /**
@@ -105,7 +109,7 @@ public class OctaneWorkItemTypeExternalTask extends BaseOctaneExternalTask {
 
     @Override
     public String getId() {
-        return "WORKPLAN_TYPE_NAME_" + type.toUpperCase();
+        return "WORKPLAN_TYPE_NAME_" + type.toUpperCase() + this.parentId;
     }
 
     @Override
