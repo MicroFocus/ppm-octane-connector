@@ -298,28 +298,23 @@ public class OctaneRequestIntegration extends RequestIntegration {
             String key = entry.getKey();
             FieldInfo fieldInfo = fieldInfoMap.get(key);
             DataField field = entry.getValue();
-            if(OctaneConstants.KEY_FIELD_RELEASE.equals(key)){
-                // when create a request which has mapping <release>, but not fill <release>,
-                // if update other field and keep <release> empty, it will
-                // param "" for <release> field, regard this as null
-                if(null != field && null != field.get() && "".equals(field.get().toString().trim())){
-                    field = null;
-                }
-            }
             if (field == null) {
                 // cover case: user clear the <phase> field. if param null,
                 // Octane will throw unfriendly error message
                 if(OctaneConstants.KEY_FIELD_PHASE.equals(key)){
-                    field = new StringField();
-                    field.set("");
+                    JSONObject complexObj = new JSONObject();
+                    complexObj.put("id", "");
+                    complexObj.put("type", key);
+                    entityObj.put(key, complexObj);
                 }else{
                     if (fieldInfo.isMultiValue()) {
                         entityObj.put(key, createNullJSONObject(true));
                     } else {
                         entityObj.put(key, createNullJSONObject(false));
                     }
-                    continue;
+
                 }
+                continue;
             }
             switch (field.getType()) {
                 // String and Memo field use same logic
@@ -332,17 +327,24 @@ public class OctaneRequestIntegration extends RequestIntegration {
                             entityObj.put(key, field.get());
                         }
                     } else if(fieldInfo.getFieldType().equals(OctaneConstants.KEY_FIELD_USER_LIST)){
-                        List<String> usernames = new ArrayList<String>();
-                        usernames.add((String)field.get());
-                        entityObj.put(key, transformUsernames(client, fieldInfo, usernames, sharedSpaceId));  
+                        List<String> userNames = new ArrayList<String>();
+                        userNames.add((String)field.get());
+                        entityObj.put(key, transformUsernames(client, fieldInfo, userNames, sharedSpaceId));
                     } else {
                         switch (key){
+                            //allow PPM text to Octane phase, release, if add new field in future, just add <case> field
                             case OctaneConstants.KEY_FIELD_PHASE:
                             case OctaneConstants.KEY_FIELD_RELEASE:
+                                String value = (String)field.get();
+                                value = null == value ? "" : value.trim();
+                                //if param "", regard as user clear the field(phase will not come there)
+                                if( value.isEmpty()){
+                                    entityObj.put(key, createNullJSONObject(false));
+                                    break;
+                                }
                                 List<AgileEntityFieldValue> valueList = client
                                         .getEntityFieldValueList(sharedSpaceId, workSpaceId, entityType, getFieldNameInAPI(key));
-                                String value = (String)field.get();
-                                value = null == value ? "" : value;
+
                                 JSONObject complexObj = new JSONObject();
                                 complexObj.put("id", value);
                                 complexObj.put("type", key);
