@@ -1,10 +1,13 @@
 package com.ppm.integration.agilesdk.connector.octane.model.workplan;
 
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.GregorianCalendar;
+import java.util.List;
+
 import com.ppm.integration.agilesdk.connector.octane.model.GenericWorkItem;
 import com.ppm.integration.agilesdk.pm.ExternalTask;
-import com.sun.jimi.core.util.P;
-
-import java.util.*;
 
 public abstract class BaseOctaneExternalTask extends ExternalTask {
 
@@ -137,7 +140,9 @@ public abstract class BaseOctaneExternalTask extends ExternalTask {
         return c.getTime();
     }
 
-    protected List<ExternalTask> createBacklogItemsChildrenByType(List<GenericWorkItem> backlogItems, WorkplanContext context) {
+    protected List<ExternalTask> createBacklogItemsChildrenByType(List<GenericWorkItem> backlogItems,
+            WorkplanContext context, String parentId)
+    {
         List<ExternalTask> children = new ArrayList<>();
 
         if (backlogItems != null) {
@@ -171,16 +176,20 @@ public abstract class BaseOctaneExternalTask extends ExternalTask {
             }
 
             if (!defects.isEmpty()) {
-                children.add(new OctaneWorkItemTypeExternalTask("defect", defects, context).toWorkDrivenPercentCompleteExternalTask());
+                children.add(new OctaneWorkItemTypeExternalTask("defect", defects, context, parentId)
+                        .toWorkDrivenPercentCompleteExternalTask());
             }
             if (!stories.isEmpty()) {
-                children.add(new OctaneWorkItemTypeExternalTask("story", stories, context).toWorkDrivenPercentCompleteExternalTask());
+                children.add(new OctaneWorkItemTypeExternalTask("story", stories, context, parentId)
+                        .toWorkDrivenPercentCompleteExternalTask());
             }
             if (!qualityStories.isEmpty()) {
-                children.add(new OctaneWorkItemTypeExternalTask("quality_story", qualityStories, context).toWorkDrivenPercentCompleteExternalTask());
+                children.add(new OctaneWorkItemTypeExternalTask("quality_story", qualityStories, context, parentId)
+                        .toWorkDrivenPercentCompleteExternalTask());
             }
             if (!others.isEmpty()) {
-                children.add(new OctaneWorkItemTypeExternalTask("other", others, context).toWorkDrivenPercentCompleteExternalTask());
+                children.add(new OctaneWorkItemTypeExternalTask("other", others, context, parentId)
+                        .toWorkDrivenPercentCompleteExternalTask());
             }
 
             return children;

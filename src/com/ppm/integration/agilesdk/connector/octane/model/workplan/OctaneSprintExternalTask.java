@@ -1,12 +1,11 @@
 package com.ppm.integration.agilesdk.connector.octane.model.workplan;
 
+import java.util.Date;
+import java.util.List;
+
 import com.ppm.integration.agilesdk.connector.octane.model.GenericWorkItem;
 import com.ppm.integration.agilesdk.connector.octane.model.Sprint;
 import com.ppm.integration.agilesdk.pm.ExternalTask;
-
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
 
 public class OctaneSprintExternalTask extends BaseOctaneExternalTask {
 
@@ -18,7 +17,7 @@ public class OctaneSprintExternalTask extends BaseOctaneExternalTask {
 
     public OctaneSprintExternalTask(Sprint sprint, List<GenericWorkItem> sprintContent, WorkplanContext context) {
         this.sprint = sprint;
-        this.children = createBacklogItemsChildrenByType(sprintContent, context);
+        this.children = createBacklogItemsChildrenByType(sprintContent, context, sprint.getId());
         this.context = context;
 
     }
