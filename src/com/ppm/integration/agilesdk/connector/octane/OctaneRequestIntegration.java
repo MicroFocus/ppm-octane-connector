@@ -14,6 +14,7 @@ import java.util.Set;
 
 import javax.ws.rs.HttpMethod;
 
+import org.apache.commons.lang.StringUtils;
 import org.joda.time.DateTime;
 import org.joda.time.format.DateTimeFormatter;
 import org.joda.time.format.ISODateTimeFormat;
@@ -264,12 +265,12 @@ public class OctaneRequestIntegration extends RequestIntegration {
             method = HttpMethod.PUT;
         }
         if (OctaneConstants.SUB_TYPE_FEATURE.equals(entityType)) {
-            String entityStr = buildEntity(client, sharedSpaceId, fieldInfos, entityType, entity, null);
+            String entityStr = buildEntity(client, sharedSpaceId, workSpaceId, fieldInfos, entityType, entity, null);
             JSONObject feature = client.saveFeatureInWorkspace(sharedSpaceId, workSpaceId, entityStr, method);
             agileEntity = wrapperEntity(feature, null);
         } else if (OctaneConstants.SUB_TYPE_STORY.equals(entityType)) {
             SimpleEntity root = client.getWorkItemRoot(Integer.parseInt(sharedSpaceId), Integer.parseInt(workSpaceId));
-            String entityStr = buildEntity(client, sharedSpaceId, fieldInfos, entityType, entity, root);
+            String entityStr = buildEntity(client, sharedSpaceId, workSpaceId, fieldInfos, entityType, entity, root);
             JSONObject userStory = client.saveStoryInWorkspace(sharedSpaceId, workSpaceId, entityStr, method);
             agileEntity = wrapperEntity(userStory, null);
         }
@@ -280,7 +281,7 @@ public class OctaneRequestIntegration extends RequestIntegration {
         return agileEntity;
     }
 
-    private String buildEntity(final ClientPublicAPI client, final String sharedSpceId,
+    private String buildEntity(final ClientPublicAPI client, final String sharedSpaceId, final String workSpaceId,
             final List<FieldInfo> fieldInfos, final String entityType, AgileEntity entity, SimpleEntity root)
     {
         JSONArray entityList = new JSONArray();
@@ -298,39 +299,92 @@ public class OctaneRequestIntegration extends RequestIntegration {
             FieldInfo fieldInfo = fieldInfoMap.get(key);
             DataField field = entry.getValue();
             if (field == null) {
-                if (fieldInfo.isMultiValue()) {
-                    entityObj.put(key, createNullJSONObject(true));
-                } else {
-                    entityObj.put(key, createNullJSONObject(false));
+                // cover case: user clear the <phase> field. if param null,
+                // Octane will throw unfriendly error message
+                if(OctaneConstants.KEY_FIELD_PHASE.equals(key)){
+                    JSONObject complexObj = new JSONObject();
+                    complexObj.put("id", "");
+                    complexObj.put("type", key);
+                    entityObj.put(key, complexObj);
+                }else{
+                    if (fieldInfo.isMultiValue()) {
+                        entityObj.put(key, createNullJSONObject(true));
+                    } else {
+                        entityObj.put(key, createNullJSONObject(false));
+                    }
+
                 }
                 continue;
             }
             switch (field.getType()) {
+                // String and Memo field use same logic
                 case STRING:
-                    StringField stringField = (StringField) field;
-                    if(fieldInfo.getFieldType().equals(OctaneConstants.KEY_FIELD_INTEGER)){ 
+                case MEMO:
+                    if(OctaneConstants.KEY_FIELD_INTEGER.equals(fieldInfo.getFieldType())) {
                         try {
-                            entityObj.put(key, new Double(stringField.get()));
+                            entityObj.put(key, new Double((String)field.get()));
                         } catch(NumberFormatException e) {
-                            entityObj.put(key, stringField.get());
+                            entityObj.put(key, field.get());
                         }
-                    } else {                
-                        entityObj.put(key, stringField.get());
-                    }
+                    } else if(fieldInfo.getFieldType().equals(OctaneConstants.KEY_FIELD_USER_LIST)){
+                        List<String> userNames = new ArrayList<String>();
+                        userNames.add((String)field.get());
+                        entityObj.put(key, transformUsernames(client, fieldInfo, userNames, sharedSpaceId));
+                    } else {
+                        switch (key){
+                            //allow PPM text to Octane phase, release, if add new field in future, just add <case> field
+                            case OctaneConstants.KEY_FIELD_PHASE:
+                            case OctaneConstants.KEY_FIELD_RELEASE:
+                                String value = (String)field.get();
+                                value = null == value ? "" : value.trim();
+                                //if param "", regard as user clear the field(phase will not come there)
+                                if( value.isEmpty()){
+                                    entityObj.put(key, createNullJSONObject(false));
+                                    break;
+                                }
+                                List<AgileEntityFieldValue> valueList = client
+                                        .getEntityFieldValueList(sharedSpaceId, workSpaceId, entityType, getFieldNameInAPI(key));
+
+                                JSONObject complexObj = new JSONObject();
+                                complexObj.put("id", value);
+                                complexObj.put("type", key);
+                                for (AgileEntityFieldValue agileFieldValue: valueList) {
+                                    if(agileFieldValue.getName().equalsIgnoreCase(value)){
+                                        complexObj.put("id", agileFieldValue.getId());
+                                        break;
+                                    }
+                                }
+                                entityObj.put(key, complexObj);
+                                break;
+                            default:
+                                entityObj.put(key, field.get());
+                        }                      
+                    } 
                     break;
                 case USER:
-                    if (field.isList()) {
-                        MultiUserField userField = (MultiUserField) field;
-                        JSONObject obj = transformUsers(client, fieldInfo, userField.get(), sharedSpceId);
-                        entityObj.put(entry.getKey(), obj);
+                    if(fieldInfo.getFieldType().equals(OctaneConstants.KEY_FIELD_STRING) || fieldInfo.getFieldType().equals(OctaneConstants.KEY_FIELD_MEMO)) {
+                        if (field.isList()) {
+                            MultiUserField userField = (MultiUserField) field;
+                            entityObj.put(entry.getKey(), getFullnames(userField.get()));
+                        } else {
+                            UserField userField = (UserField) field;
+                            entityObj.put(entry.getKey(), userField.get().getFullName());
+                        }
                     } else {
-                        UserField userField = (UserField) field;
-                        List<User> userList = new ArrayList<User>();
-                        userList.add(userField.get());
-                        JSONObject obj = transformUsers(client, fieldInfo, userList, sharedSpceId);
-                        entityObj.put(entry.getKey(), obj);
+                        if (field.isList()) {
+                            MultiUserField userField = (MultiUserField) field;
+                            JSONObject obj = transformUsers(client, fieldInfo, userField.get(), sharedSpaceId);
+                            entityObj.put(entry.getKey(), obj);
+                        } else {
+                            UserField userField = (UserField) field;
+                            List<User> userList = new ArrayList<User>();
+                            userList.add(userField.get());
+                            JSONObject obj = transformUsers(client, fieldInfo, userList, sharedSpaceId);
+                            entityObj.put(entry.getKey(), obj);
+                        }
+
                     }
-                    break;
+                    break;                
                 case ListNode:
                     ListNodeField listNodeField = (ListNodeField) field;
                     JSONObject complexObj = new JSONObject();          
@@ -349,7 +403,7 @@ public class OctaneRequestIntegration extends RequestIntegration {
                         complexObj.put("total_count", nameArr.length);
                         
                         JSONArray tempArr = new JSONArray();
-                        for (int i = 0; i < nameArr.length; i++) {                            
+                        for (int i = 0; i < nameArr.length; i++) {
                             JSONObject tempObj = new JSONObject(); 
                             tempObj.put("type", type);
                             tempObj.put("name", nameArr[i]);                    
@@ -375,33 +429,25 @@ public class OctaneRequestIntegration extends RequestIntegration {
                         
                     entityObj.put(entry.getKey(), complexObj);
                     break;
-                case MEMO:
-                    MemoField memeoField = (MemoField)field;
-                    if(fieldInfo.getFieldType().equals(OctaneConstants.KEY_FIELD_INTEGER)) {
-                        try {
-                            entityObj.put(key, new Double(memeoField.get()));
-                        } catch(NumberFormatException e) {
-                            entityObj.put(key, memeoField.get());
-                        }
-                    } else {
-                        entityObj.put(key, memeoField.get());
-                    }                    
-                    break;
+                
             }
         }
 
         if (entity.getId() != null) {
             entityObj.put(OctaneConstants.KEY_FIELD_ID, entity.getId());
         } else {
-            JSONObject complexObj = new JSONObject();
-            if (OctaneConstants.SUB_TYPE_STORY.equals(entityType)) {
-                complexObj.put("id", "phase.story.new");
-            } else {
-                complexObj.put("id", "phase.feature.new");
+            //when create a new octane request, if user set <phase>,
+            //keep the value
+            if(!entityObj.containsKey(OctaneConstants.KEY_FIELD_PHASE)){
+                JSONObject complexObj = new JSONObject();
+                if (OctaneConstants.SUB_TYPE_STORY.equals(entityType)) {
+                    complexObj.put("id", "phase.story.new");
+                } else {
+                    complexObj.put("id", "phase.feature.new");
+                }
+                complexObj.put("type", "phase");
+                entityObj.put("phase", complexObj);
             }
-            complexObj.put("type", "phase");
-            entityObj.put("phase", complexObj);
-
             if (root != null) {
                 JSONObject parent = new JSONObject();
                 parent.put("id", root.id);
@@ -413,6 +459,17 @@ public class OctaneRequestIntegration extends RequestIntegration {
         entityList.add(entityObj);
 
         return entityList.toString();
+    }
+
+    private String getFieldNameInAPI(String originName){
+        switch (originName){
+            case OctaneConstants.KEY_FIELD_PHASE:
+                return OctaneConstants.KEY_FIELD_PHASE_API_NAME;
+            case OctaneConstants.KEY_FIELD_RELEASE:
+                return OctaneConstants.KEY_FIELD_RELEASE_API_NAME;
+            default:
+                return originName;
+        }
     }
 
     @Override
@@ -431,42 +488,65 @@ public class OctaneRequestIntegration extends RequestIntegration {
         }
 
     }
-
-    private JSONObject transformUsers(ClientPublicAPI client, FieldInfo userFieldInfo, List<User> users,
-            String shareSpaceId)
-    {
-        if (users != null && !users.isEmpty()) {
-            List<String> emails = new ArrayList<String>();
-
-            for (User user : users) {
-                if (user.getEmail() != null) {
-                    emails.add(user.getEmail());
-                }
-            }
-            if (!emails.isEmpty()) {
-                JSONArray emailArray = client.getUsersByEmail(shareSpaceId, emails.toArray(new String[emails.size()]));
-                if (emailArray.size() > 0) {
-                    if (userFieldInfo.isMultiValue()) {
-                        JSONObject userList = new JSONObject();
-                        JSONArray userArr = new JSONArray();
-                        for (int i = 0; i < emailArray.size(); i++) {
-                            JSONObject tempObj = emailArray.getJSONObject(i);
-                            userArr.add(getUserJsonObject(tempObj));
-                        }
-                        userList.put("data", userArr);
-                        return userList;
-                    } else {
-                        return getUserJsonObject(emailArray.getJSONObject(0));
+    
+    private JSONObject transformUsernames(ClientPublicAPI client, FieldInfo userFieldInfo, List<String> usernames,
+            String shareSpaceId) {
+        if (!usernames.isEmpty()) {
+            JSONArray usernamesArray = client.getUsersByNames(shareSpaceId, usernames.toArray(new String[usernames.size()]));
+            if (usernamesArray.size() > 0) {
+                if (userFieldInfo.isMultiValue()) {
+                    JSONObject userList = new JSONObject();
+                    JSONArray userArr = new JSONArray();
+                    for (int i = 0; i < usernamesArray.size(); i++) {
+                        JSONObject tempObj = usernamesArray.getJSONObject(i);
+                        userArr.add(getUserJsonObject(tempObj));
                     }
+                    userList.put("data", userArr);
+                    return userList;
+                } else {
+                    return getUserJsonObject(usernamesArray.getJSONObject(0));
                 }
             }
         }
-
+        
         if (userFieldInfo.isMultiValue()) {
             return createNullJSONObject(true);
         } else {
             return createNullJSONObject(false);
         }
+    }
+    
+    private String getFullnames(List<User> users) {
+        String usernames = "";
+        
+        if (users != null && !users.isEmpty()) {
+            for (User user : users) {
+                if (user.getFullName() != null) {
+                    usernames += user.getFullName() + OctaneConstants.MULTI_JOIN_CHAR;
+                }
+            }            
+        }
+        
+        if(usernames.length() > 0) {
+            usernames = usernames.substring(0, usernames.length() - OctaneConstants.MULTI_JOIN_CHAR.length());
+        }
+        
+        return usernames;
+    }
+
+    private JSONObject transformUsers(ClientPublicAPI client, FieldInfo userFieldInfo, List<User> users,
+            String shareSpaceId) {
+        List<String> usernames = new ArrayList<String>();
+        
+        if (users != null && !users.isEmpty()) {
+            for (User user : users) {
+                if (user.getUsername() != null) {
+                    usernames.add(user.getUsername());
+                }
+            }            
+        }
+
+        return transformUsernames(client, userFieldInfo, usernames, shareSpaceId);
     }
 
     private JSONObject getUserJsonObject(JSONObject tempObj) {
@@ -605,17 +685,14 @@ public class OctaneRequestIntegration extends RequestIntegration {
     }
 
     private User buildUser(JSONObject userJson) {
-        User user = null;
+        User user = new User();
         if (userJson.containsKey("name")) {
-            String email = userJson.getString("name");
-            com.hp.ppm.user.model.User userModel = getUserProvider().getByEmail(email);
-            if (userModel != null) {
-               user = new User();
-                user.setUserId(userModel.getUserId());
-                user.setEmail(userModel.getEmail());
-                user.setFullName(userModel.getFullName());
-                user.setUsername(userModel.getUserName());
-            }
+            String name = userJson.getString("name");      
+            user.setUsername(name);
+            if (userJson.containsKey("full_name")) {
+                String fullName = userJson.getString("full_name");   
+                user.setFullName(fullName);
+            }           
         }
         return user;
     }
