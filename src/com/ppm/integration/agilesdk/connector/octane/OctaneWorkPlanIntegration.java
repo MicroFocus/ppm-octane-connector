@@ -894,7 +894,7 @@ public class OctaneWorkPlanIntegration extends WorkPlanIntegration implements Fu
         return info;
     }
 
-    @Override
+//    @Override
     public boolean supportTimesheetingAgainstExternalWorkPlan() {
         return true;
     }
