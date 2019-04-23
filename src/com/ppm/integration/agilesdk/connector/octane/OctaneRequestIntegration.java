@@ -360,16 +360,19 @@ public class OctaneRequestIntegration extends RequestIntegration {
                                     //if param comment when first time sync to Octane, Octane will throw unfriendly error
                                     throw new RuntimeException("Comments cannot be updated from PPM until after the first successful synchronization");
                                 }
-
-                                String originPlainText = value.replaceAll("\n", "").trim();
-                                originPlainText = originPlainText.replaceAll(" ", "");
                                 // if update other field, comment will not be added.
                                 // get last comment from octane and check whether need to update by compare plain text
                                 List<String> commentsPlainTxtList = client.getCommentsPlainTxtForWorkItem(sharedSpaceId, workSpaceId, entity.getId());
                                 if(null != commentsPlainTxtList && !commentsPlainTxtList.isEmpty()){
-                                    //get plain text
+                                    //get ppm value plain text
+                                    StringTokenizer pas = new StringTokenizer(value);
+                                    StringBuilder originPlainText = new StringBuilder("");
+                                    while (pas.hasMoreTokens()){
+                                        originPlainText.append(pas.nextToken());
+                                    }
+                                    //get last comment plain text
                                     String lastCommentPlainTxt = commentsPlainTxtList.get(commentsPlainTxtList.size() - 1).replaceAll(" ", "");
-                                    if(originPlainText.equals(lastCommentPlainTxt)){
+                                    if(originPlainText.toString().equals(lastCommentPlainTxt)){
                                         break;
                                     }
                                 }
