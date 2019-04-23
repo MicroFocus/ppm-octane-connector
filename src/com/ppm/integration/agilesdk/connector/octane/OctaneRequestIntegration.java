@@ -1,20 +1,11 @@
 
 package com.ppm.integration.agilesdk.connector.octane;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.Map.Entry;
-import java.util.Set;
 
 import javax.ws.rs.HttpMethod;
 
-import org.apache.commons.lang.StringUtils;
 import org.joda.time.DateTime;
 import org.joda.time.format.DateTimeFormatter;
 import org.joda.time.format.ISODateTimeFormat;
@@ -306,6 +297,9 @@ public class OctaneRequestIntegration extends RequestIntegration {
                     complexObj.put("id", "");
                     complexObj.put("type", key);
                     entityObj.put(key, complexObj);
+                }else if(OctaneConstants.KEY_FIELD_COMMENTS.equals(key)){
+                    field = new StringField();
+                    field.set("");
                 }else{
                     if (fieldInfo.isMultiValue()) {
                         entityObj.put(key, createNullJSONObject(true));
@@ -331,12 +325,12 @@ public class OctaneRequestIntegration extends RequestIntegration {
                         userNames.add((String)field.get());
                         entityObj.put(key, transformUsernames(client, fieldInfo, userNames, sharedSpaceId));
                     } else {
+                        String value = (String)field.get();
+                        value = null == value ? "" : value.trim();
                         switch (key){
                             //allow PPM text to Octane phase, release, if add new field in future, just add <case> field
                             case OctaneConstants.KEY_FIELD_PHASE:
                             case OctaneConstants.KEY_FIELD_RELEASE:
-                                String value = (String)field.get();
-                                value = null == value ? "" : value.trim();
                                 //if param "", regard as user clear the field(phase will not come there)
                                 if( value.isEmpty()){
                                     entityObj.put(key, createNullJSONObject(false));
@@ -355,6 +349,53 @@ public class OctaneRequestIntegration extends RequestIntegration {
                                     }
                                 }
                                 entityObj.put(key, complexObj);
+                                break;
+                            case OctaneConstants.KEY_FIELD_COMMENTS:
+                                if( value.isEmpty()){
+                                    //empty value will not be updated
+                                    break;
+                                }
+                                String entityId = entity.getId();
+                                if(null == entityId || "".equals(entityId)){
+                                    //if param comment when first time sync to Octane, Octane will throw unfriendly error
+                                    throw new RuntimeException("Can not fill comment when first time sync to Octane");
+                                }
+                                //get text separated by space, then compare value
+                                StringTokenizer pas = new StringTokenizer(value);
+                                String txtSeparatedBySpace = "";
+                                while (pas.hasMoreTokens()){
+                                    txtSeparatedBySpace+= pas.nextToken() + " ";//separate by space
+                                }
+                                txtSeparatedBySpace = txtSeparatedBySpace.trim();
+                                // get last comment from octane and check whether need to update
+                                List<String> commentsPlainTxtList = client.getCommentsPlainTxtForWorkItem(sharedSpaceId, workSpaceId, entity.getId());
+                                String newComment = txtSeparatedBySpace;//default value
+                                if(null != commentsPlainTxtList && !commentsPlainTxtList.isEmpty()){
+                                    String lastComment = commentsPlainTxtList.get(commentsPlainTxtList.size() - 1);
+                                    //get newComments
+                                    if(txtSeparatedBySpace.contains(lastComment)){
+                                        newComment = txtSeparatedBySpace
+                                                .substring(txtSeparatedBySpace.lastIndexOf(lastComment) + lastComment.length()).trim();
+                                    }
+                                }
+                                if("".equals(newComment)){
+                                    // if come there, it means user update other field,
+                                    // in this case comment will not be added.
+                                    break;
+                                }
+                                //construct comments json obj
+                                JSONObject workItemObj = new JSONObject();
+                                workItemObj.put("type", "work_item");
+                                workItemObj.put("id", entityId);
+                                JSONObject dataObj = new JSONObject();
+                                dataObj.put("text", newComment);
+                                dataObj.put("owner_work_item", workItemObj);
+                                JSONArray dataList = new JSONArray();
+                                dataList.add(dataObj);
+                                JSONObject finalJsonObj = new JSONObject();
+                                finalJsonObj.put("data", dataList);
+                                //construct comments json obj  end
+                                entityObj.put(key, finalJsonObj);
                                 break;
                             default:
                                 entityObj.put(key, field.get());
