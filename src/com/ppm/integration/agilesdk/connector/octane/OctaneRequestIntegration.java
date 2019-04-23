@@ -360,35 +360,25 @@ public class OctaneRequestIntegration extends RequestIntegration {
                                     //if param comment when first time sync to Octane, Octane will throw unfriendly error
                                     throw new RuntimeException("Comments cannot be updated from PPM until after the first successful synchronization");
                                 }
-                                //get text separated by space, then compare value
-                                StringTokenizer pas = new StringTokenizer(value);
-                                String txtSeparatedBySpace = "";
-                                while (pas.hasMoreTokens()){
-                                    txtSeparatedBySpace+= pas.nextToken() + " ";//separate by space
-                                }
-                                txtSeparatedBySpace = txtSeparatedBySpace.trim();
-                                // get last comment from octane and check whether need to update
+
+                                String originPlainText = value.replaceAll("\n", "").trim();
+                                originPlainText = originPlainText.replaceAll(" ", "");
+                                // if update other field, comment will not be added.
+                                // get last comment from octane and check whether need to update by compare plain text
                                 List<String> commentsPlainTxtList = client.getCommentsPlainTxtForWorkItem(sharedSpaceId, workSpaceId, entity.getId());
-                                String newComment = txtSeparatedBySpace;//default value
                                 if(null != commentsPlainTxtList && !commentsPlainTxtList.isEmpty()){
-                                    String lastComment = commentsPlainTxtList.get(commentsPlainTxtList.size() - 1);
-                                    //get newComments
-                                    if(txtSeparatedBySpace.contains(lastComment)){
-                                        newComment = txtSeparatedBySpace
-                                                .substring(txtSeparatedBySpace.lastIndexOf(lastComment) + lastComment.length()).trim();
+                                    //get plain text
+                                    String lastCommentPlainTxt = commentsPlainTxtList.get(commentsPlainTxtList.size() - 1).replaceAll(" ", "");
+                                    if(originPlainText.equals(lastCommentPlainTxt)){
+                                        break;
                                     }
-                                }
-                                if("".equals(newComment)){
-                                    // if come there, it means user update other field,
-                                    // in this case comment will not be added.
-                                    break;
                                 }
                                 //construct comments json obj
                                 JSONObject workItemObj = new JSONObject();
                                 workItemObj.put("type", "work_item");
                                 workItemObj.put("id", entityId);
                                 JSONObject dataObj = new JSONObject();
-                                dataObj.put("text", newComment);
+                                dataObj.put("text", value);
                                 dataObj.put("owner_work_item", workItemObj);
                                 JSONArray dataList = new JSONArray();
                                 dataList.add(dataObj);
