@@ -358,7 +358,7 @@ public class OctaneRequestIntegration extends RequestIntegration {
                                 String entityId = entity.getId();
                                 if(null == entityId || "".equals(entityId)){
                                     //if param comment when first time sync to Octane, Octane will throw unfriendly error
-                                    throw new RuntimeException("Can not fill comment when first time sync to Octane");
+                                    throw new RuntimeException("Comments cannot be updated from PPM until after the first successful synchronization");
                                 }
                                 //get text separated by space, then compare value
                                 StringTokenizer pas = new StringTokenizer(value);
