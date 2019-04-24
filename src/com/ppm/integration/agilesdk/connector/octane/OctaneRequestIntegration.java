@@ -538,8 +538,8 @@ public class OctaneRequestIntegration extends RequestIntegration {
         
         if (users != null && !users.isEmpty()) {
             for (User user : users) {
-                if (user.getUsername() != null) {
-                    usernames.add(user.getUsername());
+                if (user.getEmail() != null) {
+                    usernames.add(user.getEmail());
                 }
             }            
         }
