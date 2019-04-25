@@ -14,7 +14,6 @@ import java.util.Set;
 
 import javax.ws.rs.HttpMethod;
 
-import org.apache.commons.lang.StringUtils;
 import org.joda.time.DateTime;
 import org.joda.time.format.DateTimeFormatter;
 import org.joda.time.format.ISODateTimeFormat;
@@ -683,14 +682,24 @@ public class OctaneRequestIntegration extends RequestIntegration {
     }
 
     private User buildUser(JSONObject userJson) {
-        User user = new User();
+        User user = null;
         if (userJson.containsKey("name")) {
-            String name = userJson.getString("name");      
-            user.setUsername(name);
-            if (userJson.containsKey("full_name")) {
-                String fullName = userJson.getString("full_name");   
-                user.setFullName(fullName);
-            }           
+            String email = userJson.getString("name");
+            com.hp.ppm.user.model.User userModel = getUserProvider().getByEmail(email);
+            if (userModel != null) {
+                user = new User();
+                user.setUserId(userModel.getUserId());
+                user.setEmail(userModel.getEmail());
+                user.setFullName(userModel.getFullName());
+                user.setUsername(userModel.getUserName());
+            } else {
+                user = new User();
+                user.setEmail(email);
+                if (userJson.containsKey("full_name")) {
+                    String fullName = userJson.getString("full_name");   
+                    user.setFullName(fullName);
+                }           
+            }
         }
         return user;
     }
