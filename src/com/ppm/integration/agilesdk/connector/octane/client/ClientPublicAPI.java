@@ -1023,7 +1023,7 @@ public class ClientPublicAPI {
     public List<FieldInfo> getEntityFields(final String sharedspaceId, final String workspaceId, final String entityName) {
         String url = String.format("%s/api/shared_spaces/%s/workspaces/%s/metadata/fields?query=%s%s%s",
                 baseURL, sharedspaceId, workspaceId, "%22entity_name%20EQ%20'", entityName,
-                "';editable%20EQ%20true;field_type%20IN%20'string','reference','memo','integer'%22");
+                "';field_type%20IN%20'string','reference','memo','integer'%22");
         // "';visible_in_ui%20EQ%20true;editable%20EQ%20true;field_type%20IN%20'string','reference','memo'%22");
         List fieldsList = new ArrayList();
         RestResponse response = sendGet(url);
@@ -1060,6 +1060,7 @@ public class ClientPublicAPI {
                     //open phase, release
                     case OctaneConstants.KEY_FIELD_PHASE:
                     case OctaneConstants.KEY_FIELD_RELEASE:
+                    case OctaneConstants.KEY_FIELD_COMMENTS:
                         return true;
                 }
             default:
@@ -1093,6 +1094,36 @@ public class ClientPublicAPI {
         return valueList;
     }
 
+    private JSONArray getCommentsJsonFromWorkItem(final String sharedSpaceId, final String workSpaceId, final String workItemId){
+        String url = String.format("%s/api/shared_spaces/%s/workspaces/%s/comments", baseURL, sharedSpaceId,
+                workSpaceId);
+        url = String.format("%s?query=%s%s%s&order_by=last_modified", url, "%22(owner_work_item%3D%7Bid%3D", workItemId, "%7D)%22");
+        RestResponse response = sendGet(url);
+        JSONObject dataObj = JSONObject.fromObject(response.getData());
+        JSONArray data = dataObj.getJSONArray("data");
+        return data;
+    }
+
+    public List<String> getCommentsPlainTxtForWorkItem(final String sharedSpaceId, final String workSpaceId, final String workItemId){
+        JSONArray data = getCommentsJsonFromWorkItem(sharedSpaceId, workSpaceId, workItemId);
+        List result = new ArrayList<>();
+        if(null == data || data.isEmpty()){
+            return result;
+        }else {
+            //filter html tag, newline break
+            String[] filterTag = {"<html>", "</html>", "<body>", "</body>", "<p>", "</p>", "\n", "&nbsp;"};
+            for (int i = 0; i < data.size(); i++) {
+                JSONObject comment = data.getJSONObject(i);
+                String commentStr = comment.getString("text");
+                for (String tag : filterTag) {
+                    commentStr = commentStr.replaceAll(tag, "");
+                }
+                result.add(commentStr);
+            }
+        }
+        return result;
+    }
+
     private List<AgileEntityFieldValue> parseValueJson(JSONObject dataObj){
         List<AgileEntityFieldValue> valueList = new ArrayList<AgileEntityFieldValue>();
         if (dataObj != null) {
@@ -1109,13 +1140,45 @@ public class ClientPublicAPI {
         return valueList;
     }
 
+    //check if entity contains <comments>, if true, add comment and remove <comments> from entity
+    public String addComment(final String sharedSpaceId, final String workspaceId, final String entity){
+
+        JSONArray entityList = JSONArray.fromObject(entity);
+        JSONObject entityObj = entityList.getJSONObject(0);
+        if(entityObj.containsKey(OctaneConstants.KEY_FIELD_COMMENTS)){
+            // add comments
+            JSONObject commentJson = entityObj.getJSONObject(OctaneConstants.KEY_FIELD_COMMENTS);
+            String url =
+                    String.format("%s/api/shared_spaces/%s/workspaces/%s/comments", baseURL, sharedSpaceId, workspaceId);
+
+            RestResponse response = sendRequest(url, HttpMethod.POST, commentJson.toString());
+            if (HttpStatus.SC_CREATED != response.getStatusCode() && HttpStatus.SC_OK != response.getStatusCode()) {
+                this.logger
+                        .error("Error occurs when creating feature in Octane: Response code = " + response.getStatusCode());
+                this.logger.error(response.getData());
+                throw new OctaneClientException("AGM_APP", "ERROR_AGILE_ENTITY_SAVE_ERROR",
+                        new String[] {getError(response.getData())});
+            }
+            entityObj.remove(OctaneConstants.KEY_FIELD_COMMENTS);
+            return entityList.toString();
+        }else{
+            return entity;
+        }
+
+    }
+
     public JSONObject saveFeatureInWorkspace(final String sharedspaceId, final String workspaceId,
             final String entity, final String method)
     {
+        // comments is a special field which can only add value but can not be updated/removed,
+        // so execute add comment action before save  feature/story workspace
+        String entityStr = addComment(sharedspaceId, workspaceId, entity);
+
+
         String url =
                 String.format("%s/api/shared_spaces/%s/workspaces/%s/features", baseURL, sharedspaceId, workspaceId);
 
-        RestResponse response = sendRequest(url, method, this.getJsonStrForPOSTData(entity));
+        RestResponse response = sendRequest(url, method, this.getJsonStrForPOSTData(entityStr));
         if (HttpStatus.SC_CREATED != response.getStatusCode() && HttpStatus.SC_OK != response.getStatusCode()) {
             this.logger
                     .error("Error occurs when creating feature in Octane: Response code = " + response.getStatusCode());
@@ -1132,10 +1195,14 @@ public class ClientPublicAPI {
     public JSONObject saveStoryInWorkspace(final String sharedspaceId, final String workspaceId,
             final String entity, final String method)
     {
+        // comments is a special field which can only add value but can not be updated/removed,
+        // so execute add comment action before save  feature/story workspace
+        String entityStr = addComment(sharedspaceId, workspaceId, entity);
+
         String url =
                 String.format("%s/api/shared_spaces/%s/workspaces/%s/stories", baseURL, sharedspaceId, workspaceId);
 
-        RestResponse response = sendRequest(url, method, this.getJsonStrForPOSTData(entity));
+        RestResponse response = sendRequest(url, method, this.getJsonStrForPOSTData(entityStr));
         if (HttpStatus.SC_CREATED != response.getStatusCode() && HttpStatus.SC_OK != response.getStatusCode()) {
             this.logger.error("Error occurs when saving story in Octane: Response code = " + response.getStatusCode());
             this.logger.error(response.getData());
@@ -1463,11 +1530,12 @@ public class ClientPublicAPI {
         fieldNames.add(KEY_LAST_UPDATE_DATE);
         String url = String.format("%s/api/shared_spaces/%s/workspaces/%s/stories?fields=%s", baseURL, sharedspaceId, workspaceId,StringUtils.join(fieldNames, ","));
         if (!StringUtils.isBlank(queryFilter)) {
-            url += "&query=\""+queryFilter+"\"";
             url += "&query=\"" + queryFilter + "\"";
         }
 
-        return new JsonPaginatedOctaneGetter().get(url);
+        List<JSONObject> resultJsonList = new JsonPaginatedOctaneGetter().get(url);
+        resetComments(resultJsonList, sharedspaceId, workspaceId);
+        return resultJsonList;
     }
 
     private List<JSONObject> getFeatureJson(String sharedspaceId, String workspaceId, String queryFilter) {
@@ -1482,8 +1550,28 @@ public class ClientPublicAPI {
         if (!StringUtils.isBlank(queryFilter)) {
             url += "&query=\"" + queryFilter + "\"";
         }
+        List<JSONObject> resultJsonList = new JsonPaginatedOctaneGetter().get(url);
+        resetComments(resultJsonList, sharedspaceId, workspaceId);
+        return resultJsonList;
+    }
 
-        return new JsonPaginatedOctaneGetter().get(url);
+    private void resetComments(List<JSONObject> resultJsonList, String sharedspaceId, String workspaceId){
+        for (JSONObject resultJson : resultJsonList) {
+            if(resultJson.has(OctaneConstants.KEY_FIELD_COMMENTS)){
+                String workItemId = resultJson.getString("id");
+                JSONArray commentsJson = getCommentsJsonFromWorkItem(sharedspaceId, workspaceId, workItemId);
+                StringBuilder allComments = new StringBuilder("");
+                allComments.append("<html><body>");
+                for (int i = 0; i < commentsJson.size(); i++) {
+                    JSONObject comment = commentsJson.getJSONObject(i);
+                    String commentTxt = comment.getString("text");
+                    allComments.append(commentTxt);
+                    allComments.append(OctaneConstants.COMMENTS_SEPARATOR);
+                }
+                allComments.append("</body></html>");
+                resultJson.put(OctaneConstants.KEY_FIELD_COMMENTS, allComments.toString());
+            }
+        }
     }
 
     private SimpleEntity wrapperWorkItemRootFromData(Object data) {

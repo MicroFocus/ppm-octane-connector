@@ -105,6 +105,8 @@ public class FieldInfo {
                 fieldType = OctaneConstants.KEY_AUTO_COMPLETE_LIST;
                 //limit user can not do value mapping with below field
                 switch(name){
+                    case OctaneConstants.KEY_FIELD_COMMENTS:
+                        fieldType = OctaneConstants.KEY_FIELD_MEMO;
                     case OctaneConstants.KEY_FIELD_PHASE:
                     case OctaneConstants.KEY_FIELD_RELEASE:
                         listType = false;
