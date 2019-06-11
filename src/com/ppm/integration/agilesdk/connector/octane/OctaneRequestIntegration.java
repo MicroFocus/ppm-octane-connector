@@ -51,6 +51,10 @@ public class OctaneRequestIntegration extends RequestIntegration {
             final ValueSet instanceConfigurationParameters)
     {
         List<AgileEntityInfo> entityList = new ArrayList<AgileEntityInfo>();
+        AgileEntityInfo epic = new AgileEntityInfo();
+        epic.setName("Epic");
+        epic.setType(OctaneConstants.SUB_TYPE_EPIC);
+        entityList.add(epic);
         AgileEntityInfo feature = new AgileEntityInfo();
         feature.setName("Feature");
         feature.setType(OctaneConstants.SUB_TYPE_FEATURE);
