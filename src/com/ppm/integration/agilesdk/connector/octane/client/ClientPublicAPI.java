@@ -1213,6 +1213,28 @@ public class ClientPublicAPI {
 
         return this.getUserStory(sharedspaceId, workspaceId, obj.getString("id")).get(0);
     }
+    
+    public JSONObject saveEpicInWorkspace(final String sharedspaceId, final String workspaceId,
+            final String entity, final String method)
+    {
+        // comments is a special field which can only add value but can not be updated/removed,
+        // so execute add comment action before save  feature/story/epic workspace
+        String entityStr = addComment(sharedspaceId, workspaceId, entity);
+
+        String url =
+                String.format("%s/api/shared_spaces/%s/workspaces/%s/epics", baseURL, sharedspaceId, workspaceId);
+
+        RestResponse response = sendRequest(url, method, this.getJsonStrForPOSTData(entityStr));
+        if (HttpStatus.SC_CREATED != response.getStatusCode() && HttpStatus.SC_OK != response.getStatusCode()) {
+            this.logger.error("Error occurs when saving epic in Octane: Response code = " + response.getStatusCode());
+            this.logger.error(response.getData());
+            throw new OctaneClientException("AGM_APP", "ERROR_AGILE_ENTITY_SAVE_ERROR",
+                    new String[] {getError(response.getData())});
+        }
+        JSONObject obj = getCreateEntityFromResponse(response.getData());
+
+        return this.getEpic(sharedspaceId, workspaceId, obj.getString("id")).get(0);
+    }
 
     private JSONObject getCreateEntityFromResponse(String jsonData) {
         JSONObject obj = null;
@@ -1378,6 +1400,27 @@ public class ClientPublicAPI {
 
         return results;
     }
+    
+    public List<JSONObject> getEpic(String sharedspaceId, String workspaceId, String id) {
+        if (id == null || "".equals(id)) {
+            return null;
+        }
+
+        String query = "id=" + id;
+        List<JSONObject> workItemsJson = getEpicJson(sharedspaceId, workspaceId, query);
+        return workItemsJson;
+    }
+    
+    public List<JSONObject> getEpics(String sharedspaceId, String workspaceId, Set<String> ids) {
+        if (ids == null || ids.isEmpty()) {
+            return null;
+        }
+
+        String query = "id%20IN%20" + StringUtils.join(ids, ",");
+        List<JSONObject> workItemsJson = getEpicJson(sharedspaceId, workspaceId, query);
+
+        return workItemsJson;
+    }
 
     public List<JSONObject> getUserStory(String sharedspaceId, String workspaceId, String id) {
         if (id == null || "".equals(id)) {
@@ -1432,6 +1475,24 @@ public class ClientPublicAPI {
                     new String[] {getError(response.getData())});
         }
 
+    }
+    
+    public List<JSONObject> getEpicsAfterDate(String sharedspaceId, String workspaceId, Set<String> ids,
+            Date updateDate)
+    {
+        if (null == updateDate) {
+            return getEpics(sharedspaceId, workspaceId, ids);
+        }
+
+        String query = "";
+        if (null != ids && !ids.isEmpty()) {
+            query += "id%20IN%20" + StringUtils.join(ids, ",") + "%20;%20";
+        }
+        query += "last_modified%20GT%20^" + transformDateFormat(updateDate) + "^";
+
+        List<JSONObject> workItemsJson = getEpicJson(sharedspaceId, workspaceId, query);
+
+        return workItemsJson;
     }
 
     public List<JSONObject> getUserStoriesAfterDate(String sharedspaceId, String workspaceId, Set<String> ids,
@@ -1518,6 +1579,24 @@ public class ClientPublicAPI {
         dateString = sdf.format(dateStr);
 
         return dateString;
+    }
+    
+    private List<JSONObject> getEpicJson(String sharedspaceId, String workspaceId, String queryFilter) {
+
+        List<FieldInfo> fieldsInfos = getEntityFields(sharedspaceId, workspaceId, "epic");
+        List fieldNames = new ArrayList();
+        for (FieldInfo field : fieldsInfos) {
+            fieldNames.add(field.getName());
+        }
+        fieldNames.add(KEY_LAST_UPDATE_DATE);
+        String url = String.format("%s/api/shared_spaces/%s/workspaces/%s/epics?fields=%s", baseURL, sharedspaceId, workspaceId,StringUtils.join(fieldNames, ","));
+        if (!StringUtils.isBlank(queryFilter)) {
+            url += "&query=\"" + queryFilter + "\"";
+        }
+
+        List<JSONObject> resultJsonList = new JsonPaginatedOctaneGetter().get(url);
+        resetComments(resultJsonList, sharedspaceId, workspaceId);
+        return resultJsonList;
     }
 
     private List<JSONObject> getUserStoriesJson(String sharedspaceId, String workspaceId, String queryFilter) {

@@ -211,6 +211,9 @@ public class OctaneRequestIntegration extends RequestIntegration {
         } else if (OctaneConstants.SUB_TYPE_STORY.equals(entityType)) {
             List<JSONObject> userStoryJson = client.getUserStoriesAfterDate(sharedSpaceId, workSpaceId, entityIds, lastUpdateTime);
             entities = getAgileEntities(client, userStoryJson, sharedSpaceId, workSpaceId, "story");
+        } else if (OctaneConstants.SUB_TYPE_EPIC.equals(entityType)) {
+            List<JSONObject> userEpicJson = client.getEpicsAfterDate(sharedSpaceId, workSpaceId, entityIds, lastUpdateTime);
+            entities = getAgileEntities(client, userEpicJson, sharedSpaceId, workSpaceId, "epic");
         }
 
         return entities;
@@ -233,12 +236,17 @@ public class OctaneRequestIntegration extends RequestIntegration {
                 Map<String, FieldInfo> fieldInfoMap  = getFieldInfoMap(client, sharedSpaceId, workSpaceId, "feature");
                 entity = wrapperEntity(featureJson.get(0), fieldInfoMap);
             }
-
         } else if (OctaneConstants.SUB_TYPE_STORY.equals(entityType)) {
             List<JSONObject> userStoryJson = client.getUserStory(sharedSpaceId, workSpaceId, entityId);
             if (userStoryJson.size() > 0) {
                 Map<String, FieldInfo> fieldInfoMap  = getFieldInfoMap(client, sharedSpaceId, workSpaceId, "story");
                 entity = wrapperEntity(userStoryJson.get(0), fieldInfoMap);
+            }
+        } else if (OctaneConstants.SUB_TYPE_EPIC.equals(entityType)) {
+            List<JSONObject> epicJson = client.getEpic(sharedSpaceId, workSpaceId, entityId);
+            if (epicJson.size() > 0) {
+                Map<String, FieldInfo> fieldInfoMap  = getFieldInfoMap(client, sharedSpaceId, workSpaceId, "epic");
+                entity = wrapperEntity(epicJson.get(0), fieldInfoMap);
             }
         }
 
@@ -268,6 +276,11 @@ public class OctaneRequestIntegration extends RequestIntegration {
             String entityStr = buildEntity(client, sharedSpaceId, workSpaceId, fieldInfos, entityType, entity, root);
             JSONObject userStory = client.saveStoryInWorkspace(sharedSpaceId, workSpaceId, entityStr, method);
             agileEntity = wrapperEntity(userStory, null);
+        } else if (OctaneConstants.SUB_TYPE_EPIC.equals(entityType)) {
+            SimpleEntity root = client.getWorkItemRoot(Integer.parseInt(sharedSpaceId), Integer.parseInt(workSpaceId));
+            String entityStr = buildEntity(client, sharedSpaceId, workSpaceId, fieldInfos, entityType, entity, root);
+            JSONObject userEpic = client.saveEpicInWorkspace(sharedSpaceId, workSpaceId, entityStr, method);
+            agileEntity = wrapperEntity(userEpic, null);
         }
         if (agileEntity != null) {
             agileEntity.setEntityUrl(
@@ -480,8 +493,10 @@ public class OctaneRequestIntegration extends RequestIntegration {
                 JSONObject complexObj = new JSONObject();
                 if (OctaneConstants.SUB_TYPE_STORY.equals(entityType)) {
                     complexObj.put("id", "phase.story.new");
-                } else {
+                } else if (OctaneConstants.SUB_TYPE_FEATURE.equals(entityType)){
                     complexObj.put("id", "phase.feature.new");
+                } else {
+                    complexObj.put("id", "phase.epic.new");
                 }
                 complexObj.put("type", "phase");
                 entityObj.put("phase", complexObj);
@@ -523,6 +538,8 @@ public class OctaneRequestIntegration extends RequestIntegration {
             client.deleteEntity(sharedSpaceId, workSpaceId, "features", entityId);
         } else if (OctaneConstants.SUB_TYPE_STORY.equals(entityType)) {
             client.deleteEntity(sharedSpaceId, workSpaceId, "stories", entityId);
+        } else if (OctaneConstants.SUB_TYPE_EPIC.equals(entityType)) {
+            client.deleteEntity(sharedSpaceId, workSpaceId, "epics", entityId);
         }
 
     }
