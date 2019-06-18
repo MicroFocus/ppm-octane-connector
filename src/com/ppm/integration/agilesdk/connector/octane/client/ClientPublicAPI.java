@@ -1060,7 +1060,6 @@ public class ClientPublicAPI {
                     //open phase, release
                     case OctaneConstants.KEY_FIELD_PHASE:
                     case OctaneConstants.KEY_FIELD_RELEASE:
-                    case OctaneConstants.KEY_FIELD_COMMENTS:
                         return true;
                 }
             default:
@@ -1072,7 +1071,7 @@ public class ClientPublicAPI {
             final String logicalName)
     {
         String url = String.format("%s/api/shared_spaces/%s/workspaces/%s/list_nodes?query=%s%s%s", baseURL,
-                sharedSpaceId, workSpaceId, "%22logical_name%20EQ%20^", logicalName, ".*^%22");
+                sharedSpaceId, workSpaceId, "%22list_root={logical_name%20EQ%20^", logicalName, "^}%22");
         RestResponse response = sendGet(url);
         JSONObject dataObj = JSONObject.fromObject(response.getData());
         List<AgileEntityFieldValue> valueList = parseValueJson(dataObj);
