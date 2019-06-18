@@ -109,7 +109,7 @@ public class FieldInfo {
                         fieldType = OctaneConstants.KEY_FIELD_MEMO;
                     case OctaneConstants.KEY_FIELD_PHASE:
                     case OctaneConstants.KEY_FIELD_RELEASE:
-                        listType = false;
+                        listType = true;
                         break;
                     default:
                         listType = true;
