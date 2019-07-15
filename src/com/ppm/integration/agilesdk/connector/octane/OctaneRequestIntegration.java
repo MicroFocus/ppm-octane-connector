@@ -476,11 +476,13 @@ public class OctaneRequestIntegration extends RequestIntegration {
                         
                     } else {    
                         complexObj.put("type", type);                        
-                        if(listNodeField.get().getId() == null || listNodeField.get().getId().equals("")) {     
-                            if(fieldInfo.isUserDefined()) {
-                                complexObj.put("id", listNodeField.get().getName() + "_ln");
-                            } else {
-                                complexObj.put("id", fieldInfo.getLogicalName() + "." + listNodeField.get().getName());
+                        if (listNodeField.get().getId() == null || listNodeField.get().getId().equals("")) {
+                            List<AgileEntityFieldValue> fieldValues = client.getEntityFieldListNode(sharedSpaceId,
+                                    workSpaceId, fieldInfo.getLogicalName());
+                            for (AgileEntityFieldValue fieldValue : fieldValues) {
+                                if (fieldValue.getName().equalsIgnoreCase(listNodeField.get().getName())) {
+                                    complexObj.put("id", fieldValue.getId());
+                                }
                             }
                         } else {                            
                             complexObj.put("id", listNodeField.get().getId());
