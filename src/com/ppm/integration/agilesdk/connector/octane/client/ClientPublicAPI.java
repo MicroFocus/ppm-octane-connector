@@ -1550,10 +1550,34 @@ public class ClientPublicAPI {
         return userList;
     }
 
-    public JSONArray getUsersByNames(String sharedspaceId, String[] names) {
+    public JSONObject getUsersById(String sharedspaceId, Long id) {
         String query = "";
-        if (null != names && names.length > 0) {
-            query += "\"name IN '" + StringUtils.join(names, "','") + "'\"";
+        if (null != id && id > 0) {
+            query += "\"id IN '" + id + "'\"";
+        } else {
+            return null;
+        }
+        try {
+            query = URLEncoder.encode(query, "UTF-8");
+        } catch (UnsupportedEncodingException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
+        String url = String.format("%s/api/shared_spaces/%s/users?query=%s", baseURL, sharedspaceId, query);
+        RestResponse response = sendGet(url);
+        JSONObject dataObj = JSONObject.fromObject(response.getData());
+        JSONArray userList = JSONArray.fromObject(dataObj.get("data"));
+        if (userList.size() > 0) {
+            return userList.getJSONObject(0);
+        } else {
+            return null;
+        }
+    }
+
+    public JSONArray getUsersByEmails(String sharedspaceId, String[] emails) {
+        String query = "";
+        if (null != emails && emails.length > 0) {
+            query += "\"email IN '" + StringUtils.join(emails, "','") + "'\"";
         } else {
             return null;
         }
