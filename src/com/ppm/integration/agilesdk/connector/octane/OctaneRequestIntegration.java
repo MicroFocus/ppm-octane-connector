@@ -475,7 +475,8 @@ public class OctaneRequestIntegration extends RequestIntegration {
                         complexObj.put("data", tempArr);
                         
                     } else {    
-                        complexObj.put("type", type);                        
+                        complexObj.put("type", type);
+                        complexObj.put("id", -1);
                         if (listNodeField.get().getId() == null || listNodeField.get().getId().equals("")) {
                             List<AgileEntityFieldValue> fieldValues = client.getEntityFieldListNode(sharedSpaceId,
                                     workSpaceId, fieldInfo.getLogicalName());
