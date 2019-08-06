@@ -476,14 +476,38 @@ public class OctaneRequestIntegration extends RequestIntegration {
                         
                     } else {    
                         complexObj.put("type", type);
-                        complexObj.put("id", -1);
+                        complexObj.put("id", -1); // give a default id to let
+                                                  // octane return warning
+                                                  // message in case no value
+                                                  // matches
                         if (listNodeField.get().getId() == null || listNodeField.get().getId().equals("")) {
-                            List<AgileEntityFieldValue> fieldValues = client.getEntityFieldListNode(sharedSpaceId,
-                                    workSpaceId, fieldInfo.getLogicalName());
-                            for (AgileEntityFieldValue fieldValue : fieldValues) {
-                                if (fieldValue.getName().equalsIgnoreCase(listNodeField.get().getName())) {
-                                    complexObj.put("id", fieldValue.getId());
-                                }
+
+                            switch (key) {
+                                // allow SQL CUSTOM ddl/acl sync with octane
+                                // reserved fields phase and release
+                                case OctaneConstants.KEY_FIELD_PHASE:
+                                case OctaneConstants.KEY_FIELD_RELEASE:
+                                    List<AgileEntityFieldValue> valueList = client.getEntityFieldValueList(
+                                            sharedSpaceId, workSpaceId, entityType, getFieldNameInAPI(key));
+
+                                    for (AgileEntityFieldValue agileFieldValue : valueList) {
+                                        if (agileFieldValue.getName().equalsIgnoreCase(listNodeField.get().getName())) {
+                                            complexObj.put("id", agileFieldValue.getId());
+                                            break;
+                                        }
+                                    }
+                                    entityObj.put(key, complexObj);
+                                    break;
+                                default:
+
+                                    List<AgileEntityFieldValue> fieldValues = client.getEntityFieldListNode(
+                                            sharedSpaceId, workSpaceId, fieldInfo.getLogicalName());
+                                    for (AgileEntityFieldValue fieldValue : fieldValues) {
+                                        if (fieldValue.getName().equalsIgnoreCase(listNodeField.get().getName())) {
+                                            complexObj.put("id", fieldValue.getId());
+                                            break;
+                                        }
+                                    }
                             }
                         } else {                            
                             complexObj.put("id", listNodeField.get().getId());
