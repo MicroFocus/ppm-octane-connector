@@ -1093,7 +1093,9 @@ public class ClientPublicAPI {
         return valueList;
     }
 
-    private JSONArray getCommentsJsonFromWorkItem(final String sharedSpaceId, final String workSpaceId, final String workItemId){
+    public JSONArray getCommentsJsonFromWorkItem(final String sharedSpaceId, final String workSpaceId,
+            final String workItemId)
+    {
         String url = String.format("%s/api/shared_spaces/%s/workspaces/%s/comments", baseURL, sharedSpaceId,
                 workSpaceId);
         url = String.format("%s?query=%s%s%s&order_by=last_modified", url, "%22(owner_work_item%3D%7Bid%3D", workItemId, "%7D)%22");
@@ -1368,7 +1370,8 @@ public class ClientPublicAPI {
     public Map<String,String> getAllWorkspaceUsers() {
 
         List<JSONObject> usersJson = new JsonPaginatedOctaneGetter().get(
-                String.format("%s/api/shared_spaces/%d/workspaces/%d/workspace_users?fields=email,id", baseURL,
+                String.format("%s/api/shared_spaces/%d/workspaces/%d/workspace_users?fields=email,id,full_name,name",
+                        baseURL,
                         sharedSpaceId, workSpaceId));
 
         Map<String, String> users = new HashMap<>(usersJson.size());
@@ -1530,27 +1533,8 @@ public class ClientPublicAPI {
         return workItemsJson;
     }
 
-    public JSONArray getUsersByFullName(String sharedspaceId, String[] names) {
-        String query = "";
-        if (null != names && names.length > 0) {
-            query += "\"full_name IN '" + StringUtils.join(names, "','") + "'\"";
-        } else {
-            return null;
-        }
-        try {
-            query = URLEncoder.encode(query, "UTF-8");
-        } catch (UnsupportedEncodingException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-        }
-        String url = String.format("%s/api/shared_spaces/%s/users?query=%s", baseURL, sharedspaceId, query);
-        RestResponse response = sendGet(url);
-        JSONObject dataObj = JSONObject.fromObject(response.getData());
-        JSONArray userList = JSONArray.fromObject(dataObj.get("data"));
-        return userList;
-    }
 
-    public JSONObject getUsersById(String sharedspaceId, Long id) {
+    public JSONObject getUsersById(String sharedspaceId, String workspaceId, Long id) {
         String query = "";
         if (null != id && id > 0) {
             query += "\"id IN '" + id + "'\"";
@@ -1563,7 +1547,10 @@ public class ClientPublicAPI {
             // TODO Auto-generated catch block
             e.printStackTrace();
         }
-        String url = String.format("%s/api/shared_spaces/%s/users?query=%s", baseURL, sharedspaceId, query);
+        String url = String.format(
+                "%s/api/shared_spaces/%s/workspaces/%s/workspace_users?fields=email,id,full_name,name&query=%s",
+                baseURL,
+                sharedspaceId, workspaceId, query);
         RestResponse response = sendGet(url);
         JSONObject dataObj = JSONObject.fromObject(response.getData());
         JSONArray userList = JSONArray.fromObject(dataObj.get("data"));
@@ -1574,7 +1561,7 @@ public class ClientPublicAPI {
         }
     }
 
-    public JSONArray getUsersByEmails(String sharedspaceId, String[] emails) {
+    public JSONArray getUsersByEmails(String sharedspaceId, String workSpaceId, String[] emails) {
         String query = "";
         if (null != emails && emails.length > 0) {
             query += "\"email IN '" + StringUtils.join(emails, "','") + "'\"";
@@ -1587,7 +1574,8 @@ public class ClientPublicAPI {
             // TODO Auto-generated catch block
             e.printStackTrace();
         }
-        String url = String.format("%s/api/shared_spaces/%s/users?query=%s", baseURL, sharedspaceId, query);
+        String url = String.format("%s/api/shared_spaces/%s/workspaces/%s/workspace_users?query=%s", baseURL,
+                sharedspaceId, workSpaceId, query);
         RestResponse response = sendGet(url);
         JSONObject dataObj = JSONObject.fromObject(response.getData());
         JSONArray userList = JSONArray.fromObject(dataObj.get("data"));
