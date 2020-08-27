@@ -132,6 +132,10 @@ public class GenericWorkItem {
         return getString("id", getObj("owner"));
     }
 
+    public String getOwnerName() {
+        return getString("name", getObj("owner"));
+    }
+
     public String getOwnerEmail() {
 
         String id = getOwnerId();

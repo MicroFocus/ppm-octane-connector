@@ -1280,7 +1280,7 @@ public class ClientPublicAPI {
         return entityObj.toString();
     }
 
-    private List<?> getDataContent(String jsonData, TypeReference<?> typeRef) {
+    private List getDataContent(String jsonData, TypeReference<?> typeRef) {
         try {
             ObjectMapper mapper = new ObjectMapper();
 
@@ -1290,7 +1290,7 @@ public class ClientPublicAPI {
             if (dataObj != null) {
                 String arrayStr = dataObj.toString();
                 if (arrayStr.length() >= 2) {
-                    return mapper.readValue(arrayStr, typeRef);
+                    return (List) mapper.readValue(arrayStr, typeRef);
                 }
             }
             return null;
