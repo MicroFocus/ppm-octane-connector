@@ -16,6 +16,7 @@ import com.ppm.integration.agilesdk.pm.WorkPlanIntegrationContext;
 import com.ppm.integration.agilesdk.provider.LocalizationProvider;
 import com.ppm.integration.agilesdk.provider.Providers;
 import com.ppm.integration.agilesdk.provider.UserProvider;
+import org.apache.log4j.Logger;
 
 import java.util.*;
 
@@ -23,6 +24,8 @@ import java.util.*;
  * Class used to store context information during work plan generation.
  */
 public class WorkplanContext {
+
+    private final Logger logger = Logger.getLogger(this.getClass());
 
     private CalendarWorkingDayCache workingDayCache = null;
 
@@ -92,12 +95,13 @@ public class WorkplanContext {
             case "Fixed":
                 return ExternalTask.TaskStatus.COMPLETED;
             case "New":
+            case "Ready":
+            case "Backlog Ready":
             case "Deferred":
                 return ExternalTask.TaskStatus.READY;
         }
 
-        // TODO remove debug
-        System.out.println("Unknown status. id: "+phaseId+" label:"+phaseLabel);
+        logger.warn("Unknown status. id: "+phaseId+" label:'"+phaseLabel+"' - Returning as READY task status.");
         return ExternalTask.TaskStatus.READY;
     }
 
