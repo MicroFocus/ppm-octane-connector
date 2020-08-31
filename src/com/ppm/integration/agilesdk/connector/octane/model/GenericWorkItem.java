@@ -1,6 +1,8 @@
 package com.ppm.integration.agilesdk.connector.octane.model;
 
+import com.hp.ppm.user.model.User;
 import com.ppm.integration.agilesdk.connector.octane.client.DateUtils;
+import com.ppm.integration.agilesdk.provider.UserProvider;
 import net.sf.json.JSONException;
 import net.sf.json.JSONObject;
 
@@ -190,5 +192,13 @@ public class GenericWorkItem {
                 return false;
         }
 
+    }
+
+    public long getPPMUserId(UserProvider userProvider) {
+        User user =  userProvider.getByEmail(getOwnerEmail());
+        if (user == null) {
+            user = userProvider.getByUsername(getOwnerName());
+        }
+        return (user == null ? -1 : user.getUserId());
     }
 }
