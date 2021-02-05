@@ -100,6 +100,7 @@ public class OctaneRequestIntegration extends RequestIntegration {
             fieldList.add(info);
         }
         Collections.sort(fieldList, new AgileFieldComparator());
+        client.signOut(instanceConfigurationParameters);
         return fieldList;
     }
     
@@ -168,7 +169,7 @@ public class OctaneRequestIntegration extends RequestIntegration {
             }
             fields = client.getEntityFieldValueList(sharedSpaceId, workSpaceId, entityType, newFieldName);
         }
-
+        client.signOut(instanceConfigurationParameters);
         return fields;
     }
 
@@ -224,7 +225,7 @@ public class OctaneRequestIntegration extends RequestIntegration {
             List<JSONObject> userEpicJson = client.getEpicsAfterDate(sharedSpaceId, workSpaceId, entityIds, lastUpdateTime);
             entities = getAgileEntities(client, userEpicJson, sharedSpaceId, workSpaceId, "epic");
         }
-
+        client.signOut(instanceConfigurationParameters);
         return entities;
     }
 
@@ -258,7 +259,7 @@ public class OctaneRequestIntegration extends RequestIntegration {
                 entity = wrapperEntity(epicJson.get(0), fieldInfoMap, client, sharedSpaceId, workSpaceId);
             }
         }
-
+        client.signOut(instanceConfigurationParameters);
         return entity;
     }
 
@@ -295,6 +296,7 @@ public class OctaneRequestIntegration extends RequestIntegration {
             agileEntity.setEntityUrl(
                     String.format(ClientPublicAPI.DEFAULT_ENTITY_ITEM_URL, client.getBaseURL(), sharedSpaceId, workSpaceId, agileEntity.getId()));
         }
+        client.signOut(instanceConfigurationParameters);
         return agileEntity;
     }
 
@@ -579,6 +581,7 @@ public class OctaneRequestIntegration extends RequestIntegration {
         } else if (OctaneConstants.SUB_TYPE_EPIC.equals(entityType)) {
             client.deleteEntity(sharedSpaceId, workSpaceId, "epics", entityId);
         }
+        client.signOut(instanceConfigurationParameters);
 
     }
     

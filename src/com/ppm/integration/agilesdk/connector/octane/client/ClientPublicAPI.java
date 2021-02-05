@@ -137,6 +137,20 @@ public class ClientPublicAPI {
         RestResponse response = sendRequest(url, HttpMethod.POST, data, headers);
         return verifyResult(HttpStatus.SC_OK, response.getStatusCode());
     }
+    
+    public boolean signOut(ValueSet values)
+    {
+      String url = String.format("%s/authentication/sign_out", new Object[] { this.baseURL });
+      String clientId = (String)values.get("clientId");
+      String clientSecret = (String)values.get("clientSecret");
+
+      String data = String.format("{\"client_id\":\"%s\",\"client_secret\":\"%s\",\"enable_csrf\": \"false\"}", new Object[] { clientId, clientSecret });
+
+      Map headers = new HashMap();
+      headers.put("Content-Type", "application/json");
+      RestResponse response = sendRequest(url, "POST", data, headers);
+      return verifyResult(200, response.getStatusCode());
+    }
 
     public void setProxy(String host, int port) {
         this.proxy = new Proxy(Proxy.Type.HTTP, new InetSocketAddress(host, port));
