@@ -93,6 +93,7 @@ public class OctaneWorkPlanIntegration extends WorkPlanIntegration implements Fu
                             for (SharedSpace sd : sharedSpaces) {
                                 options.add(new Option(sd.id, sd.name));
                             }
+                            client.signOut(values);
                             return options;
                         } catch (Exception e) {
                             logger.error("Error occured when getting Mapping config fields, returning null", e);
@@ -119,6 +120,7 @@ public class OctaneWorkPlanIntegration extends WorkPlanIntegration implements Fu
                             for (WorkSpace w : workSpaces) {
                                 options.add(new Option(w.id, w.name));
                             }
+                            client.signOut(values);
                             return options;
                         } catch (Exception e) {
                             logger.error("Error occured when getting Mapping config fields, returning null", e);
@@ -211,6 +213,7 @@ public class OctaneWorkPlanIntegration extends WorkPlanIntegration implements Fu
                                 }
                                 return options;
                         }
+                        client.signOut(values);
                         return options;
                     }
                 },
@@ -480,7 +483,7 @@ public class OctaneWorkPlanIntegration extends WorkPlanIntegration implements Fu
             }
 
             Release release = client.createRelease(values.get(OctaneConstants.KEY_NEW_RELEASE_NAME), values.get(OctaneConstants.KEY_NEW_RELEASE_DESCRIPTION), startDate, endDate, daysPerSprint);
-
+            client.signOut(values);
             updateNewReleaseInformationInWorkplanMapping(workplanMapping, release);
 
         } else {
@@ -801,7 +804,7 @@ public class OctaneWorkPlanIntegration extends WorkPlanIntegration implements Fu
                 break;
         }
 
-
+        client.signOut(values);
 
         return new ExternalWorkPlan() {
 
