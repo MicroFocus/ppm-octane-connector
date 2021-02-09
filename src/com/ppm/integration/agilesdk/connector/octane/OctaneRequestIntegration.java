@@ -244,19 +244,22 @@ public class OctaneRequestIntegration extends RequestIntegration {
             List<JSONObject> featureJson = client.getFeature(sharedSpaceId, workSpaceId, entityId);
             if (featureJson.size() > 0) {
                 Map<String, FieldInfo> fieldInfoMap  = getFieldInfoMap(client, sharedSpaceId, workSpaceId, "feature");
-                entity = wrapperEntity(featureJson.get(0), fieldInfoMap, client, sharedSpaceId, workSpaceId);
+                Map<String, JSONObject> usersMap = collectAllUsers(client,featureJson,sharedSpaceId,workSpaceId,fieldInfoMap);
+                entity = wrapperEntity(featureJson.get(0), fieldInfoMap, usersMap);
             }
         } else if (OctaneConstants.SUB_TYPE_STORY.equals(entityType)) {
             List<JSONObject> userStoryJson = client.getUserStory(sharedSpaceId, workSpaceId, entityId);
             if (userStoryJson.size() > 0) {
                 Map<String, FieldInfo> fieldInfoMap  = getFieldInfoMap(client, sharedSpaceId, workSpaceId, "story");
-                entity = wrapperEntity(userStoryJson.get(0), fieldInfoMap, client, sharedSpaceId, workSpaceId);
+                Map<String, JSONObject> usersMap = collectAllUsers(client,userStoryJson,sharedSpaceId,workSpaceId,fieldInfoMap);
+                entity = wrapperEntity(userStoryJson.get(0), fieldInfoMap, usersMap);
             }
         } else if (OctaneConstants.SUB_TYPE_EPIC.equals(entityType)) {
             List<JSONObject> epicJson = client.getEpic(sharedSpaceId, workSpaceId, entityId);
             if (epicJson.size() > 0) {
                 Map<String, FieldInfo> fieldInfoMap  = getFieldInfoMap(client, sharedSpaceId, workSpaceId, "epic");
-                entity = wrapperEntity(epicJson.get(0), fieldInfoMap, client, sharedSpaceId, workSpaceId);
+                Map<String, JSONObject> usersMap = collectAllUsers(client,epicJson,sharedSpaceId,workSpaceId,fieldInfoMap);
+                entity = wrapperEntity(epicJson.get(0), fieldInfoMap, usersMap);
             }
         }
         client.signOut(instanceConfigurationParameters);
@@ -280,17 +283,17 @@ public class OctaneRequestIntegration extends RequestIntegration {
         if (OctaneConstants.SUB_TYPE_FEATURE.equals(entityType)) {
             String entityStr = buildEntity(client, sharedSpaceId, workSpaceId, fieldInfos, entityType, entity, null);
             JSONObject feature = client.saveFeatureInWorkspace(sharedSpaceId, workSpaceId, entityStr, method);
-            agileEntity = wrapperEntity(feature, null, client, sharedSpaceId, workSpaceId);
+            agileEntity = wrapperEntity(feature, null, null);
         } else if (OctaneConstants.SUB_TYPE_STORY.equals(entityType)) {
             SimpleEntity root = client.getWorkItemRoot(Integer.parseInt(sharedSpaceId), Integer.parseInt(workSpaceId));
             String entityStr = buildEntity(client, sharedSpaceId, workSpaceId, fieldInfos, entityType, entity, root);
             JSONObject userStory = client.saveStoryInWorkspace(sharedSpaceId, workSpaceId, entityStr, method);
-            agileEntity = wrapperEntity(userStory, null, client, sharedSpaceId, workSpaceId);
+            agileEntity = wrapperEntity(userStory, null, null);
         } else if (OctaneConstants.SUB_TYPE_EPIC.equals(entityType)) {
             SimpleEntity root = client.getWorkItemRoot(Integer.parseInt(sharedSpaceId), Integer.parseInt(workSpaceId));
             String entityStr = buildEntity(client, sharedSpaceId, workSpaceId, fieldInfos, entityType, entity, root);
             JSONObject userEpic = client.saveEpicInWorkspace(sharedSpaceId, workSpaceId, entityStr, method);
-            agileEntity = wrapperEntity(userEpic, null, client, sharedSpaceId, workSpaceId);
+            agileEntity = wrapperEntity(userEpic, null, null);
         }
         if (agileEntity != null) {
             agileEntity.setEntityUrl(
@@ -672,8 +675,7 @@ public class OctaneRequestIntegration extends RequestIntegration {
     
     
 
-    private AgileEntity wrapperEntity(JSONObject item, Map<String, FieldInfo> fieldInfoMap, ClientPublicAPI client,
-            String sharedspaceId, String workspaceId)
+    private AgileEntity wrapperEntity(JSONObject item, Map<String, FieldInfo> fieldInfoMap, Map<String, JSONObject> usersMap)
     {
 
         AgileEntity entity = new AgileEntity();
@@ -696,7 +698,8 @@ public class OctaneRequestIntegration extends RequestIntegration {
                             List<User> userList = new ArrayList<User>();
                             for (int i = 0; i < users.size(); i++) {
                                 JSONObject userObj = users.getJSONObject(i);
-                                User user = buildUser(userObj, client, sharedspaceId, workspaceId);
+                                JSONObject detailUser = usersMap.get(userObj.getString("id"));
+                                User user = buildUser(detailUser);
                                 if (user != null) {
                                     userList.add(user);
                                 }
@@ -710,7 +713,7 @@ public class OctaneRequestIntegration extends RequestIntegration {
 
                     } else {
                         if (canParseJson(value, "name")) {
-                            User user = buildUser(value, client, sharedspaceId, workspaceId);
+                            User user = buildUser(usersMap.get(value.getString("id")));
                             if (user != null) {
                                 UserField userField = new UserField();
                                 userField.set(user);
@@ -786,15 +789,12 @@ public class OctaneRequestIntegration extends RequestIntegration {
         return entity;
     }
 
-    private User buildUser(JSONObject userJson, ClientPublicAPI client, String sharedspaceId, String workspaceId) {
+    private User buildUser(JSONObject userJson) {
         User user = null;
-        if (userJson.containsKey("name")) {
+        if (userJson!=null&&userJson.containsKey("name")) {
             long userId = userJson.getLong("id");
-            JSONObject userObject = client.getUsersById(sharedspaceId, workspaceId, userId);
             com.hp.ppm.user.model.User userModel = new com.hp.ppm.user.model.User();
-            if (userObject != null) {
-                userModel = getUserProvider().getByEmail(userObject.getString("email"));
-            }
+            userModel = getUserProvider().getByEmail(userJson.getString("email"));
             if (userModel != null && userModel.getUserId() != null) {
                 user = new User();
                 user.setUserId(userModel.getUserId());
@@ -844,12 +844,50 @@ public class OctaneRequestIntegration extends RequestIntegration {
         List<AgileEntity> agileEntities = new ArrayList<>();
         if (workItemsJson != null && workItemsJson.size() > 0) {
             Map<String, FieldInfo> fieldInfoMap  = getFieldInfoMap(client, sharedspaceId, workspaceId, entityType);
+            Map<String, JSONObject> usersMap = collectAllUsers(client,workItemsJson,sharedspaceId,workspaceId,fieldInfoMap);
             for (JSONObject workItemJson : workItemsJson) {
-                AgileEntity entity = wrapperEntity(workItemJson, fieldInfoMap, client, sharedspaceId, workspaceId);
+                AgileEntity entity = wrapperEntity(workItemJson, fieldInfoMap, usersMap);
                 agileEntities.add(entity);
             }
         }
         return agileEntities;
+    }
+    
+    private Map<String,JSONObject> collectAllUsers(ClientPublicAPI client, List<JSONObject> workItemsJson, String sharedspaceId, String workspaceId, Map<String, FieldInfo> fieldInfoMap){
+    	Map<String,JSONObject> usersMap = new HashMap<String,JSONObject>();
+    	List<String> userIdList = new ArrayList<>();
+    	for (JSONObject item : workItemsJson) {
+    	    	Iterator<String> sIterator = item.keys();
+    	        while (sIterator.hasNext()) {
+    	            String key = sIterator.next();
+    	            if (fieldInfoMap != null && fieldInfoMap.get(key) != null) {
+    	                FieldInfo info = fieldInfoMap.get(key);
+    	                if (info.getFieldType().equals(OctaneConstants.KEY_FIELD_USER_LIST)) {
+    	                    JSONObject value = item.getJSONObject(key);
+    	                    if (info.isMultiValue()) {
+    	                        JSONArray users = value.getJSONArray("data");
+    	                        	if (!users.isEmpty()) {
+    	                                for (int i = 0; i < users.size(); i++) {
+    	                                    JSONObject userObj = users.getJSONObject(i);
+    	                                    userIdList.add(userObj.getString("id"));    	                                    
+    	                                    }
+    	                                }
+    	                     }else {
+    	                    	 if (canParseJson(value, "name")) {
+    	                    		userIdList.add(value.getString("id"));    
+    	                    	 }
+    	                     }
+    	                   }
+    	                }
+    	            }
+    	        }
+    	JSONArray userArray = client.getUsersByIds(sharedspaceId, workspaceId, userIdList.toArray(new String[userIdList.size()]));
+    	for (int i = 0; i < userArray.size(); i++) {
+            JSONObject userObj = userArray.getJSONObject(i);
+            usersMap.put(userObj.getString("id"), userObj);
+        }
+
+    	return usersMap;
     }
 }
 

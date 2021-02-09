@@ -1106,6 +1106,27 @@ public class ClientPublicAPI {
 
         return valueList;
     }
+    
+    public JSONArray getCommentsJsonFromWorkItems(final String sharedSpaceId, final String workSpaceId,
+            final List<String> workItemIds)
+    {
+    	JSONArray dataList = new JSONArray();
+    	if(!workItemIds.isEmpty()) {
+    		StringBuilder idStr = new StringBuilder();
+    		idStr.append("id%3D").append(workItemIds.get(0));
+    		for(int i=1;i<workItemIds.size();i++) {
+    			idStr.append("%7C%7C").append("id%3D").append(workItemIds.get(i));
+    		}
+    		String url = String.format("%s/api/shared_spaces/%s/workspaces/%s/comments", baseURL, sharedSpaceId,
+                    workSpaceId);
+            url = String.format("%s?fields=id,owner_work_item,text&query=%s%s%s&order_by=last_modified", url, "%22(owner_work_item%3D%7B", idStr, "%7D)%22");
+            RestResponse response = sendGet(url);
+            JSONObject dataObj = JSONObject.fromObject(response.getData());
+            dataList = dataObj.getJSONArray("data");
+    	}
+        
+        return dataList;
+    }
 
     public JSONArray getCommentsJsonFromWorkItem(final String sharedSpaceId, final String workSpaceId,
             final String workItemId)
@@ -1548,17 +1569,16 @@ public class ClientPublicAPI {
     }
 
 
-    public JSONObject getUsersById(String sharedspaceId, String workspaceId, Long id) {
+    public JSONArray getUsersByIds(String sharedspaceId, String workspaceId, String[] ids) {
         String query = "";
-        if (null != id && id > 0) {
-            query += "\"id IN '" + id + "'\"";
+        if (null != ids && ids.length > 0) {
+            query += "\"id IN '" + StringUtils.join(ids, "','")  + "'\"";
         } else {
             return null;
         }
         try {
             query = URLEncoder.encode(query, "UTF-8");
         } catch (UnsupportedEncodingException e) {
-            // TODO Auto-generated catch block
             e.printStackTrace();
         }
         String url = String.format(
@@ -1568,11 +1588,7 @@ public class ClientPublicAPI {
         RestResponse response = sendGet(url);
         JSONObject dataObj = JSONObject.fromObject(response.getData());
         JSONArray userList = JSONArray.fromObject(dataObj.get("data"));
-        if (userList.size() > 0) {
-            return userList.getJSONObject(0);
-        } else {
-            return null;
-        }
+        return userList;
     }
 
     public JSONArray getUsersByEmails(String sharedspaceId, String workSpaceId, String[] emails) {
@@ -1660,22 +1676,47 @@ public class ClientPublicAPI {
     }
 
     private void resetComments(List<JSONObject> resultJsonList, String sharedspaceId, String workspaceId){
+    	List<String> workIteamIds = new ArrayList<>();
         for (JSONObject resultJson : resultJsonList) {
             if(resultJson.has(OctaneConstants.KEY_FIELD_COMMENTS)){
-                String workItemId = resultJson.getString("id");
-                JSONArray commentsJson = getCommentsJsonFromWorkItem(sharedspaceId, workspaceId, workItemId);
-                StringBuilder allComments = new StringBuilder("");
-                allComments.append("<html><body>");
-                for (int i = 0; i < commentsJson.size(); i++) {
-                    JSONObject comment = commentsJson.getJSONObject(i);
-                    String commentTxt = comment.getString("text");
-                    allComments.append(commentTxt);
-                    allComments.append(OctaneConstants.COMMENTS_SEPARATOR);
-                }
-                allComments.append("</body></html>");
-                resultJson.put(OctaneConstants.KEY_FIELD_COMMENTS, allComments.toString());
+            	JSONObject comments = resultJson.getJSONObject(OctaneConstants.KEY_FIELD_COMMENTS);
+            	int commentsSize = comments.getInt("total_count");
+            	if(commentsSize>=0) {
+            		workIteamIds.add(resultJson.getString("id"));
+            	}
+                
             }
         }
+        
+        // it is a entity id-comments Map
+        JSONArray commentsJson = getCommentsJsonFromWorkItems(sharedspaceId, workspaceId, workIteamIds);
+        Map<Long,StringBuilder> entityComments = new HashMap<Long,StringBuilder>();
+        for (int i = 0; i < commentsJson.size(); i++) {
+        	JSONObject comment = commentsJson.getJSONObject(i);
+        	Long commentEntityId = comment.getJSONObject("owner_work_item").getLong("id");
+        	StringBuilder entityComment = entityComments.get(commentEntityId);
+        	if(entityComment==null) {
+        		 entityComment = new StringBuilder("");
+        		 entityComment.append(comment.getString("text"));
+        		 entityComments.put(commentEntityId, entityComment);
+        	} else {
+        		entityComment.append(OctaneConstants.COMMENTS_SEPARATOR);
+        		entityComment.append(comment.getString("text"));
+        	}
+           
+            //allComments.append("<html><body>");
+        }
+        //allComments.append("</body></html>");
+		for (JSONObject resultJson : resultJsonList) {
+			if (resultJson.has(OctaneConstants.KEY_FIELD_COMMENTS)) {
+				if (entityComments.get(resultJson.getLong("id")) != null) {
+					resultJson.put(OctaneConstants.KEY_FIELD_COMMENTS,
+							entityComments.get(resultJson.getLong("id")).toString());
+				} else {
+					resultJson.put(OctaneConstants.KEY_FIELD_COMMENTS,"");
+				}
+			}
+		}
     }
 
     private SimpleEntity wrapperWorkItemRootFromData(Object data) {
