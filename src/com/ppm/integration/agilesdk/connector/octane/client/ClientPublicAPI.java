@@ -1703,10 +1703,7 @@ public class ClientPublicAPI {
         		entityComment.append(OctaneConstants.COMMENTS_SEPARATOR);
         		entityComment.append(comment.getString("text"));
         	}
-           
-            //allComments.append("<html><body>");
         }
-        //allComments.append("</body></html>");
 		for (JSONObject resultJson : resultJsonList) {
 			if (resultJson.has(OctaneConstants.KEY_FIELD_COMMENTS)) {
 				if (entityComments.get(resultJson.getLong("id")) != null) {
