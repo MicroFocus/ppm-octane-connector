@@ -105,6 +105,7 @@ public class OctaneAgileDataIntegration extends AgileDataIntegration {
                     break;
                 }
             }
+            client.signOut(paramValueSet);
         } catch (IOException e) {
             logger.error("error when setting up & retrieving agile data", e);
         }

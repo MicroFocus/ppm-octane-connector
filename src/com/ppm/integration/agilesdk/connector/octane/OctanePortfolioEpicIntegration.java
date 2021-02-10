@@ -58,6 +58,7 @@ public class OctanePortfolioEpicIntegration extends PortfolioEpicIntegration {
 
             List<EpicEntity> epics = client.createEpicInWorkspace(sharedSpaceId, workSpaceId, epicCreateEntity);
             epicId = epics.size() > 0 ? Long.valueOf(epics.get(0).id) : null;
+            client.signOut(paramValueSet);
         } catch (Exception e) {
             logger.error(e.getMessage());
             new OctaneConnectivityExceptionHandler().uncaughtException(Thread.currentThread(), e);
@@ -83,6 +84,7 @@ public class OctanePortfolioEpicIntegration extends PortfolioEpicIntegration {
 
             epic.setDoneStoryPoints(epic2.doneStoryPoints);
             epic.setTotalStoryPoints(epic1.totalStoryPoints);
+            client.signOut(instanceConfigurationParameters);
         } catch (Exception e) {
             logger.error(e.getMessage());
         }
