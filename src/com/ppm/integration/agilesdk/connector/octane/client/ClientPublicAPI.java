@@ -418,7 +418,7 @@ public class ClientPublicAPI {
 
     public List<SharedSpace> getSharedSpaces() {
 
-        String url = String.format("%s/api/shared_spaces", baseURL);
+        String url = String.format("%s/api/shared_spaces?fields=id,name", baseURL);
 
         RestResponse response = sendGet(url);
 
@@ -435,7 +435,7 @@ public class ClientPublicAPI {
 
     public List<WorkSpace> getWorkSpaces(int sharedSpacesId) {
 
-        String url = String.format("%s/api/shared_spaces/%d/workspaces", baseURL, sharedSpacesId);
+        String url = String.format("%s/api/shared_spaces/%d/workspaces?fields=id,name", baseURL, sharedSpacesId);
 
         RestResponse response = sendGet(url);
 
@@ -452,7 +452,7 @@ public class ClientPublicAPI {
     public Release getRelease(int sharedSpacesId, int workSpaceId, int releaseId) {
 
         String url =
-                String.format("%s/api/shared_spaces/%d/workspaces/%d/releases/%d", baseURL, sharedSpacesId, workSpaceId,
+                String.format("%s/api/shared_spaces/%d/workspaces/%d/releases/%d?fields=id,name,start_date,end_date", baseURL, sharedSpacesId, workSpaceId,
                         releaseId);
 
         RestResponse response = sendGet(url);
@@ -473,7 +473,7 @@ public class ClientPublicAPI {
         int offset = 0;
         int limit = 100;
         do {
-            String url = String.format("%s/api/shared_spaces/%d/workspaces/%d/releases?offset=%d&limit=%d", baseURL,
+            String url = String.format("%s/api/shared_spaces/%d/workspaces/%d/releases?fields=id,name,start_date,end_date&offset=%d&limit=%d", baseURL,
                     sharedSpaceId, workSpaceId, offset, limit);
 
             RestResponse response = sendGet(url);
@@ -543,7 +543,7 @@ public class ClientPublicAPI {
         int offset = 0;
         int limit = 100;
         do {
-            String url = String.format("%s/api/shared_spaces/%d/workspaces/%d/teams?offset=%d&limit=%d", baseURL,
+            String url = String.format("%s/api/shared_spaces/%d/workspaces/%d/teams?fields=id,name,team_lead,number_of_members,estimated_velocity&offset=%d&limit=%d", baseURL,
                     sharedSpaceId, workSpaceId, offset, limit);
 
             RestResponse response = sendGet(url);
@@ -580,7 +580,7 @@ public class ClientPublicAPI {
         int memberCapacity = 0;
         do {
             String url = String.format("%s/api/shared_spaces/%d/workspaces/%d/team_members%s%d%s&offset=%d&limit=%d",
-                    baseURL, sharedSpaceId, workSpaceId, "?query=%22team%3D%7Bid%3D", teamId, "%7D%22", offset, limit);
+                    baseURL, sharedSpaceId, workSpaceId, "?fields=capacity&query=%22team%3D%7Bid%3D", teamId, "%7D%22", offset, limit);
 
             RestResponse response = sendGet(url);
             //get the sum of team member'capacity
@@ -606,7 +606,7 @@ public class ClientPublicAPI {
     public List<Sprint> getAllSprints() {
 
         List<JSONObject> sprintsJson = new JsonPaginatedOctaneGetter().get(
-                String.format("%s/api/shared_spaces/%d/workspaces/%d/sprints", baseURL,
+                String.format("%s/api/shared_spaces/%d/workspaces/%d/sprints?fields=id,name,release,start_date,end_date,creation_time,last_modified", baseURL,
                 sharedSpaceId, workSpaceId));
 
         List<Sprint> results = new ArrayList<>(sprintsJson.size());
@@ -626,7 +626,7 @@ public class ClientPublicAPI {
         int offset = 0;
         int limit = 200;
         do {
-            String url = String.format("%s/api/shared_spaces/%d/workspaces/%d/work_items?offset=%d&limit=%d", baseURL,
+            String url = String.format("%s/api/shared_spaces/%d/workspaces/%d/work_items?fields=id,name,subtype,parent&offset=%d&limit=%d", baseURL,
                     sharedSpaceId, workSpaceId, offset, limit);
 
             RestResponse response = sendGet(url);
@@ -650,7 +650,7 @@ public class ClientPublicAPI {
     public SimpleEntity getWorkItemRoot(int sharedSpaceId, int workSpaceId) {
         SimpleEntity tempWorkItemRoot = null;
 
-        String url = String.format("%s/api/shared_spaces/%d/workspaces/%d/work_item_roots", baseURL, sharedSpaceId,
+        String url = String.format("%s/api/shared_spaces/%d/workspaces/%d/work_item_roots?fields=id,name", baseURL, sharedSpaceId,
                 workSpaceId);
 
         RestResponse response = sendGet(url);
@@ -1084,7 +1084,7 @@ public class ClientPublicAPI {
     public List<AgileEntityFieldValue> getEntityFieldListNode(final String sharedSpaceId, final String workSpaceId,
             final String logicalName)
     {
-        String url = String.format("%s/api/shared_spaces/%s/workspaces/%s/list_nodes?query=%s%s%s", baseURL,
+        String url = String.format("%s/api/shared_spaces/%s/workspaces/%s/list_nodes?fields=id,name&query=%s%s%s", baseURL,
                 sharedSpaceId, workSpaceId, "%22list_root={logical_name%20EQ%20^", logicalName, "^}%22");
         RestResponse response = sendGet(url);
         JSONObject dataObj = JSONObject.fromObject(response.getData());
@@ -1133,7 +1133,7 @@ public class ClientPublicAPI {
     {
         String url = String.format("%s/api/shared_spaces/%s/workspaces/%s/comments", baseURL, sharedSpaceId,
                 workSpaceId);
-        url = String.format("%s?query=%s%s%s&order_by=last_modified", url, "%22(owner_work_item%3D%7Bid%3D", workItemId, "%7D)%22");
+        url = String.format("%s?fields=id,owner_work_item,text&query=%s%s%s&order_by=last_modified", url, "%22(owner_work_item%3D%7Bid%3D", workItemId, "%7D)%22");
         RestResponse response = sendGet(url);
         JSONObject dataObj = JSONObject.fromObject(response.getData());
         JSONArray data = dataObj.getJSONArray("data");
@@ -1390,7 +1390,7 @@ public class ClientPublicAPI {
 
 
         List<JSONObject> phasesJson = new JsonPaginatedOctaneGetter().get(
-                String.format("%s/api/shared_spaces/%d/workspaces/%d/phases", baseURL,
+                String.format("%s/api/shared_spaces/%d/workspaces/%d/phases?fields=id,name", baseURL,
                         sharedSpaceId, workSpaceId));
 
         Map<String, String> phases = new HashMap<>(phasesJson.size());
@@ -1604,7 +1604,7 @@ public class ClientPublicAPI {
             // TODO Auto-generated catch block
             e.printStackTrace();
         }
-        String url = String.format("%s/api/shared_spaces/%s/workspaces/%s/workspace_users?query=%s", baseURL,
+        String url = String.format("%s/api/shared_spaces/%s/workspaces/%s/workspace_users?fields=email,id,full_name,name&query=%s", baseURL,
                 sharedspaceId, workSpaceId, query);
         RestResponse response = sendGet(url);
         JSONObject dataObj = JSONObject.fromObject(response.getData());
