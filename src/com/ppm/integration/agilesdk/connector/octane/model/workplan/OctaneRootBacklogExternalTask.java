@@ -37,7 +37,7 @@ public class OctaneRootBacklogExternalTask extends BaseOctaneExternalTask {
         }
 
         // Then are Backlog Items without Feature
-        if (itemsInBacklog != null) {
+        if (itemsInBacklog != null && !itemsInBacklog.isEmpty()) {
             children.addAll(createBacklogItemsChildrenByType(itemsInBacklog, context, parentId));
         }
     }

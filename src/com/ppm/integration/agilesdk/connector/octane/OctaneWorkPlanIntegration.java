@@ -790,7 +790,11 @@ public class OctaneWorkPlanIntegration extends WorkPlanIntegration implements Fu
 
                 // We always start with Backlog tasks
                 if (!featuresInBacklog.isEmpty() || !itemsInBacklog.isEmpty()) {
-                    rootTasks.add(WorkDrivenPercentCompleteExternalTask.forSummaryTask(new OctaneRootBacklogExternalTask(featuresInBacklog, itemsInBacklog, featuresItems, wpContext,itemsInBacklog.get(0).getId())));
+                	String parentId = null;
+                	if (!itemsInBacklog.isEmpty()) {
+                		parentId = itemsInBacklog.get(0).getId();
+                	}
+                    rootTasks.add(WorkDrivenPercentCompleteExternalTask.forSummaryTask(new OctaneRootBacklogExternalTask(featuresInBacklog, itemsInBacklog, featuresItems, wpContext, parentId)));
                 }
 
                 // Then the Epics / Features / Backlog Items hierarchy.
