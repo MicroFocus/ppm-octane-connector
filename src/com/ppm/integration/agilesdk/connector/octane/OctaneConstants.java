@@ -179,5 +179,7 @@ public class OctaneConstants {
     public static final String OCTANE_FIELD_TYPE_REFERENCE = "OCTANE_FIELD_TYPE_REFERENCE";
 
     public static final String SSO_IDENTIFIER = "SSO_IDENTIFIER";
+    
+    public static final String KEY_SSO_COOKIE = "ssoC";
 
 }

@@ -1831,4 +1831,25 @@ public class ClientPublicAPI {
 
         return userInfo;
     }
+    
+    public String getSSOAuthenticationCookies(String identifier) {
+    	String url = baseURL + SHART_SSO_GRANT_TOOL_TOKEN;
+        JSONObject identifierObj = new JSONObject();
+        identifierObj.put("identifier", identifier);
+        RestResponse response = sendSSORequest(url, HttpMethod.POST, identifierObj.toString());
+        String result = null;
+        if (HttpStatus.SC_OK == response.getStatusCode()) {
+            result = response.getData();
+            JSONObject obj = JSONObject.fromObject(result);
+            String cookie = obj.getString("access_token");
+            String cookieKey = obj.getString("cookie_name");
+            return cookieKey + "=" + cookie;            
+        } else {
+            throw new OctaneClientException("OCTANE_APP", "TIP_TO_AUTHENTICATION");
+        }
+    }
+    
+    public void setSSOCookies(String cookies) {
+    	this.cookies = cookies;
+    }
 }
