@@ -26,6 +26,7 @@ import com.mercury.itg.core.user.impl.UserImpl;
 import com.ppm.integration.agilesdk.FunctionIntegration;
 import com.ppm.integration.agilesdk.ValueSet;
 import com.ppm.integration.agilesdk.connector.octane.client.ClientPublicAPI;
+import com.ppm.integration.agilesdk.connector.octane.client.OctaneClientHelper;
 import com.ppm.integration.agilesdk.connector.octane.client.OctaneEntityDropdown;
 import com.ppm.integration.agilesdk.connector.octane.model.EpicAttr;
 import com.ppm.integration.agilesdk.connector.octane.model.GenericWorkItem;
@@ -53,6 +54,7 @@ import com.ppm.integration.agilesdk.ui.Field;
 import com.ppm.integration.agilesdk.ui.FieldAppearance;
 import com.ppm.integration.agilesdk.ui.LineBreaker;
 import com.ppm.integration.agilesdk.ui.LineHr;
+import com.ppm.integration.agilesdk.ui.Link;
 import com.ppm.integration.agilesdk.ui.NumberText;
 import com.ppm.integration.agilesdk.ui.PlainText;
 
@@ -65,7 +67,7 @@ public class OctaneWorkPlanIntegration extends WorkPlanIntegration implements Fu
     private final Logger logger = Logger.getLogger(this.getClass());
 
     protected static final UserService userService = ((UserService) SpringContainerFactory.getBean("userAdminService"));
-
+    
     @Override public List<Field> getMappingConfigurationFields(WorkPlanIntegrationContext context, ValueSet values) {
 
         GregorianCalendar start = context.currentTask().getSchedule().getScheduledStart().toGregorianCalendar();
@@ -74,20 +76,31 @@ public class OctaneWorkPlanIntegration extends WorkPlanIntegration implements Fu
         final LocalizationProvider l10n = Providers.getLocalizationProvider(OctaneIntegrationConnector.class);
 
         return Arrays.asList(new Field[] {
+        		new Link("auth", "TASK_MAPPING_AUTHENTICATION_LINK", "defaultValue", "block", true, "javascript:void(0);",
+                        "openSSOLink()"),
+        		
+        		new PlainText(OctaneConstants.KEY_SSO_COOKIE,"SSO_C","","none",true),
+                new LineBreaker(),
+                
                 new OctaneEntityDropdown(OctaneConstants.KEY_SHAREDSPACEID, "OCTANE_SHARESPACE", "block", true) {
                     @Override public List<String> getDependencies() {
                         return Arrays.asList(new String[] {OctaneConstants.KEY_BASE_URL, OctaneConstants.APP_CLIENT_ID,
-                                OctaneConstants.APP_CLIENT_SECRET,});
+                                OctaneConstants.APP_CLIENT_SECRET, OctaneConstants.KEY_SSO_COOKIE});
                     }
 
                     @Override public List<Option> fetchDynamicalOptions(ValueSet values) {
-                        ClientPublicAPI client = ClientPublicAPI.getClient(values);
+                        ClientPublicAPI client = ClientPublicAPI.getClient(values);                        
                         if (!values.isAllSet(OctaneConstants.APP_CLIENT_ID, OctaneConstants.APP_CLIENT_SECRET,
-                                OctaneConstants.KEY_BASE_URL)) {
+                                OctaneConstants.KEY_BASE_URL, OctaneConstants.KEY_SSO_COOKIE)) {
                             return null;
                         }
+                        
                         List<SharedSpace> sharedSpaces;
                         try {
+                        	String cookies = values.get(OctaneConstants.KEY_SSO_COOKIE);
+                        	if (cookies != null && !cookies.isEmpty()) {
+                        		client.setSSOCookies(cookies);
+                        	}
                             sharedSpaces = client.getSharedSpaces();
                             List<Option> options = new ArrayList<Option>(sharedSpaces.size());
                             for (SharedSpace sd : sharedSpaces) {
@@ -104,7 +117,7 @@ public class OctaneWorkPlanIntegration extends WorkPlanIntegration implements Fu
                 new OctaneEntityDropdown(OctaneConstants.KEY_WORKSPACEID, "OCTANE_WORKSPACE", "block", true) {
                     @Override public List<String> getDependencies() {
                         return Arrays.asList(new String[] {OctaneConstants.KEY_BASE_URL, OctaneConstants.APP_CLIENT_ID,
-                                OctaneConstants.APP_CLIENT_SECRET, OctaneConstants.KEY_SHAREDSPACEID});
+                                OctaneConstants.APP_CLIENT_SECRET, OctaneConstants.KEY_SHAREDSPACEID, OctaneConstants.KEY_SSO_COOKIE});
                     }
 
                     @Override public List<Option> fetchDynamicalOptions(ValueSet values) {
@@ -115,6 +128,10 @@ public class OctaneWorkPlanIntegration extends WorkPlanIntegration implements Fu
                         }
                         List<WorkSpace> workSpaces;
                         try {
+                        	String cookies = values.get(OctaneConstants.KEY_SSO_COOKIE);
+                        	if (cookies != null && !cookies.isEmpty()) {
+                        		client.setSSOCookies(cookies);
+                        	}
                             workSpaces = client.getWorkSpaces(Integer.parseInt(values.get(OctaneConstants.KEY_SHAREDSPACEID)));
                             List<Option> options = new ArrayList<Option>(workSpaces.size());
                             for (WorkSpace w : workSpaces) {
@@ -174,7 +191,7 @@ public class OctaneWorkPlanIntegration extends WorkPlanIntegration implements Fu
                     public List<String> getDependencies() {
 
                         return Arrays.asList(
-                                new String[] {OctaneConstants.KEY_SHAREDSPACEID, OctaneConstants.KEY_WORKSPACEID, OctaneConstants.KEY_IMPORT_SELECTION});
+                                new String[] {OctaneConstants.KEY_SHAREDSPACEID, OctaneConstants.KEY_WORKSPACEID, OctaneConstants.KEY_IMPORT_SELECTION, OctaneConstants.KEY_SSO_COOKIE});
                     }
 
                     @Override
@@ -193,6 +210,11 @@ public class OctaneWorkPlanIntegration extends WorkPlanIntegration implements Fu
                         String importSelection = values.get(OctaneConstants.KEY_IMPORT_SELECTION);
 
                         ClientPublicAPI client = ClientPublicAPI.getClient(values);
+                        
+                        String cookies = values.get(OctaneConstants.KEY_SSO_COOKIE);
+                    	if (cookies != null && !cookies.isEmpty()) {
+                    		client.setSSOCookies(cookies);
+                    	}                       
 
                         List<Option> options = new ArrayList<>();
                         switch (importSelection) {
@@ -904,5 +926,11 @@ public class OctaneWorkPlanIntegration extends WorkPlanIntegration implements Fu
 //    @Override
     public boolean supportTimesheetingAgainstExternalWorkPlan() {
         return true;
+    }
+    
+    @Override
+    public String getSSOAuthenticationCookie(ValueSet values, String identifier) {
+    	ClientPublicAPI clientP = OctaneClientHelper.setupClientPublicAPI(values);
+        return clientP.getSSOAuthenticationCookies(identifier);
     }
 }
