@@ -21,7 +21,6 @@ import org.joda.time.format.ISODateTimeFormat;
 
 import com.hp.ppm.integration.model.AgileEntityFieldValue;
 import com.ppm.integration.agilesdk.ValueSet;
-
 import com.ppm.integration.agilesdk.connector.octane.client.ClientPublicAPI;
 import com.ppm.integration.agilesdk.connector.octane.client.OctaneClientException;
 import com.ppm.integration.agilesdk.connector.octane.model.FieldInfo;
@@ -890,7 +889,6 @@ public class OctaneRequestIntegration extends RequestIntegration {
 
     	return usersMap;
     }
-
 }
 
 class AgileFieldComparator implements Comparator<AgileEntityFieldInfo> {
