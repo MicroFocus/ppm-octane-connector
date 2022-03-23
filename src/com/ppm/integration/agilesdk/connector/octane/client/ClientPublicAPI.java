@@ -1573,18 +1573,24 @@ public class ClientPublicAPI {
         String query = "";
         if (null != ids && ids.length > 0) {
             query += "\"id IN '" + StringUtils.join(ids, "','")  + "'\"";
-        } else {
-            return null;
         }
+
         try {
             query = URLEncoder.encode(query, "UTF-8");
         } catch (UnsupportedEncodingException e) {
             e.printStackTrace();
         }
-        String url = String.format(
-                "%s/api/shared_spaces/%s/workspaces/%s/workspace_users?fields=email,id,full_name,name&query=%s",
-                baseURL,
-                sharedspaceId, workspaceId, query);
+        String url = null;
+        if ("".equals(query)) {
+            url = String.format(
+                    "%s/api/shared_spaces/%s/workspaces/%s/workspace_users?fields=email,id,full_name,name,first_name,last_modified,last_name,activity_level&show_hidden_entities=true",
+                    baseURL, sharedspaceId, workspaceId);
+        } else {
+            url = String.format(
+                    "%s/api/shared_spaces/%s/workspaces/%s/workspace_users?fields=email,id,full_name,name,first_name,last_modified,last_name&query=%s",
+                    baseURL, sharedspaceId, workspaceId, query);
+        }
+
         RestResponse response = sendGet(url);
         JSONObject dataObj = JSONObject.fromObject(response.getData());
         JSONArray userList = JSONArray.fromObject(dataObj.get("data"));
