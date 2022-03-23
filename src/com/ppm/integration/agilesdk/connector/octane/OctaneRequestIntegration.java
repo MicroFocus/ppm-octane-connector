@@ -21,7 +21,7 @@ import org.joda.time.format.ISODateTimeFormat;
 
 import com.hp.ppm.integration.model.AgileEntityFieldValue;
 import com.ppm.integration.agilesdk.ValueSet;
-import com.ppm.integration.agilesdk.agiledata.AgileDataUser;
+
 import com.ppm.integration.agilesdk.connector.octane.client.ClientPublicAPI;
 import com.ppm.integration.agilesdk.connector.octane.client.OctaneClientException;
 import com.ppm.integration.agilesdk.connector.octane.model.FieldInfo;
@@ -891,28 +891,6 @@ public class OctaneRequestIntegration extends RequestIntegration {
     	return usersMap;
     }
 
-    @Override
-    public List<AgileDataUser> getOctaneUsers(ValueSet instanceConfigurationParameters) {
-        ClientPublicAPI client = ClientPublicAPI.getClient(instanceConfigurationParameters);
-        String workSpaceId = String.valueOf(1003L);
-        String sharedSpaceId = String.valueOf(1001L);
-        JSONArray userArray = client.getUsersByIds(sharedSpaceId, workSpaceId, null);
-        List<AgileDataUser> users = new ArrayList<>();
-
-        for (int i = 0; i < userArray.size(); i++) {
-            JSONObject userObj = userArray.getJSONObject(i);
-            AgileDataUser user = new AgileDataUser();
-            user.setUserId(Long.valueOf(userObj.getString("id")));
-            user.setUserName(userObj.getString("name"));
-            user.setFirstName(userObj.getString("first_name"));
-            user.setLastName(userObj.getString("last_name"));
-            user.setEmail(userObj.getString("email"));
-            user.setActivityLevel(userObj.getInt("activity_level"));
-            users.add(user);
-        }
-
-        return users;
-    }
 }
 
 class AgileFieldComparator implements Comparator<AgileEntityFieldInfo> {

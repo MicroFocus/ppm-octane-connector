@@ -1583,7 +1583,7 @@ public class ClientPublicAPI {
         String url = null;
         if ("".equals(query)) {
             url = String.format(
-                    "%s/api/shared_spaces/%s/workspaces/%s/workspace_users?fields=email,id,full_name,name,first_name,last_modified,last_name,activity_level",
+                    "%s/api/shared_spaces/%s/workspaces/%s/workspace_users?fields=email,id,full_name,name,first_name,last_modified,last_name,activity_level&show_hidden_entities=true",
                     baseURL, sharedspaceId, workspaceId);
         } else {
             url = String.format(
