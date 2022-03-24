@@ -1,5 +1,7 @@
 package com.ppm.integration.agilesdk.connector.octane;
 
+import java.io.UnsupportedEncodingException;
+import java.net.URLEncoder;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.List;
@@ -24,7 +26,12 @@ public class OctaneUserIntegration extends UserIntegration {
 
         String filter = "";
         if (formatDate != null) {
-            filter = "last_modified >= '" + formatDate + "'";
+            filter = "\"last_modified >= '" + formatDate + "'\"";
+        }
+        try {
+            filter = URLEncoder.encode(filter, "UTF-8");
+        } catch (UnsupportedEncodingException e) {
+            e.printStackTrace();
         }
 
         JSONArray userArray = client.getUsersWithSearchFilter(sharedSpaceId, workSpaceId, filter);
@@ -57,8 +64,8 @@ public class OctaneUserIntegration extends UserIntegration {
     private String formatLastUpdateDate(Date lastUpdateDate) {
         String formatDate = null;
         if (lastUpdateDate != null) {
-            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS");
-            sdf.setTimeZone(TimeZone.getTimeZone("UTC"));
+            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'");
+            sdf.setTimeZone(TimeZone.getTimeZone("GMT"));
             formatDate = sdf.format(lastUpdateDate);
 
         }
