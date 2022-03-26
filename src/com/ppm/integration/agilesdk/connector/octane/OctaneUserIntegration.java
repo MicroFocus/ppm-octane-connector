@@ -2,37 +2,41 @@ package com.ppm.integration.agilesdk.connector.octane;
 
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
+import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.List;
 import java.util.Date;
-import java.util.TimeZone;
+import java.util.List;
+
+import org.apache.log4j.Logger;
+
+import com.ppm.integration.agilesdk.ValueSet;
+import com.ppm.integration.agilesdk.agiledata.AgileDataUser;
 import com.ppm.integration.agilesdk.connector.octane.client.ClientPublicAPI;
+import com.ppm.integration.agilesdk.user.UserIntegration;
 
 import net.sf.json.JSONArray;
 import net.sf.json.JSONObject;
-import com.ppm.integration.agilesdk.ValueSet;
-import com.ppm.integration.agilesdk.agiledata.AgileDataUser;
-import com.ppm.integration.agilesdk.user.UserIntegration;
+import net.sf.json.JSONSerializer;
 
 public class OctaneUserIntegration extends UserIntegration {
 
-    @Override
-    public List<AgileDataUser> getAgileDataUsers(ValueSet octaneConfiguration, Date lastUpdateDate) {
-        ClientPublicAPI client = ClientPublicAPI.getClient(octaneConfiguration);
-        String workSpaceId = octaneConfiguration.get(OctaneConstants.KEY_WORKSPACEID);
-        String sharedSpaceId = octaneConfiguration.get(OctaneConstants.KEY_SHAREDSPACEID);
-        String formatDate = formatLastUpdateDate(lastUpdateDate);
+    private final Logger logger = Logger.getLogger(this.getClass());
 
-        String filter = "";
-        if (formatDate != null) {
-            filter = "\"last_modified >= '" + formatDate + "'\"";
-        }
-        try {
-            filter = URLEncoder.encode(filter, "UTF-8");
-        } catch (UnsupportedEncodingException e) {
-            e.printStackTrace();
-        }
+    private static final String DELETED = "-DELETED";
+
+    SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'");
+
+    @Override
+    public List<AgileDataUser> getAgileDataUsers(final ValueSet instanceConfigurationParameters,
+            final String agileProjectValue, Date lastUpdateTime)
+    {
+        ClientPublicAPI client = ClientPublicAPI.getClient(instanceConfigurationParameters);
+        JSONObject workspaceJson = (JSONObject)JSONSerializer.toJSON(agileProjectValue);
+        String workSpaceId = workspaceJson.getString(OctaneConstants.WORKSPACE_ID);
+        String sharedSpaceId = workspaceJson.getString(OctaneConstants.SHARED_SPACE_ID);
+
+        String filter = getFilterByDateQuery(lastUpdateTime);
 
         JSONArray userArray = client.getUsersWithSearchFilter(sharedSpaceId, workSpaceId, filter);
         List<AgileDataUser> users = new ArrayList<>();
@@ -42,7 +46,7 @@ public class OctaneUserIntegration extends UserIntegration {
             AgileDataUser user = new AgileDataUser();
             user.setUserId(Long.valueOf(userObj.getString("id")));
             if (userObj.getInt("activity_level") == OctaneConstants.USER_DELETED_STATUS_CODE) {
-                user.setUserName(userObj.getString("id") + "-DELETED");
+                user.setUserName(userObj.getString("id") + DELETED);
             } else {
                 user.setUserName(userObj.getString("name"));
             }
@@ -55,21 +59,36 @@ public class OctaneUserIntegration extends UserIntegration {
             } else {
                 user.setEnabledFlag(false);
             }
+
+            try {
+                Date date = sdf.parse(userObj.getString("last_modified"));
+                user.setLastUpdateDate(date);
+
+            } catch (final ParseException e) {
+                logger.error(e.getMessage());
+            }
+
             users.add(user);
         }
 
         return users;
     }
 
-    private String formatLastUpdateDate(Date lastUpdateDate) {
-        String formatDate = null;
-        if (lastUpdateDate != null) {
-            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'");
-            sdf.setTimeZone(TimeZone.getTimeZone("GMT"));
-            formatDate = sdf.format(lastUpdateDate);
+    private String getFilterByDateQuery(Date lastUpdateTime) {
+        String filter = "";
 
+        if (lastUpdateTime != null) {
+            String formatDate = sdf.format(lastUpdateTime);
+            filter = "\"last_modified > '" + formatDate + "'\"";
         }
-        return formatDate;
+
+        try {
+            filter = URLEncoder.encode(filter, "UTF-8");
+        } catch (UnsupportedEncodingException e) {
+            logger.error(e.getMessage());
+        }
+
+        return filter;
     }
 
 }
