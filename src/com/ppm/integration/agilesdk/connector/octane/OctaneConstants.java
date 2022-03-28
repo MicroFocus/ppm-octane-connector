@@ -182,4 +182,11 @@ public class OctaneConstants {
     
     public static final String KEY_SSO_COOKIE = "ssoC";
 
+    // sync user
+    public static final int USER_ACTIVITY_STATUS_CODE = 0;
+
+    public static final int USER_INACTIVITY_STATUS_CODE = 1;
+
+    public static final int USER_DELETED_STATUS_CODE = 2;
+
 }
