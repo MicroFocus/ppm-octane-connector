@@ -7,6 +7,7 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.log4j.Logger;
 
@@ -29,14 +30,15 @@ public class OctaneUserIntegration extends UserIntegration {
 
     @Override
     public List<AgileDataUser> getAgileDataUsers(final ValueSet instanceConfigurationParameters,
-            final String agileProjectValue, Date lastUpdateTime)
+            final String agileProjectValue, Map<String, Object> queryParams)
     {
         ClientPublicAPI client = ClientPublicAPI.getClient(instanceConfigurationParameters);
         JSONObject workspaceJson = (JSONObject)JSONSerializer.toJSON(agileProjectValue);
         String workSpaceId = workspaceJson.getString(OctaneConstants.WORKSPACE_ID);
         String sharedSpaceId = workspaceJson.getString(OctaneConstants.SHARED_SPACE_ID);
 
-        String filter = getFilterByDateQuery(lastUpdateTime);
+
+        String filter = getFilterByDateQuery(queryParams);
 
         JSONArray userArray = client.getUsersWithSearchFilter(sharedSpaceId, workSpaceId, filter);
         List<AgileDataUser> users = new ArrayList<>();
@@ -74,9 +76,9 @@ public class OctaneUserIntegration extends UserIntegration {
         return users;
     }
 
-    private String getFilterByDateQuery(Date lastUpdateTime) {
+    private String getFilterByDateQuery(Map<String, Object> queryParams) {
         String filter = "";
-
+        Date lastUpdateTime = (Date)queryParams.get("last_modified");
         if (lastUpdateTime != null) {
             String formatDate = sdf.format(lastUpdateTime);
             filter = "\"last_modified > '" + formatDate + "'\"";
