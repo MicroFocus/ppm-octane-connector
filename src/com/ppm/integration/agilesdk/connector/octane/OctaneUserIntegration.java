@@ -33,10 +33,10 @@ public class OctaneUserIntegration extends UserIntegration {
             final String agileProjectValue, Map<String, Object> queryParams)
     {
         ClientPublicAPI client = ClientPublicAPI.getClient(instanceConfigurationParameters);
-        JSONObject workspaceJson = (JSONObject)JSONSerializer.toJSON(agileProjectValue);
+        JSONObject agileProjectJson = (JSONObject)JSONSerializer.toJSON(agileProjectValue);
+        JSONObject workspaceJson = agileProjectJson.getJSONObject("agileProjectValue");
         String workSpaceId = workspaceJson.getString(OctaneConstants.WORKSPACE_ID);
         String sharedSpaceId = workspaceJson.getString(OctaneConstants.SHARED_SPACE_ID);
-
 
         String filter = getFilterByDateQuery(queryParams);
 
@@ -62,6 +62,7 @@ public class OctaneUserIntegration extends UserIntegration {
                 user.setEnabledFlag(false);
             }
 
+
             try {
                 Date date = sdf.parse(userObj.getString("last_modified"));
                 user.setLastUpdateDate(date);
@@ -70,10 +71,33 @@ public class OctaneUserIntegration extends UserIntegration {
                 logger.error(e.getMessage());
             }
 
+            addSecurityGroupAndLicenseToUsers(user, agileProjectJson);
+
             users.add(user);
         }
 
         return users;
+    }
+
+    /**
+     * TODO need classify users to add security and product.
+     * @param user
+     */
+    private void addSecurityGroupAndLicenseToUsers(AgileDataUser user, JSONObject agileProjectJson) {
+        // security and license
+        JSONObject securityGroupsJson = agileProjectJson.getJSONObject("securityGroups");
+        JSONArray adminSecurityGroups = securityGroupsJson.getJSONArray("admin");
+        JSONArray userSecurityGroups = securityGroupsJson.getJSONArray("users");
+        JSONObject productLicensesJson = agileProjectJson.getJSONObject("productLicenses");
+        JSONArray adminLicenses = productLicensesJson.getJSONArray("admin");
+        JSONArray userLicenses = productLicensesJson.getJSONArray("users");
+
+        List<Long> userLicensesList = JSONArray.toList(userLicenses, Long.class);
+        List<String> userSecurityList = JSONArray.toList(userSecurityGroups, String.class);
+
+        user.setSecurityGroupCodes(userSecurityList);
+        user.setProductIds(userLicensesList);
+
     }
 
     private String getFilterByDateQuery(Map<String, Object> queryParams) {
