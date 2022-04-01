@@ -28,6 +28,15 @@ public class OctaneUserIntegration extends UserIntegration {
 
     SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'");
 
+    /**
+     * @param instanceConfigurationParameters
+     * @param agileProjectValue
+     *            {"securityGroups":{"admin":["securityGroupReferenceCode1"],"users":["securityGroupReferenceCode2"]},"productLicenses":{"admin":[productId1],"users":[productId2]},"agileProjectValue":{"WORKSPACE_ID":1003,"SHARED_SPACE_ID":1003}}
+     * @param queryParams
+     * @return
+     * @see com.ppm.integration.agilesdk.user.UserIntegration#getAgileDataUsers(com.ppm.integration.agilesdk.ValueSet,
+     *      java.lang.String, java.util.Map)
+     */
     @Override
     public List<AgileDataUser> getAgileDataUsers(final ValueSet instanceConfigurationParameters,
             final String agileProjectValue, Map<String, Object> queryParams)
@@ -82,6 +91,8 @@ public class OctaneUserIntegration extends UserIntegration {
     /**
      * TODO need classify users to add security and product.
      * @param user
+     * @param agileProjectJson
+     *            {"securityGroups":{"admin":["securityGroupReferenceCode1"],"users":["securityGroupReferenceCode2"]},"productLicenses":{"admin":[productId1],"users":[productId2]},"agileProjectValue":{"WORKSPACE_ID":1003,"SHARED_SPACE_ID":1003}}
      */
     private void addSecurityGroupAndLicenseToUsers(AgileDataUser user, JSONObject agileProjectJson) {
         // security and license
