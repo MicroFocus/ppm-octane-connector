@@ -1595,7 +1595,7 @@ public class ClientPublicAPI {
     public JSONArray getUsersWithSearchFilter(String sharedspaceId, String workspaceId, String filter) {
 
         String url = String.format(
-                "%s/api/shared_spaces/%s/workspaces/%s/workspace_users?fields=email,id,full_name,name,first_name,last_modified,last_name,activity_level&show_hidden_entities=true&query=%s",
+                "%s/api/shared_spaces/%s/workspaces/%s/workspace_users?fields=email,id,full_name,name,first_name,last_modified,last_name,activity_level,roles&show_hidden_entities=true&query=%s",
                 baseURL, sharedspaceId, workspaceId, filter);
 
         RestResponse response = sendGet(url);

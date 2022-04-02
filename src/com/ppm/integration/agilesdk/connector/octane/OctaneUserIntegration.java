@@ -26,6 +26,8 @@ public class OctaneUserIntegration extends UserIntegration {
 
     private static final String DELETED = "-DELETED";
 
+    private static final String WORKSPACE_ADMIN_ROLE = "Workspace Admin";
+
     SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'");
 
     /**
@@ -80,7 +82,8 @@ public class OctaneUserIntegration extends UserIntegration {
                 logger.error(e.getMessage());
             }
 
-            addSecurityGroupAndLicenseToUsers(user, agileProjectJson);
+
+            addSecurityGroupAndLicenseToUsers(user, userObj.getJSONObject("roles"), agileProjectJson);
 
             users.add(user);
         }
@@ -89,25 +92,43 @@ public class OctaneUserIntegration extends UserIntegration {
     }
 
     /**
-     * TODO need classify users to add security and product.
      * @param user
+     * @param roles contain user role information.
      * @param agileProjectJson
      *            {"securityGroups":{"admin":["securityGroupReferenceCode1"],"users":["securityGroupReferenceCode2"]},"productLicenses":{"admin":[productId1],"users":[productId2]},"agileProjectValue":{"WORKSPACE_ID":1003,"SHARED_SPACE_ID":1003}}
      */
-    private void addSecurityGroupAndLicenseToUsers(AgileDataUser user, JSONObject agileProjectJson) {
-        // security and license
-        JSONObject securityGroupsJson = agileProjectJson.getJSONObject("securityGroups");
-        JSONArray adminSecurityGroups = securityGroupsJson.getJSONArray("admin");
-        JSONArray userSecurityGroups = securityGroupsJson.getJSONArray("users");
-        JSONObject productLicensesJson = agileProjectJson.getJSONObject("productLicenses");
-        JSONArray adminLicenses = productLicensesJson.getJSONArray("admin");
-        JSONArray userLicenses = productLicensesJson.getJSONArray("users");
+    private void addSecurityGroupAndLicenseToUsers(AgileDataUser user, JSONObject roles, JSONObject agileProjectJson) {
+        if (!roles.isNullObject()) {
+            JSONArray rolesArray = roles.getJSONArray("data");
+            List<String> roleList = new ArrayList<>();
+            for (int i = 0; i < rolesArray.size(); i++) {
+                JSONObject jsonObject = rolesArray.getJSONObject(i);
+                roleList.add(jsonObject.getString("name"));
+            }
 
-        List<Long> userLicensesList = JSONArray.toList(userLicenses, Long.class);
-        List<String> userSecurityList = JSONArray.toList(userSecurityGroups, String.class);
+            // security groups
+            JSONObject securityGroupsJson = agileProjectJson.getJSONObject("securityGroups");
+            JSONArray adminSecurityGroups = securityGroupsJson.getJSONArray("admin");
+            JSONArray userSecurityGroups = securityGroupsJson.getJSONArray("users");
+            // product license
+            JSONObject productLicensesJson = agileProjectJson.getJSONObject("productLicenses");
+            JSONArray adminLicenses = productLicensesJson.getJSONArray("admin");
+            JSONArray userLicenses = productLicensesJson.getJSONArray("users");
 
-        user.setSecurityGroupCodes(userSecurityList);
-        user.setProductIds(userLicensesList);
+            List<Long> userLicensesList = JSONArray.toList(userLicenses, Long.class);
+            List<String> userSecurityList = JSONArray.toList(userSecurityGroups, String.class);
+            List<Long> adminLicensesList = JSONArray.toList(adminLicenses, Long.class);
+            List<String> adminSecurityList = JSONArray.toList(adminSecurityGroups, String.class);
+            if (roleList.contains(WORKSPACE_ADMIN_ROLE)) {
+                user.setSecurityGroupCodes(adminSecurityList);
+                user.setProductIds(adminLicensesList);
+            } else {
+                // TODO add SPM user security group to SPM users
+                user.setSecurityGroupCodes(userSecurityList);
+                user.setProductIds(userLicensesList);
+            }
+        }
+
 
     }
 
