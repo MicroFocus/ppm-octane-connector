@@ -6,6 +6,7 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -14,6 +15,8 @@ import org.apache.log4j.Logger;
 import com.ppm.integration.agilesdk.ValueSet;
 import com.ppm.integration.agilesdk.agiledata.AgileDataUser;
 import com.ppm.integration.agilesdk.connector.octane.client.ClientPublicAPI;
+import com.ppm.integration.agilesdk.connector.octane.model.OctaneSyncUserConfiguration;
+import com.ppm.integration.agilesdk.connector.octane.model.UserSecurityConfiguration;
 import com.ppm.integration.agilesdk.user.UserIntegration;
 
 import net.sf.json.JSONArray;
@@ -26,14 +29,12 @@ public class OctaneUserIntegration extends UserIntegration {
 
     private static final String DELETED = "-DELETED";
 
-    private static final String WORKSPACE_ADMIN_ROLE = "Workspace Admin";
-
     SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'");
 
     /**
      * @param instanceConfigurationParameters
      * @param agileProjectValue
-     *            {"securityGroups":{"admin":["securityGroupReferenceCode1"],"users":["securityGroupReferenceCode2"]},"productLicenses":{"admin":[productId1],"users":[productId2]},"agileProjectValue":{"WORKSPACE_ID":1003,"SHARED_SPACE_ID":1003}}
+     *            {"security":[{"role":"roleName","securityGroups":["securityGroupReferenceCode1"],"productLicenses":[productId1]},{"licenseType":"strategy","securityGroups":["securityGroupReferenceCode2"],"productLicenses":[productId2]}],"agileProjectValue":{"workspaceId":1003,"sharedSpaceId":1003}}
      * @param queryParams
      * @return
      * @see com.ppm.integration.agilesdk.user.UserIntegration#getAgileDataUsers(com.ppm.integration.agilesdk.ValueSet,
@@ -45,13 +46,20 @@ public class OctaneUserIntegration extends UserIntegration {
     {
         ClientPublicAPI client = ClientPublicAPI.getClient(instanceConfigurationParameters);
         JSONObject agileProjectJson = (JSONObject)JSONSerializer.toJSON(agileProjectValue);
-        JSONObject workspaceJson = agileProjectJson.getJSONObject("agileProjectValue");
-        String workSpaceId = workspaceJson.getString(OctaneConstants.WORKSPACE_ID);
-        String sharedSpaceId = workspaceJson.getString(OctaneConstants.SHARED_SPACE_ID);
+
+        Map<String, Class<?>> classMap = new HashMap<>();
+        classMap.put("security", UserSecurityConfiguration.class);
+        OctaneSyncUserConfiguration userConfiguration = (OctaneSyncUserConfiguration)agileProjectJson
+                .toBean(agileProjectJson, OctaneSyncUserConfiguration.class, classMap);
+
+        String workSpaceId = String.valueOf(userConfiguration.getAgileProjectValue().getWorkspaceId());
+        String sharedSpaceId = String.valueOf(userConfiguration.getAgileProjectValue().getSharedSpaceId());
 
         String filter = getFilterByDateQuery(queryParams);
+        Long offset = 0L;
+        Long limit = 2000L;
+        JSONArray userArray = client.getUsersWithSearchFilter(sharedSpaceId, workSpaceId, limit, offset, filter);
 
-        JSONArray userArray = client.getUsersWithSearchFilter(sharedSpaceId, workSpaceId, filter);
         List<AgileDataUser> users = new ArrayList<>();
 
         for (int i = 0; i < userArray.size(); i++) {
@@ -68,6 +76,8 @@ public class OctaneUserIntegration extends UserIntegration {
             user.setLastName(userObj.getString("last_name"));
             user.setEmail(userObj.getString("email"));
             if (userObj.getInt("activity_level") == OctaneConstants.USER_ACTIVITY_STATUS_CODE) {
+                addSecurityGroupAndLicenseToUsers(user, userObj.getJSONObject("roles"),
+                        userConfiguration.getSecurity());
                 user.setEnabledFlag(true);
             } else {
                 user.setEnabledFlag(false);
@@ -83,7 +93,7 @@ public class OctaneUserIntegration extends UserIntegration {
             }
 
 
-            addSecurityGroupAndLicenseToUsers(user, userObj.getJSONObject("roles"), agileProjectJson);
+
 
             users.add(user);
         }
@@ -95,9 +105,11 @@ public class OctaneUserIntegration extends UserIntegration {
      * @param user
      * @param roles contain user role information.
      * @param agileProjectJson
-     *            {"securityGroups":{"admin":["securityGroupReferenceCode1"],"users":["securityGroupReferenceCode2"]},"productLicenses":{"admin":[productId1],"users":[productId2]},"agileProjectValue":{"WORKSPACE_ID":1003,"SHARED_SPACE_ID":1003}}
+     *            {"security":[{"role":"roleName","securityGroups":["securityGroupReferenceCode1"],"productLicenses":[productId1]},{"licenseType":"strategy","securityGroups":["securityGroupReferenceCode2"],"productLicenses":[productId2]}],"agileProjectValue":{"workspaceId":1003,"sharedSpaceId":1003}}
      */
-    private void addSecurityGroupAndLicenseToUsers(AgileDataUser user, JSONObject roles, JSONObject agileProjectJson) {
+    private void addSecurityGroupAndLicenseToUsers(AgileDataUser user, JSONObject roles,
+            List<UserSecurityConfiguration> security)
+    {
         if (!roles.isNullObject()) {
             JSONArray rolesArray = roles.getJSONArray("data");
             List<String> roleList = new ArrayList<>();
@@ -106,39 +118,37 @@ public class OctaneUserIntegration extends UserIntegration {
                 roleList.add(jsonObject.getString("name"));
             }
 
-            // security groups
-            JSONObject securityGroupsJson = agileProjectJson.getJSONObject("securityGroups");
-            JSONArray adminSecurityGroups = securityGroupsJson.getJSONArray("admin");
-            JSONArray userSecurityGroups = securityGroupsJson.getJSONArray("users");
-            // product license
-            JSONObject productLicensesJson = agileProjectJson.getJSONObject("productLicenses");
-            JSONArray adminLicenses = productLicensesJson.getJSONArray("admin");
-            JSONArray userLicenses = productLicensesJson.getJSONArray("users");
+            for (UserSecurityConfiguration securityConf : security) {
+                String role = securityConf.getRole();
+                String licenseType = securityConf.getLicenseType();
+                if (role != null) {
+                    if (roleList.contains(role)) {
+                        user.setSecurityGroupCodes(securityConf.getSecurityGroups());
+                        user.setProductIds(securityConf.getProductLicenses());
+                    } else {
+                        // TODO add SPM user security group to SPM users
+                        user.setSecurityGroupCodes(securityConf.getSecurityGroups());
+                        user.setProductIds(securityConf.getProductLicenses());
+                    }
+                }
 
-            List<Long> userLicensesList = JSONArray.toList(userLicenses, Long.class);
-            List<String> userSecurityList = JSONArray.toList(userSecurityGroups, String.class);
-            List<Long> adminLicensesList = JSONArray.toList(adminLicenses, Long.class);
-            List<String> adminSecurityList = JSONArray.toList(adminSecurityGroups, String.class);
-            if (roleList.contains(WORKSPACE_ADMIN_ROLE)) {
-                user.setSecurityGroupCodes(adminSecurityList);
-                user.setProductIds(adminLicensesList);
-            } else {
-                // TODO add SPM user security group to SPM users
-                user.setSecurityGroupCodes(userSecurityList);
-                user.setProductIds(userLicensesList);
             }
+
         }
 
 
     }
 
     private String getFilterByDateQuery(Map<String, Object> queryParams) {
-        String filter = "";
+        String filter = "\"";
         Date lastUpdateTime = (Date)queryParams.get("last_modified");
         if (lastUpdateTime != null) {
             String formatDate = sdf.format(lastUpdateTime);
-            filter = "\"last_modified > '" + formatDate + "'\"";
+
+            filter += "last_modified > '" + formatDate + "' ; ";
         }
+        // filter out api access
+        filter += "is_api_key=false\"";
 
         try {
             filter = URLEncoder.encode(filter, "UTF-8");
