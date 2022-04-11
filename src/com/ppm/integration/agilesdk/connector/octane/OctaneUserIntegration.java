@@ -34,7 +34,7 @@ public class OctaneUserIntegration extends UserIntegration {
     /**
      * @param instanceConfigurationParameters
      * @param agileProjectValue
-     *            {"security":[{"role":"roleName","securityGroups":["securityGroupReferenceCode1"],"productLicenses":[productId1]},{"licenseType":"strategy","securityGroups":["securityGroupReferenceCode2"],"productLicenses":[productId2]}],"agileProjectValue":{"workspaceId":1003,"sharedSpaceId":1003}}
+     *            {"security":[{"role":"roleName","securityGroups":["securityGroupReferenceCode1"],"productLicenses":[productId1]},{"licenseType":"licenseTypeName","securityGroups":["securityGroupReferenceCode2"],"productLicenses":[productId2]}],"agileProjectValue":{"workspaceId":1003,"sharedSpaceId":1003}}
      * @param queryParams
      * @return
      * @see com.ppm.integration.agilesdk.user.UserIntegration#getAgileDataUsers(com.ppm.integration.agilesdk.ValueSet,
@@ -105,7 +105,7 @@ public class OctaneUserIntegration extends UserIntegration {
      * @param user
      * @param roles contain user role information.
      * @param agileProjectJson
-     *            {"security":[{"role":"roleName","securityGroups":["securityGroupReferenceCode1"],"productLicenses":[productId1]},{"licenseType":"strategy","securityGroups":["securityGroupReferenceCode2"],"productLicenses":[productId2]}],"agileProjectValue":{"workspaceId":1003,"sharedSpaceId":1003}}
+     *            {"security":[{"role":"roleName","securityGroups":["securityGroupReferenceCode1"],"productLicenses":[productId1]},{"licenseType":"licenseTypeName","securityGroups":["securityGroupReferenceCode2"],"productLicenses":[productId2]}],"agileProjectValue":{"workspaceId":1003,"sharedSpaceId":1003}}
      */
     private void addSecurityGroupAndLicenseToUsers(AgileDataUser user, JSONObject roles,
             List<UserSecurityConfiguration> security)
@@ -115,7 +115,7 @@ public class OctaneUserIntegration extends UserIntegration {
             List<String> roleList = new ArrayList<>();
             for (int i = 0; i < rolesArray.size(); i++) {
                 JSONObject jsonObject = rolesArray.getJSONObject(i);
-                roleList.add(jsonObject.getString("name"));
+                roleList.add(jsonObject.getString("logical_name"));
             }
 
             for (UserSecurityConfiguration securityConf : security) {
