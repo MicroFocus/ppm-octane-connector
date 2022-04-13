@@ -1592,11 +1592,13 @@ public class ClientPublicAPI {
         return userList;
     }
 
-    public JSONArray getUsersWithSearchFilter(String sharedspaceId, String workspaceId, String filter) {
+    public JSONArray getUsersWithSearchFilter(String sharedspaceId, String workspaceId, Long limit, Long offset,
+            String filter)
+    {
 
         String url = String.format(
-                "%s/api/shared_spaces/%s/workspaces/%s/workspace_users?fields=email,id,full_name,name,first_name,last_modified,last_name,activity_level&show_hidden_entities=true&query=%s",
-                baseURL, sharedspaceId, workspaceId, filter);
+                "%s/api/shared_spaces/%s/workspaces/%s/workspace_users?fields=email,id,full_name,name,first_name,last_modified,last_name,activity_level,roles&order_by=last_modified&show_hidden_entities=true&limit=%s&offset=%s&query=%s",
+                baseURL, sharedspaceId, workspaceId, limit, offset, filter);
 
         RestResponse response = sendGet(url);
         JSONObject dataObj = JSONObject.fromObject(response.getData());
