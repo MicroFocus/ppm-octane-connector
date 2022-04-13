@@ -59,8 +59,8 @@ public class OctaneUserIntegration extends UserIntegration {
         Long offset = null;
         Long limit = null;
         if (queryParams.containsKey("offset") && queryParams.containsKey("limit")) {
-            offset = Long.valueOf((String)queryParams.get("offset"));
-            limit = Long.valueOf((String)queryParams.get("limit"));
+            offset = (Long)queryParams.get("offset");
+            limit = (Long)queryParams.get("limit");
         }
 
         JSONArray userArray = client.getUsersWithSearchFilter(sharedSpaceId, workSpaceId, limit, offset, filter);
