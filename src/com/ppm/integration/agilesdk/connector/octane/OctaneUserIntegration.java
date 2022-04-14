@@ -10,6 +10,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.commons.lang.StringUtils;
 import org.apache.log4j.Logger;
 
 import com.ppm.integration.agilesdk.ValueSet;
@@ -56,8 +57,18 @@ public class OctaneUserIntegration extends UserIntegration {
         String sharedSpaceId = String.valueOf(userConfiguration.getAgileProjectValue().getSharedSpaceId());
 
         String filter = getFilterByDateQuery(queryParams);
-        Long offset = 0L;
-        Long limit = 2000L;
+        Long offset = null;
+        Long limit = null;
+        try {
+            if (queryParams.containsKey("offset") && queryParams.containsKey("limit")) {
+                offset = Long.parseLong((String)queryParams.get("offset"));
+                limit = Long.parseLong((String)queryParams.get("limit"));
+            }
+
+        } catch (Exception e) {
+            logger.error("Exception when parsing query parameter", e);
+        }
+
         JSONArray userArray = client.getUsersWithSearchFilter(sharedSpaceId, workSpaceId, limit, offset, filter);
 
         List<AgileDataUser> users = new ArrayList<>();
@@ -122,14 +133,20 @@ public class OctaneUserIntegration extends UserIntegration {
                 String role = securityConf.getRole();
                 String licenseType = securityConf.getLicenseType();
                 if (role != null) {
-                    if (roleList.contains(role)) {
-                        user.setSecurityGroupCodes(securityConf.getSecurityGroups());
-                        user.setProductIds(securityConf.getProductLicenses());
-                    } else {
-                        // TODO add SPM user security group to SPM users
+                    if (roleList.contains("role.workspace.admin")) {
                         user.setSecurityGroupCodes(securityConf.getSecurityGroups());
                         user.setProductIds(securityConf.getProductLicenses());
                     }
+                }
+
+                if (licenseType != null) {
+                    // TODO handle licenseType which is not ready in octane
+                    // side.
+                    if (!roleList.contains("role.workspace.admin")) {
+                        user.setSecurityGroupCodes(securityConf.getSecurityGroups());
+                        user.setProductIds(securityConf.getProductLicenses());
+                    }
+
                 }
 
             }
