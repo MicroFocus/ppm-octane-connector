@@ -10,6 +10,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.commons.lang.StringUtils;
 import org.apache.log4j.Logger;
 
 import com.ppm.integration.agilesdk.ValueSet;
@@ -59,8 +60,8 @@ public class OctaneUserIntegration extends UserIntegration {
         Long offset = null;
         Long limit = null;
         if (queryParams.containsKey("offset") && queryParams.containsKey("limit")) {
-            offset = (Long)queryParams.get("offset");
-            limit = (Long)queryParams.get("limit");
+            offset = Long.parseLong((String)queryParams.get("offset"));
+            limit = Long.parseLong((String)queryParams.get("limit"));
         }
 
         JSONArray userArray = client.getUsersWithSearchFilter(sharedSpaceId, workSpaceId, limit, offset, filter);
