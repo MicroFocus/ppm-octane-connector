@@ -59,9 +59,14 @@ public class OctaneUserIntegration extends UserIntegration {
         String filter = getFilterByDateQuery(queryParams);
         Long offset = null;
         Long limit = null;
-        if (queryParams.containsKey("offset") && queryParams.containsKey("limit")) {
-            offset = Long.parseLong((String)queryParams.get("offset"));
-            limit = Long.parseLong((String)queryParams.get("limit"));
+        try {
+            if (queryParams.containsKey("offset") && queryParams.containsKey("limit")) {
+                offset = Long.parseLong((String)queryParams.get("offset"));
+                limit = Long.parseLong((String)queryParams.get("limit"));
+            }
+
+        } catch (Exception e) {
+            logger.error("Exception when parsing query parameter", e);
         }
 
         JSONArray userArray = client.getUsersWithSearchFilter(sharedSpaceId, workSpaceId, limit, offset, filter);
