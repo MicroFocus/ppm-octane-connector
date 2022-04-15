@@ -77,7 +77,7 @@ public class OctaneUserIntegration extends UserIntegration {
         for (int i = 0; i < userArray.size(); i++) {
             JSONObject userObj = userArray.getJSONObject(i);
             AgileDataUser user = new AgileDataUser();
-            user.setUserId(Long.valueOf(userObj.getString("id")));
+            user.setUserId(userObj.getString("id"));
             if (userObj.getInt("activity_level") == OctaneConstants.USER_DELETED_STATUS_CODE) {
                 user.setUserName(userObj.getString("id") + DELETED);
             } else {
