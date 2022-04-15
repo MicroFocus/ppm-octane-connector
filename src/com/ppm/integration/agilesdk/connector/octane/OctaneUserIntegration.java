@@ -36,7 +36,7 @@ public class OctaneUserIntegration extends UserIntegration {
     /**
      * @param instanceConfigurationParameters
      * @param agileProjectValue
-     *            {"security":[{"role":"rolelogical_Name","securityGroups":["securityGroupReferenceCode1"],"productLicenses":[productId1]},{"licenseType":"licenseTypeName","securityGroups":["securityGroupReferenceCode2"],"productLicenses":[productId2]}],"agileProjectValue":{"workspaceId":1003,"sharedSpaceId":1003}}
+     *            {"security":[{"role":"role_logical_Name","securityGroups":["securityGroupReferenceCode1"],"productLicenses":[productId1]},{"licenseType":"licenseTypeId","securityGroups":["securityGroupReferenceCode2"],"productLicenses":[productId2]}],"agileProjectValue":{"workspaceId":1003,"sharedSpaceId":1003}}
      * @param queryParams
      * @return
      * @see com.ppm.integration.agilesdk.user.UserIntegration#getAgileDataUsers(com.ppm.integration.agilesdk.ValueSet,
@@ -136,7 +136,7 @@ public class OctaneUserIntegration extends UserIntegration {
      * @param user
      * @param roleList contain user role information.
      * @param agileProjectJson
-     *            {"security":[{"role":"rolelogical_Name","securityGroups":["securityGroupReferenceCode1"],"productLicenses":[productId1]},{"licenseType":"licenseTypeName","securityGroups":["securityGroupReferenceCode2"],"productLicenses":[productId2]}],"agileProjectValue":{"workspaceId":1003,"sharedSpaceId":1003}}
+     *            {"security":[{"role":"role_logical_Name","securityGroups":["securityGroupReferenceCode1"],"productLicenses":[productId1]},{"licenseType":"licenseTypeId","securityGroups":["securityGroupReferenceCode2"],"productLicenses":[productId2]}],"agileProjectValue":{"workspaceId":1003,"sharedSpaceId":1003}}
      */
     private void addSecurityGroupAndLicenseToUsers(AgileDataUser user, List<String> roleList, String licenseTypeId,
             List<UserSecurityConfiguration> security)
