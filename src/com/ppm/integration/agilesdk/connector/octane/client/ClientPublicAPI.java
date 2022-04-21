@@ -1886,7 +1886,7 @@ public class ClientPublicAPI {
         try {
             query = URLEncoder.encode(query, "UTF-8");
         } catch (UnsupportedEncodingException e) {
-            e.printStackTrace();
+            logger.error(" UnsupportedEncodingException when encoding url query", e);
         }
         String url =
                 String.format("%s/api/shared_spaces/%s/workspaces/%s/workspace_users?fields=id,activity_level&query=%s",
