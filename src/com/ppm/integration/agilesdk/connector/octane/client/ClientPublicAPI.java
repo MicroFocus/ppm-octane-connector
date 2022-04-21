@@ -1603,12 +1603,12 @@ public class ClientPublicAPI {
         String url = null;
         if (limit != null && offset != null) {
             url = String.format(
-                    "%s/api/shared_spaces/%s/workspaces/%s/workspace_users?fields=email,id,full_name,name,first_name,last_modified,last_name,activity_level,roles&order_by=last_modified&show_hidden_entities=true&limit=%s&offset=%s&query=%s",
-                    baseURL, sharedspaceId, workspaceId, limit, offset, filter);
+                    "%s/api/shared_spaces/%s/users?fields=email,id,full_name,name,first_name,last_modified,last_name,activity_level,workspace_roles,license_type&order_by=last_modified&show_hidden_entities=true&limit=%s&offset=%s&query=%s",
+                    baseURL, sharedspaceId, limit, offset, filter);
         } else {
             url = String.format(
-                    "%s/api/shared_spaces/%s/workspaces/%s/workspace_users?fields=email,id,full_name,name,first_name,last_modified,last_name,activity_level,roles&order_by=last_modified&show_hidden_entities=true&query=%s",
-                    baseURL, sharedspaceId, workspaceId, filter);
+                    "%s/api/shared_spaces/%s/users?fields=email,id,full_name,name,first_name,last_modified,last_name,activity_level,workspace_roles,license_type&order_by=last_modified&show_hidden_entities=true&query=%s",
+                    baseURL, sharedspaceId, filter);
         }
 
 

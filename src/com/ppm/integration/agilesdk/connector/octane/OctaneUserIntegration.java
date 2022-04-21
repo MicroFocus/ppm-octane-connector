@@ -13,6 +13,7 @@ import java.util.Map;
 import org.apache.commons.lang.StringUtils;
 import org.apache.log4j.Logger;
 
+
 import com.ppm.integration.agilesdk.ValueSet;
 import com.ppm.integration.agilesdk.agiledata.AgileDataUser;
 import com.ppm.integration.agilesdk.connector.octane.client.ClientPublicAPI;
@@ -35,7 +36,7 @@ public class OctaneUserIntegration extends UserIntegration {
     /**
      * @param instanceConfigurationParameters
      * @param agileProjectValue
-     *            {"security":[{"role":"roleName","securityGroups":["securityGroupReferenceCode1"],"productLicenses":[productId1]},{"licenseType":"licenseTypeName","securityGroups":["securityGroupReferenceCode2"],"productLicenses":[productId2]}],"agileProjectValue":{"workspaceId":1003,"sharedSpaceId":1003}}
+     *            {"security":[{"role":"role_logical_Name","securityGroups":["securityGroupReferenceCode1"],"productLicenses":[productId1]},{"licenseType":"licenseTypeId","securityGroups":["securityGroupReferenceCode2"],"productLicenses":[productId2]}],"agileProjectValue":{"workspaceId":1003,"sharedSpaceId":1003}}
      * @param queryParams
      * @return
      * @see com.ppm.integration.agilesdk.user.UserIntegration#getAgileDataUsers(com.ppm.integration.agilesdk.ValueSet,
@@ -56,7 +57,7 @@ public class OctaneUserIntegration extends UserIntegration {
         String workSpaceId = String.valueOf(userConfiguration.getAgileProjectValue().getWorkspaceId());
         String sharedSpaceId = String.valueOf(userConfiguration.getAgileProjectValue().getSharedSpaceId());
 
-        String filter = getFilterByDateQuery(queryParams);
+        String filter = getFilterByDateQuery(queryParams, workSpaceId);
         Long offset = null;
         Long limit = null;
         try {
@@ -65,7 +66,7 @@ public class OctaneUserIntegration extends UserIntegration {
                 limit = Long.parseLong((String)queryParams.get("limit"));
             }
 
-        } catch (Exception e) {
+        } catch (NumberFormatException e) {
             logger.error("Exception when parsing query parameter", e);
         }
 
@@ -76,7 +77,7 @@ public class OctaneUserIntegration extends UserIntegration {
         for (int i = 0; i < userArray.size(); i++) {
             JSONObject userObj = userArray.getJSONObject(i);
             AgileDataUser user = new AgileDataUser();
-            user.setUserId(Long.valueOf(userObj.getString("id")));
+            user.setUserId(userObj.getString("id"));
             if (userObj.getInt("activity_level") == OctaneConstants.USER_DELETED_STATUS_CODE) {
                 user.setUserName(userObj.getString("id") + DELETED);
             } else {
@@ -86,9 +87,13 @@ public class OctaneUserIntegration extends UserIntegration {
             user.setFirstName(userObj.getString("first_name"));
             user.setLastName(userObj.getString("last_name"));
             user.setEmail(userObj.getString("email"));
+
+            List<String> roleList = getRoleListofUser(workSpaceId, userObj);
+
+            JSONObject licenseType = userObj.getJSONObject("license_type");
+            String licenseTypeId = licenseType.getString("id");
             if (userObj.getInt("activity_level") == OctaneConstants.USER_ACTIVITY_STATUS_CODE) {
-                addSecurityGroupAndLicenseToUsers(user, userObj.getJSONObject("roles"),
-                        userConfiguration.getSecurity());
+                addSecurityGroupAndLicenseToUsers(user, roleList, licenseTypeId, userConfiguration.getSecurity());
                 user.setEnabledFlag(true);
             } else {
                 user.setEnabledFlag(false);
@@ -112,51 +117,55 @@ public class OctaneUserIntegration extends UserIntegration {
         return users;
     }
 
+    private List<String> getRoleListofUser(String workSpaceId, JSONObject userObj) {
+        List<String> roleList = new ArrayList<>();
+        JSONObject workspaceRoles = userObj.getJSONObject("workspace_roles");
+        JSONArray rolesArray = workspaceRoles.getJSONArray("data");
+        for (int j = 0; j < rolesArray.size(); j++) {
+            JSONObject roleJson = rolesArray.getJSONObject(j);
+            JSONObject workspace = roleJson.getJSONObject("workspace");
+            if (!workspace.isNullObject() && workspace.getString("id").equals(workSpaceId)) {
+                JSONObject role = roleJson.getJSONObject("role");
+                roleList.add(role.getString("logical_name"));
+            }
+        }
+        return roleList;
+    }
+
     /**
      * @param user
-     * @param roles contain user role information.
+     * @param roleList contain user role information.
      * @param agileProjectJson
-     *            {"security":[{"role":"roleName","securityGroups":["securityGroupReferenceCode1"],"productLicenses":[productId1]},{"licenseType":"licenseTypeName","securityGroups":["securityGroupReferenceCode2"],"productLicenses":[productId2]}],"agileProjectValue":{"workspaceId":1003,"sharedSpaceId":1003}}
+     *            {"security":[{"role":"role_logical_Name","securityGroups":["securityGroupReferenceCode1"],"productLicenses":[productId1]},{"licenseType":"licenseTypeId","securityGroups":["securityGroupReferenceCode2"],"productLicenses":[productId2]}],"agileProjectValue":{"workspaceId":1003,"sharedSpaceId":1003}}
      */
-    private void addSecurityGroupAndLicenseToUsers(AgileDataUser user, JSONObject roles,
+    private void addSecurityGroupAndLicenseToUsers(AgileDataUser user, List<String> roleList, String licenseTypeId,
             List<UserSecurityConfiguration> security)
     {
-        if (!roles.isNullObject()) {
-            JSONArray rolesArray = roles.getJSONArray("data");
-            List<String> roleList = new ArrayList<>();
-            for (int i = 0; i < rolesArray.size(); i++) {
-                JSONObject jsonObject = rolesArray.getJSONObject(i);
-                roleList.add(jsonObject.getString("logical_name"));
+
+        for (UserSecurityConfiguration securityConf : security) {
+            String role = securityConf.getRole();
+            String licenseType = securityConf.getLicenseType();
+            if (role != null) {
+                if (roleList.contains(role)) {
+                    user.addAllSecurityGroupCodes(securityConf.getSecurityGroups());
+                    user.addAllProductIds(securityConf.getProductLicenses());
+
+                }
             }
 
-            for (UserSecurityConfiguration securityConf : security) {
-                String role = securityConf.getRole();
-                String licenseType = securityConf.getLicenseType();
-                if (role != null) {
-                    if (roleList.contains("role.workspace.admin")) {
-                        user.setSecurityGroupCodes(securityConf.getSecurityGroups());
-                        user.setProductIds(securityConf.getProductLicenses());
-                    }
-                }
-
-                if (licenseType != null) {
-                    // TODO handle licenseType which is not ready in octane
-                    // side.
-                    if (!roleList.contains("role.workspace.admin")) {
-                        user.setSecurityGroupCodes(securityConf.getSecurityGroups());
-                        user.setProductIds(securityConf.getProductLicenses());
-                    }
-
+            if (licenseType != null) {
+                if (licenseType.equalsIgnoreCase(licenseTypeId)) {
+                    user.addAllSecurityGroupCodes(securityConf.getSecurityGroups());
+                    user.addAllProductIds(securityConf.getProductLicenses());
                 }
 
             }
 
         }
 
-
     }
 
-    private String getFilterByDateQuery(Map<String, Object> queryParams) {
+    private String getFilterByDateQuery(Map<String, Object> queryParams, String workSpaceId) {
         String filter = "\"";
         Date lastUpdateTime = (Date)queryParams.get("last_modified");
         if (lastUpdateTime != null) {
@@ -164,6 +173,11 @@ public class OctaneUserIntegration extends UserIntegration {
 
             filter += "last_modified > '" + formatDate + "' ; ";
         }
+        // if workSpaceId is null, it will return sharedSpace users
+        if (workSpaceId != null) {
+            filter += "workspaces={id=" + workSpaceId + "};";
+        }
+
         // filter out api access
         filter += "is_api_key=false\"";
 
