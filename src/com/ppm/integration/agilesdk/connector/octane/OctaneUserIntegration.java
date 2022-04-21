@@ -72,13 +72,22 @@ public class OctaneUserIntegration extends UserIntegration {
 
         JSONArray userArray = client.getUsersWithSearchFilter(sharedSpaceId, workSpaceId, limit, offset, filter);
 
+        // get real active_level of users in workspace
+        Map<String, Integer> activityLevelMap =
+                getUserActivityLevelInWorkspace(client, workSpaceId, sharedSpaceId, userArray);
+
         List<AgileDataUser> users = new ArrayList<>();
 
         for (int i = 0; i < userArray.size(); i++) {
             JSONObject userObj = userArray.getJSONObject(i);
             AgileDataUser user = new AgileDataUser();
             user.setUserId(userObj.getString("id"));
-            if (userObj.getInt("activity_level") == OctaneConstants.USER_DELETED_STATUS_CODE) {
+            // if activityLevelMap contains userId, it means should use
+            // activity_level in workspace level.
+            int activityLevel = activityLevelMap.containsKey(userObj.getString("id"))
+                    ? activityLevelMap.get(userObj.getString("id")) : userObj.getInt("activity_level");
+
+            if (activityLevel == OctaneConstants.USER_DELETED_STATUS_CODE) {
                 user.setUserName(userObj.getString("id") + DELETED);
             } else {
                 user.setUserName(userObj.getString("name"));
@@ -92,7 +101,7 @@ public class OctaneUserIntegration extends UserIntegration {
 
             JSONObject licenseType = userObj.getJSONObject("license_type");
             String licenseTypeId = licenseType.getString("id");
-            if (userObj.getInt("activity_level") == OctaneConstants.USER_ACTIVITY_STATUS_CODE) {
+            if (activityLevel == OctaneConstants.USER_ACTIVITY_STATUS_CODE) {
                 addSecurityGroupAndLicenseToUsers(user, roleList, licenseTypeId, userConfiguration.getSecurity());
                 user.setEnabledFlag(true);
             } else {
@@ -115,6 +124,27 @@ public class OctaneUserIntegration extends UserIntegration {
         }
 
         return users;
+    }
+
+    private Map<String, Integer> getUserActivityLevelInWorkspace(ClientPublicAPI client, String workSpaceId,
+            String sharedSpaceId, JSONArray userArray)
+    {
+        Map<String, Integer> activityLevelMap = new HashMap<>();
+        if (workSpaceId != null) {
+            List<String> ids = new ArrayList<>();
+            for (int i = 0; i < userArray.size(); i++) {
+                JSONObject userObj = userArray.getJSONObject(i);
+                ids.add(userObj.getString("id"));
+            }
+            JSONArray userActiveLevelArray = client.getUsersActiveLevel(sharedSpaceId, workSpaceId, ids);
+
+            for (int i = 0; i < userActiveLevelArray.size(); i++) {
+                JSONObject userObj = userActiveLevelArray.getJSONObject(i);
+                activityLevelMap.put(userObj.getString("id"), userObj.getInt("activity_level"));
+            }
+        }
+
+        return activityLevelMap;
     }
 
     private List<String> getRoleListofUser(String workSpaceId, JSONObject userObj) {
