@@ -1874,4 +1874,27 @@ public class ClientPublicAPI {
     public void setSSOCookies(String cookies) {
     	this.cookies = cookies;
     }
+
+    public JSONArray getUsersActiveLevel(String sharedSpaceId, String workSpaceId, List<String> ids) {
+        String query = "";
+        if (null != ids && ids.size() > 0) {
+            query += "\"id IN '" + StringUtils.join(ids, "','") + "'\"";
+        } else {
+            return new JSONArray();
+        }
+
+        try {
+            query = URLEncoder.encode(query, "UTF-8");
+        } catch (UnsupportedEncodingException e) {
+            logger.error(" UnsupportedEncodingException when encoding url query", e);
+        }
+        String url =
+                String.format("%s/api/shared_spaces/%s/workspaces/%s/workspace_users?fields=id,activity_level&query=%s",
+                        baseURL, sharedSpaceId, workSpaceId, query);
+
+        RestResponse response = sendGet(url);
+        JSONObject dataObj = JSONObject.fromObject(response.getData());
+        JSONArray userList = JSONArray.fromObject(dataObj.get("data"));
+        return userList;
+    }
 }
