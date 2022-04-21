@@ -41,7 +41,8 @@ public class OctaneIntegrationConnector extends IntegrationConnector {
                 new PlainText(OctaneConstants.KEY_PROXY_PORT, "PROXY_PORT", "", "", false),
                 new CheckBox(OctaneConstants.KEY_USE_GLOBAL_PROXY, "USE_GLOBAL_PROXY", "", false), new LineBreaker(),
                 new PlainText(OctaneConstants.APP_CLIENT_ID, "CLIENT_ID", "", "", true),
-                new PasswordText(OctaneConstants.APP_CLIENT_SECRET, "CLIENT_SECRET", "", "", true), new LineBreaker()});
+                new PasswordText(OctaneConstants.APP_CLIENT_SECRET, "CLIENT_SECRET", "", "", true), new LineBreaker(),
+                new CheckBox(OctaneConstants.KEY_ALLOW_WILDCARD_PROJECT, "KEY_ALLOW_WILDCARD_PROJECT_MAPPING", false)});
     }
 
     /**
@@ -75,10 +76,18 @@ public class OctaneIntegrationConnector extends IntegrationConnector {
         try {
             ClientPublicAPI client = ClientPublicAPI.getClient(paramValueSet);
             List<SharedSpace> sharedSpacesList = client.getSharedSpaces();
+            
+            if ("true".equals(paramValueSet.get(OctaneConstants.KEY_ALLOW_WILDCARD_PROJECT))) {
+                AgileProject agileProject = new AgileProject();
+                agileProject.setDisplayName("*");
+                agileProject.setValue("*");
+                agileProjectList.add(agileProject);
+            }
+            
             for (SharedSpace sharedSpace : sharedSpacesList) {
+                  int sharedSpaceId = Integer.parseInt(sharedSpace.getId());
+                  String sharedSpaceName = sharedSpace.getName();
                 //workspace
-                int sharedSpaceId = Integer.parseInt(sharedSpace.getId());
-                String sharedSpaceName = sharedSpace.getName();
                 List<WorkSpace> workspaces = client.getWorkSpaces(sharedSpaceId);
                 for (WorkSpace workspace : workspaces) {
                     AgileProject project = new AgileProject();

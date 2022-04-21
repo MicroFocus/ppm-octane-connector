@@ -1034,8 +1034,13 @@ public class ClientPublicAPI {
         return (List<EpicAttr>)getDataContent(response.getData(), new TypeReference<List<EpicAttr>>(){});
     }
 
-    public List<FieldInfo> getEntityFields(final String sharedspaceId, final String workspaceId, final String entityName) {
-        String url = String.format("%s/api/shared_spaces/%s/workspaces/%s/metadata/fields?query=%s%s%s",
+    public List<FieldInfo> getEntityFields(final String sharedspaceId, String workspaceId, String entityName) { 
+    	//shared epic's workspace has a specific workspace, it is 500
+    	if(OctaneConstants.SUB_SHARED_EPIC.equalsIgnoreCase(entityName)) {
+        	workspaceId = OctaneConstants.SHARED_EPIC_DEFAULT_WORKSPACE;
+        	entityName = OctaneConstants.KEY_EPIC_ENTITY_TYPE;
+        }
+    	String url = String.format("%s/api/shared_spaces/%s/workspaces/%s/metadata/fields?query=%s%s%s",
                 baseURL, sharedspaceId, workspaceId, "%22entity_name%20EQ%20'", entityName,
                 "';field_type%20IN%20'string','reference','memo','integer'%22");
         // "';visible_in_ui%20EQ%20true;editable%20EQ%20true;field_type%20IN%20'string','reference','memo'%22");
