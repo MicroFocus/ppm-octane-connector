@@ -12,6 +12,8 @@ public class OctaneConstants {
     public static final String APP_CLIENT_ID = "clientId";
 
     public static final String APP_CLIENT_SECRET = "clientSecret";
+    
+    public static final String KEY_ALLOW_WILDCARD_PROJECT = "allowWildcardProjectMapping";
 
     public static final String PROJECT_ID = "ProjectId";
 
@@ -62,6 +64,10 @@ public class OctaneConstants {
     public static final String SUB_TYPE_STORY = "story";
 
     public static final String SUB_TYPE_DEFECT = "defect";
+    
+    public static final String SUB_SHARED_EPIC = "sharedEpic";
+    
+    public static final String SHARED_EPIC_DEFAULT_WORKSPACE = "500";
 
     public static final String WORKSPACE_ID = "WORKSPACE_ID";
 
