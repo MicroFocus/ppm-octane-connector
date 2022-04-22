@@ -68,14 +68,14 @@ public class OctaneRequestIntegration extends RequestIntegration {
         feature.setName("Feature");
         feature.setType(OctaneConstants.SUB_TYPE_FEATURE);
         entityList.add(feature);
-        AgileEntityInfo userStory = new AgileEntityInfo();
-        userStory.setName("User Story");
-        userStory.setType(OctaneConstants.SUB_TYPE_STORY);
-        entityList.add(userStory);
         AgileEntityInfo sharedEpic = new AgileEntityInfo();
    	 	sharedEpic.setName("Shared Epic");
    	 	sharedEpic.setType(OctaneConstants.SUB_SHARED_EPIC);
         entityList.add(sharedEpic);
+        AgileEntityInfo userStory = new AgileEntityInfo();
+        userStory.setName("User Story");
+        userStory.setType(OctaneConstants.SUB_TYPE_STORY);
+        entityList.add(userStory);
         return entityList;
     }
 
