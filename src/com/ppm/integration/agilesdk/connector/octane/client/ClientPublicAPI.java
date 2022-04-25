@@ -36,6 +36,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.hp.ppm.integration.model.AgileEntityFieldValue;
+
 import com.ppm.integration.agilesdk.ValueSet;
 import com.ppm.integration.agilesdk.connector.octane.OctaneConstants;
 import com.ppm.integration.agilesdk.connector.octane.model.EpicAttr;
@@ -59,11 +60,14 @@ import com.ppm.integration.agilesdk.connector.octane.model.WorkItemEpic;
 import com.ppm.integration.agilesdk.connector.octane.model.WorkItemRoot;
 import com.ppm.integration.agilesdk.connector.octane.model.WorkSpace;
 import com.ppm.integration.agilesdk.connector.octane.model.WorkSpaces;
+import com.ppm.integration.agilesdk.provider.DBUtilsProvider;
+import com.ppm.integration.agilesdk.provider.Providers;
 import com.ppm.integration.agilesdk.tm.AuthenticationInfo;
 
 import net.sf.json.JSONArray;
 import net.sf.json.JSONException;
 import net.sf.json.JSONObject;
+
 
 
 /**
@@ -1883,7 +1887,9 @@ public class ClientPublicAPI {
     public JSONArray getUsersActiveLevel(String sharedSpaceId, String workSpaceId, List<String> ids) {
         String query = "";
         if (null != ids && ids.size() > 0) {
-            query += "\"id IN '" + StringUtils.join(ids, "','") + "'\"";
+
+            String queryIdsStr = getQueryInClause("id", ids);
+            query += "\" + queryIdsStr + \"";
         } else {
             return new JSONArray();
         }
@@ -1901,5 +1907,11 @@ public class ClientPublicAPI {
         JSONObject dataObj = JSONObject.fromObject(response.getData());
         JSONArray userList = JSONArray.fromObject(dataObj.get("data"));
         return userList;
+    }
+
+    private String getQueryInClause(String columnName, final List<String> ids) {
+        DBUtilsProvider provider = Providers.getDBUtilsProvider();
+        return provider.createQueryInClause(columnName, ids);
+
     }
 }
