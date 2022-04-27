@@ -67,8 +67,8 @@ public class OctaneRequestIntegration extends RequestIntegration {
         ClientPublicAPI client = ClientPublicAPI.getClient(instanceConfigurationParameters);
         List<SharedSpace> sharedSpacesList = client.getSharedSpaces();
         if(!sharedSpacesList.isEmpty()) {
-        	// always get the first shared space as one API token can only access to one token.
-        	SharedSpace space = sharedSpacesList.get(0);
+        	// always get the first shared space as one API token can only access to one space.
+            SharedSpace space = sharedSpacesList.get(0);
             AgileEntityInfo epic = new AgileEntityInfo();
             epic.setName("Epic");
             epic.setType(OctaneConstants.SUB_TYPE_EPIC);
@@ -81,15 +81,13 @@ public class OctaneRequestIntegration extends RequestIntegration {
             userStory.setName("User Story");
             userStory.setType(OctaneConstants.SUB_TYPE_STORY);
             entityList.add(userStory);
-            if(space.getMode().equalsIgnoreCase(SHARED_SPACE_MODE_SHARED)) {
+            if(SHARED_SPACE_MODE_SHARED.equalsIgnoreCase(space.getMode())) {
                 AgileEntityInfo sharedEpic = new AgileEntityInfo();
            	 	sharedEpic.setName("Shared Epic");
            	 	sharedEpic.setType(OctaneConstants.SUB_SHARED_EPIC);
                 entityList.add(sharedEpic);
             }
-        } else {
-        	return entityList;
-        }
+        } 
         return entityList;
     }
 
