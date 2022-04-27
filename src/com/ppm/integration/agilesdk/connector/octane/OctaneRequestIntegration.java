@@ -26,6 +26,7 @@ import com.ppm.integration.agilesdk.connector.octane.client.OctaneClientExceptio
 import com.ppm.integration.agilesdk.connector.octane.model.FieldInfo;
 import com.ppm.integration.agilesdk.connector.octane.model.SharedSpace;
 import com.ppm.integration.agilesdk.connector.octane.model.SimpleEntity;
+import com.ppm.integration.agilesdk.connector.octane.model.WorkSpace;
 import com.ppm.integration.agilesdk.dm.DataField;
 import com.ppm.integration.agilesdk.dm.DataField.DATA_TYPE;
 import com.ppm.integration.agilesdk.dm.ListNode;
@@ -95,12 +96,26 @@ public class OctaneRequestIntegration extends RequestIntegration {
     public List<AgileEntityFieldInfo> getAgileEntityFieldsInfo(final String agileProjectValue, final String entityType,
             final ValueSet instanceConfigurationParameters)
     {
-        List<AgileEntityFieldInfo> fieldList = new ArrayList<AgileEntityFieldInfo>();
         ClientPublicAPI client = ClientPublicAPI.getClient(instanceConfigurationParameters);
-        JSONObject workspaceJson = (JSONObject)JSONSerializer.toJSON(agileProjectValue);
-        String workSpaceId = workspaceJson.getString(OctaneConstants.WORKSPACE_ID);
-        String sharedSpaceId = workspaceJson.getString(OctaneConstants.SHARED_SPACE_ID);
-        List<FieldInfo> fields = client.getEntityFields(sharedSpaceId, workSpaceId, entityType);
+        List<FieldInfo> fields = new ArrayList<>();
+        if(OctaneConstants.WILDCARD_PLACEHOLDER.equalsIgnoreCase(agileProjectValue))
+        {        	
+        	fields = getWildcardFields(entityType, client);
+        } else {
+        	JSONObject workspaceJson = (JSONObject)JSONSerializer.toJSON(agileProjectValue);
+            String workSpaceId = workspaceJson.getString(OctaneConstants.WORKSPACE_ID);
+            String sharedSpaceId = workspaceJson.getString(OctaneConstants.SHARED_SPACE_ID);
+            fields = client.getEntityFields(sharedSpaceId, workSpaceId, entityType);
+        }       
+
+        List<AgileEntityFieldInfo> fieldList = transferModel(fields);
+        Collections.sort(fieldList, new AgileFieldComparator());
+        client.signOut(instanceConfigurationParameters);
+        return fieldList;
+    }
+
+	private List<AgileEntityFieldInfo> transferModel(List<FieldInfo> fields) {
+		List<AgileEntityFieldInfo> fieldList = new ArrayList<AgileEntityFieldInfo>();
         for (FieldInfo field : fields) {
             AgileEntityFieldInfo info = new AgileEntityFieldInfo();
             info.setFieldType(getAgileFieldtype(field.getFieldType()));            
@@ -115,10 +130,37 @@ public class OctaneRequestIntegration extends RequestIntegration {
             info.setMultiValue(field.isMultiValue());
             fieldList.add(info);
         }
-        Collections.sort(fieldList, new AgileFieldComparator());
-        client.signOut(instanceConfigurationParameters);
-        return fieldList;
-    }
+		return fieldList;
+	}
+
+	private List<FieldInfo> getWildcardFields(final String entityType, ClientPublicAPI client) {
+		List<SharedSpace> sharedSpacesList = client.getSharedSpaces();
+		if(!sharedSpacesList.isEmpty()) {
+		    //always get the first shared space as one API token can only access to one space.
+		    SharedSpace space = sharedSpacesList.get(0);		    
+		    if(OctaneConstants.SUB_SHARED_EPIC.equalsIgnoreCase(entityType)) {
+			 	return client.getEntityFields(space.getId(), OctaneConstants.SHARED_EPIC_DEFAULT_WORKSPACE, entityType);
+		    } else {                    
+		        List<WorkSpace> workspaces = client.getWorkSpaces(Integer.parseInt(space.getId()));
+		        Map<String,FieldInfo> fieldsMap = new HashMap<>();
+		        if(!workspaces.isEmpty()) {
+		        	fieldsMap = getFieldInfoMap(client,space.getId(),workspaces.get(0).getId(),entityType);
+		            for(int i=1;i<workspaces.size();i++) {
+		            	WorkSpace ws = workspaces.get(i);
+		            	List<FieldInfo> wsfields = client.getEntityFields(space.getId(), ws.getId(), entityType);
+		            	for(FieldInfo field:wsfields) {
+		            		if (!fieldsMap.containsKey(field.getName())) {
+		            			fieldsMap.put(field.getName(), field);
+		            		}
+		            	}
+		            }
+		        }
+		        return new ArrayList(fieldsMap.values());
+		    }
+		    
+		}
+		return new ArrayList<FieldInfo>();
+	}
     
     private String getAgileFieldtype(String fieldType) {
         if(fieldType == null) {
