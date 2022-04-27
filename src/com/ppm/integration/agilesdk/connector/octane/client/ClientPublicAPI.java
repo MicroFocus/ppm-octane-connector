@@ -418,7 +418,7 @@ public class ClientPublicAPI {
 
     public List<SharedSpace> getSharedSpaces() {
 
-        String url = String.format("%s/api/shared_spaces?fields=id,name", baseURL);
+        String url = String.format("%s/api/shared_spaces?fields=id,name,mode", baseURL);
 
         RestResponse response = sendGet(url);
 

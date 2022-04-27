@@ -26,6 +26,7 @@ public class SharedSpaces extends SimpleEntityCollection<SharedSpace> {
             tempSharedSpace.id = (String)tempObj.get("id");
             tempSharedSpace.name = (String)tempObj.get("name");
             tempSharedSpace.type = (String)tempObj.get("type");
+            tempSharedSpace.mode =  (String)tempObj.get("mode");
             super.add(tempSharedSpace);
         }
     }
