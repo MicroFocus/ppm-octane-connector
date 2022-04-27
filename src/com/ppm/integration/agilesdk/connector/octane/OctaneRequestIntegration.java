@@ -24,6 +24,7 @@ import com.ppm.integration.agilesdk.ValueSet;
 import com.ppm.integration.agilesdk.connector.octane.client.ClientPublicAPI;
 import com.ppm.integration.agilesdk.connector.octane.client.OctaneClientException;
 import com.ppm.integration.agilesdk.connector.octane.model.FieldInfo;
+import com.ppm.integration.agilesdk.connector.octane.model.SharedSpace;
 import com.ppm.integration.agilesdk.connector.octane.model.SimpleEntity;
 import com.ppm.integration.agilesdk.dm.DataField;
 import com.ppm.integration.agilesdk.dm.DataField.DATA_TYPE;
@@ -54,28 +55,39 @@ import net.sf.json.JSONSerializer;
 public class OctaneRequestIntegration extends RequestIntegration {
 
     private UserProvider up = null;
+    
+    public static final String SHARED_SPACE_MODE_SHARED = "SHARED";      // all vale:SHARED,ISOLATED
 
     @Override
     public List<AgileEntityInfo> getAgileEntitiesInfo(final String agileProjectValue,
             final ValueSet instanceConfigurationParameters)
     {
+
         List<AgileEntityInfo> entityList = new ArrayList<AgileEntityInfo>();
-        AgileEntityInfo epic = new AgileEntityInfo();
-        epic.setName("Epic");
-        epic.setType(OctaneConstants.SUB_TYPE_EPIC);
-        entityList.add(epic);
-        AgileEntityInfo feature = new AgileEntityInfo();
-        feature.setName("Feature");
-        feature.setType(OctaneConstants.SUB_TYPE_FEATURE);
-        entityList.add(feature);
-        AgileEntityInfo userStory = new AgileEntityInfo();
-        userStory.setName("User Story");
-        userStory.setType(OctaneConstants.SUB_TYPE_STORY);
-        entityList.add(userStory);
-        AgileEntityInfo sharedEpic = new AgileEntityInfo();
-   	 	sharedEpic.setName("Shared Epic");
-   	 	sharedEpic.setType(OctaneConstants.SUB_SHARED_EPIC);
-        entityList.add(sharedEpic);
+        ClientPublicAPI client = ClientPublicAPI.getClient(instanceConfigurationParameters);
+        List<SharedSpace> sharedSpacesList = client.getSharedSpaces();
+        if(!sharedSpacesList.isEmpty()) {
+        	// always get the first shared space as one API token can only access to one space.
+            SharedSpace space = sharedSpacesList.get(0);
+            AgileEntityInfo epic = new AgileEntityInfo();
+            epic.setName("Epic");
+            epic.setType(OctaneConstants.SUB_TYPE_EPIC);
+            entityList.add(epic);
+            AgileEntityInfo feature = new AgileEntityInfo();
+            feature.setName("Feature");
+            feature.setType(OctaneConstants.SUB_TYPE_FEATURE);
+            entityList.add(feature);
+            AgileEntityInfo userStory = new AgileEntityInfo();
+            userStory.setName("User Story");
+            userStory.setType(OctaneConstants.SUB_TYPE_STORY);
+            entityList.add(userStory);
+            if(SHARED_SPACE_MODE_SHARED.equalsIgnoreCase(space.getMode())) {
+                AgileEntityInfo sharedEpic = new AgileEntityInfo();
+           	 	sharedEpic.setName("Shared Epic");
+           	 	sharedEpic.setType(OctaneConstants.SUB_SHARED_EPIC);
+                entityList.add(sharedEpic);
+            }
+        } 
         return entityList;
     }
 
