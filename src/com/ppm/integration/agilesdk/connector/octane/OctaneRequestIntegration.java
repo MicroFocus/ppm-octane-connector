@@ -361,14 +361,15 @@ public class OctaneRequestIntegration extends RequestIntegration {
             JSONObject userStory = client.saveStoryInWorkspace(sharedSpaceId, workSpaceId, entityStr, method);
             agileEntity = wrapperEntity(userStory, null, null);
         } else if (OctaneConstants.SUB_TYPE_EPIC.equals(entityType) || OctaneConstants.SUB_SHARED_EPIC.equals(entityType)) {
+        	String finalWorkSpaceId = workSpaceId;
             // shared epic is special epic who belong to a master workflow whose id is 500
         	if(OctaneConstants.SUB_SHARED_EPIC.equals(entityType)) {
-            	workSpaceId = OctaneConstants.SHARED_EPIC_DEFAULT_WORKSPACE;
+        		finalWorkSpaceId = OctaneConstants.SHARED_EPIC_DEFAULT_WORKSPACE;
             	entityType = OctaneConstants.SUB_TYPE_EPIC;
             }
-        	SimpleEntity root = client.getWorkItemRoot(Integer.parseInt(sharedSpaceId), Integer.parseInt(workSpaceId));
-            String entityStr = buildEntity(client, sharedSpaceId, workSpaceId, fieldInfos, entityType, entity, root);
-            JSONObject userEpic = client.saveEpicInWorkspace(sharedSpaceId, workSpaceId, entityStr, method);
+        	SimpleEntity root = client.getWorkItemRoot(Integer.parseInt(sharedSpaceId), Integer.parseInt(finalWorkSpaceId));
+            String entityStr = buildEntity(client, sharedSpaceId, finalWorkSpaceId, fieldInfos, entityType, entity, root);
+            JSONObject userEpic = client.saveEpicInWorkspace(sharedSpaceId, finalWorkSpaceId, entityStr, method);
             agileEntity = wrapperEntity(userEpic, null, null);
         }
         if (agileEntity != null) {
