@@ -187,6 +187,8 @@ public class OctaneConstants {
     public static final String SSO_IDENTIFIER = "SSO_IDENTIFIER";
     
     public static final String KEY_SSO_COOKIE = "ssoC";
+    
+    public static final String WILDCARD_PLACEHOLDER = "*";
 
     // sync user
     public static final int USER_ACTIVITY_STATUS_CODE = 0;
