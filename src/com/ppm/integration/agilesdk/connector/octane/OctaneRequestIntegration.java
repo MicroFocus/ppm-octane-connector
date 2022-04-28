@@ -1,6 +1,7 @@
 
 package com.ppm.integration.agilesdk.connector.octane;
 
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -16,7 +17,6 @@ import java.util.StringTokenizer;
 import javax.ws.rs.HttpMethod;
 
 import org.joda.time.DateTime;
-import org.joda.time.format.DateTimeFormatter;
 import org.joda.time.format.ISODateTimeFormat;
 
 import com.hp.ppm.integration.model.AgileEntityFieldValue;
@@ -98,15 +98,14 @@ public class OctaneRequestIntegration extends RequestIntegration {
     {
         ClientPublicAPI client = ClientPublicAPI.getClient(instanceConfigurationParameters);
         List<FieldInfo> fields = new ArrayList<>();
-        if(OctaneConstants.WILDCARD_PLACEHOLDER.equalsIgnoreCase(agileProjectValue))
-        {        	
-        	fields = getWildcardFields(entityType, client);
+        if (OctaneConstants.WILDCARD_PLACEHOLDER.equalsIgnoreCase(agileProjectValue)) {
+            fields = getWildcardFields(entityType, client);
         } else {
-        	JSONObject workspaceJson = (JSONObject)JSONSerializer.toJSON(agileProjectValue);
+            JSONObject workspaceJson = (JSONObject)JSONSerializer.toJSON(agileProjectValue);
             String workSpaceId = workspaceJson.getString(OctaneConstants.WORKSPACE_ID);
             String sharedSpaceId = workspaceJson.getString(OctaneConstants.SHARED_SPACE_ID);
             fields = client.getEntityFields(sharedSpaceId, workSpaceId, entityType);
-        }       
+        }
 
         List<AgileEntityFieldInfo> fieldList = transferModel(fields);
         Collections.sort(fieldList, new AgileFieldComparator());
@@ -114,11 +113,11 @@ public class OctaneRequestIntegration extends RequestIntegration {
         return fieldList;
     }
 
-	private List<AgileEntityFieldInfo> transferModel(List<FieldInfo> fields) {
-		List<AgileEntityFieldInfo> fieldList = new ArrayList<AgileEntityFieldInfo>();
+    private List<AgileEntityFieldInfo> transferModel(List<FieldInfo> fields) {
+        List<AgileEntityFieldInfo> fieldList = new ArrayList<AgileEntityFieldInfo>();
         for (FieldInfo field : fields) {
             AgileEntityFieldInfo info = new AgileEntityFieldInfo();
-            info.setFieldType(getAgileFieldtype(field.getFieldType()));            
+            info.setFieldType(getAgileFieldtype(field.getFieldType()));
             info.setLabel(field.getLabel());
             info.setListType(field.getListType());
             String fieldName = field.getName();
@@ -130,37 +129,38 @@ public class OctaneRequestIntegration extends RequestIntegration {
             info.setMultiValue(field.isMultiValue());
             fieldList.add(info);
         }
-		return fieldList;
-	}
+        return fieldList;
+    }
 
-	private List<FieldInfo> getWildcardFields(final String entityType, ClientPublicAPI client) {
-		List<SharedSpace> sharedSpacesList = client.getSharedSpaces();
-		if(!sharedSpacesList.isEmpty()) {
-		    //always get the first shared space as one API token can only access to one space.
-		    SharedSpace space = sharedSpacesList.get(0);		    
-		    if(OctaneConstants.SUB_SHARED_EPIC.equalsIgnoreCase(entityType)) {
-			 	return client.getEntityFields(space.getId(), OctaneConstants.SHARED_EPIC_DEFAULT_WORKSPACE, entityType);
-		    } else {                    
-		        List<WorkSpace> workspaces = client.getWorkSpaces(Integer.parseInt(space.getId()));
-		        Map<String,FieldInfo> fieldsMap = new HashMap<>();
-		        if(!workspaces.isEmpty()) {
-		        	fieldsMap = getFieldInfoMap(client,space.getId(),workspaces.get(0).getId(),entityType);
-		            for(int i=1;i<workspaces.size();i++) {
-		            	WorkSpace ws = workspaces.get(i);
-		            	List<FieldInfo> wsfields = client.getEntityFields(space.getId(), ws.getId(), entityType);
-		            	for(FieldInfo field:wsfields) {
-		            		if (!fieldsMap.containsKey(field.getName())) {
-		            			fieldsMap.put(field.getName(), field);
-		            		}
-		            	}
-		            }
-		        }
-		        return new ArrayList(fieldsMap.values());
-		    }
-		    
-		}
-		return new ArrayList<FieldInfo>();
-	}
+    private List<FieldInfo> getWildcardFields(final String entityType, ClientPublicAPI client) {
+        List<SharedSpace> sharedSpacesList = client.getSharedSpaces();
+        if (!sharedSpacesList.isEmpty()) {
+            // always get the first shared space as one API token can only
+            // access to one space.
+            SharedSpace space = sharedSpacesList.get(0);
+            if (OctaneConstants.SUB_SHARED_EPIC.equalsIgnoreCase(entityType)) {
+                return client.getEntityFields(space.getId(), OctaneConstants.SHARED_EPIC_DEFAULT_WORKSPACE, entityType);
+            } else {
+                List<WorkSpace> workspaces = client.getWorkSpaces(Integer.parseInt(space.getId()));
+                Map<String, FieldInfo> fieldsMap = new HashMap<>();
+                if (!workspaces.isEmpty()) {
+                    fieldsMap = getFieldInfoMap(client, space.getId(), workspaces.get(0).getId(), entityType);
+                    for (int i = 1; i < workspaces.size(); i++) {
+                        WorkSpace ws = workspaces.get(i);
+                        List<FieldInfo> wsfields = client.getEntityFields(space.getId(), ws.getId(), entityType);
+                        for (FieldInfo field : wsfields) {
+                            if (!fieldsMap.containsKey(field.getName())) {
+                                fieldsMap.put(field.getName(), field);
+                            }
+                        }
+                    }
+                }
+                return new ArrayList(fieldsMap.values());
+            }
+
+        }
+        return new ArrayList<FieldInfo>();
+    }
     
     private String getAgileFieldtype(String fieldType) {
         if(fieldType == null) {
@@ -360,15 +360,19 @@ public class OctaneRequestIntegration extends RequestIntegration {
             String entityStr = buildEntity(client, sharedSpaceId, workSpaceId, fieldInfos, entityType, entity, root);
             JSONObject userStory = client.saveStoryInWorkspace(sharedSpaceId, workSpaceId, entityStr, method);
             agileEntity = wrapperEntity(userStory, null, null);
-        } else if (OctaneConstants.SUB_TYPE_EPIC.equals(entityType) || OctaneConstants.SUB_SHARED_EPIC.equals(entityType)) {
-        	String finalWorkSpaceId = workSpaceId;
-            // shared epic is special epic who belong to a master workflow whose id is 500
-        	if(OctaneConstants.SUB_SHARED_EPIC.equals(entityType)) {
-        		finalWorkSpaceId = OctaneConstants.SHARED_EPIC_DEFAULT_WORKSPACE;
-            	entityType = OctaneConstants.SUB_TYPE_EPIC;
+        } else if (OctaneConstants.SUB_TYPE_EPIC.equals(entityType)
+                || OctaneConstants.SUB_SHARED_EPIC.equals(entityType)) {
+            String finalWorkSpaceId = workSpaceId;
+            // shared epic is special epic who belong to a master workflow whose
+            // id is 500
+            if (OctaneConstants.SUB_SHARED_EPIC.equals(entityType)) {
+                finalWorkSpaceId = OctaneConstants.SHARED_EPIC_DEFAULT_WORKSPACE;
+                entityType = OctaneConstants.SUB_TYPE_EPIC;
             }
-        	SimpleEntity root = client.getWorkItemRoot(Integer.parseInt(sharedSpaceId), Integer.parseInt(finalWorkSpaceId));
-            String entityStr = buildEntity(client, sharedSpaceId, finalWorkSpaceId, fieldInfos, entityType, entity, root);
+            SimpleEntity root =
+                    client.getWorkItemRoot(Integer.parseInt(sharedSpaceId), Integer.parseInt(finalWorkSpaceId));
+            String entityStr =
+                    buildEntity(client, sharedSpaceId, finalWorkSpaceId, fieldInfos, entityType, entity, root);
             JSONObject userEpic = client.saveEpicInWorkspace(sharedSpaceId, finalWorkSpaceId, entityStr, method);
             agileEntity = wrapperEntity(userEpic, null, null);
         }
