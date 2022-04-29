@@ -132,7 +132,7 @@ public class OctaneRequestIntegration extends RequestIntegration {
 
     private List<FieldInfo> getWildcardFields(final String entityType, ClientPublicAPI client) {
         SharedSpace space = client.getActiveSharedSpace();
-        if (null != space) {
+        if (space != null) {
             if (OctaneConstants.SUB_SHARED_EPIC.equalsIgnoreCase(entityType)) {
                 return client.getEntityFields(space.getId(), OctaneConstants.SHARED_EPIC_DEFAULT_WORKSPACE, entityType);
             } else {
@@ -189,7 +189,7 @@ public class OctaneRequestIntegration extends RequestIntegration {
         ClientPublicAPI client = ClientPublicAPI.getClient(instanceConfigurationParameters);
 
         SharedSpace sp = client.getActiveSharedSpace();
-        if (null != sp) {
+        if (sp != null) {
             sharedSpaceId = sp.getId();
             if (OctaneConstants.SUB_SHARED_EPIC.equalsIgnoreCase(entityType)) {
                 workSpaceId = OctaneConstants.SHARED_EPIC_DEFAULT_WORKSPACE;
