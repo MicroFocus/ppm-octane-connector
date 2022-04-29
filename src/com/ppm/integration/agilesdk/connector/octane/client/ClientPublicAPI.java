@@ -433,6 +433,16 @@ public class ClientPublicAPI {
         return tempSharedSpace.getCollection();
     }
 
+    public SharedSpace getActiveSharedSpace() {
+        List<SharedSpace> sharedSpacesList = getSharedSpaces();
+        if (!sharedSpacesList.isEmpty()) {
+            // always get the first shared space as one API token can only
+            // access to one space.
+            return sharedSpacesList.get(0);
+        }
+        return null;
+    }
+
     public List<WorkSpace> getWorkSpaces(int sharedSpacesId) {
 
         String url = String.format("%s/api/shared_spaces/%d/workspaces?fields=id,name", baseURL, sharedSpacesId);
