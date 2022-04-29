@@ -57,7 +57,7 @@ public class OctaneUserIntegration extends UserIntegration {
         String workSpaceId = String.valueOf(userConfiguration.getAgileProjectValue().getWorkspaceId());
         String sharedSpaceId = String.valueOf(userConfiguration.getAgileProjectValue().getSharedSpaceId());
 
-        String filter = getFilterByDateQuery(queryParams, workSpaceId);
+        String filter = getFilterByDateQuery(queryParams);
         Long offset = null;
         Long limit = null;
         try {
@@ -223,7 +223,7 @@ public class OctaneUserIntegration extends UserIntegration {
 
     }
 
-    private String getFilterByDateQuery(Map<String, Object> queryParams, String workSpaceId) {
+    private String getFilterByDateQuery(Map<String, Object> queryParams) {
         String filter = "\"";
         Date lastUpdateTime = (Date)queryParams.get("last_modified");
         if (lastUpdateTime != null) {
