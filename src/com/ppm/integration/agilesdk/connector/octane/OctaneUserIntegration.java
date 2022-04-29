@@ -72,7 +72,7 @@ public class OctaneUserIntegration extends UserIntegration {
 
         JSONArray userArray = client.getUsersWithSearchFilter(sharedSpaceId, workSpaceId, limit, offset, filter);
 
-        // get real active_level of users in workspace
+        // get license type of users from sharedSpace api
         Map<String, String> licenseTypeMap = getUserLicenseType(client, workSpaceId, sharedSpaceId, userArray);
 
         List<AgileDataUser> users = new ArrayList<>();
