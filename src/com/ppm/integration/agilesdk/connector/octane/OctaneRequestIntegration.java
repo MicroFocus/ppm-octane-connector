@@ -1,7 +1,6 @@
 
 package com.ppm.integration.agilesdk.connector.octane;
 
-import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -17,6 +16,7 @@ import java.util.StringTokenizer;
 import javax.ws.rs.HttpMethod;
 
 import org.joda.time.DateTime;
+import org.joda.time.format.DateTimeFormatter;
 import org.joda.time.format.ISODateTimeFormat;
 
 import com.hp.ppm.integration.model.AgileEntityFieldValue;
@@ -66,10 +66,8 @@ public class OctaneRequestIntegration extends RequestIntegration {
 
         List<AgileEntityInfo> entityList = new ArrayList<AgileEntityInfo>();
         ClientPublicAPI client = ClientPublicAPI.getClient(instanceConfigurationParameters);
-        List<SharedSpace> sharedSpacesList = client.getSharedSpaces();
-        if(!sharedSpacesList.isEmpty()) {
-        	// always get the first shared space as one API token can only access to one space.
-            SharedSpace space = sharedSpacesList.get(0);
+        SharedSpace space = client.getActiveSharedSpace();
+        if (null != space) {
             AgileEntityInfo epic = new AgileEntityInfo();
             epic.setName("Epic");
             epic.setType(OctaneConstants.SUB_TYPE_EPIC);
@@ -133,11 +131,8 @@ public class OctaneRequestIntegration extends RequestIntegration {
     }
 
     private List<FieldInfo> getWildcardFields(final String entityType, ClientPublicAPI client) {
-        List<SharedSpace> sharedSpacesList = client.getSharedSpaces();
-        if (!sharedSpacesList.isEmpty()) {
-            // always get the first shared space as one API token can only
-            // access to one space.
-            SharedSpace space = sharedSpacesList.get(0);
+        SharedSpace space = client.getActiveSharedSpace();
+        if (space != null) {
             if (OctaneConstants.SUB_SHARED_EPIC.equalsIgnoreCase(entityType)) {
                 return client.getEntityFields(space.getId(), OctaneConstants.SHARED_EPIC_DEFAULT_WORKSPACE, entityType);
             } else {
@@ -185,18 +180,67 @@ public class OctaneRequestIntegration extends RequestIntegration {
     }
 
     @Override
-    public List<AgileEntityFieldValue> getAgileEntityFieldsValueList(final String agileProjectValue,
-            String entityType,
+    public List<AgileEntityFieldValue> getAgileEntityFieldsValueList(final String agileProjectValue, String entityType,
             final ValueSet instanceConfigurationParameters, final String fieldName, final boolean isLogicalName)
     {
+        List<AgileEntityFieldValue> fields = new ArrayList<>();
+        String workSpaceId = "";
+        String sharedSpaceId = "";
         ClientPublicAPI client = ClientPublicAPI.getClient(instanceConfigurationParameters);
-        JSONObject workspaceJson = (JSONObject)JSONSerializer.toJSON(agileProjectValue);
-        String workSpaceId = workspaceJson.getString(OctaneConstants.WORKSPACE_ID);
-        String sharedSpaceId = workspaceJson.getString(OctaneConstants.SHARED_SPACE_ID);
-        if(OctaneConstants.SUB_SHARED_EPIC.equalsIgnoreCase(entityType)) {
-        	workSpaceId = OctaneConstants.SHARED_EPIC_DEFAULT_WORKSPACE;
-        	entityType = OctaneConstants.KEY_EPIC_ENTITY_TYPE;
+
+        SharedSpace sp = client.getActiveSharedSpace();
+        if (sp != null) {
+            sharedSpaceId = sp.getId();
+            if (OctaneConstants.SUB_SHARED_EPIC.equalsIgnoreCase(entityType)) {
+                workSpaceId = OctaneConstants.SHARED_EPIC_DEFAULT_WORKSPACE;
+                entityType = OctaneConstants.KEY_EPIC_ENTITY_TYPE;
+            } else {
+                if (OctaneConstants.WILDCARD_PLACEHOLDER.equalsIgnoreCase(agileProjectValue)) {
+                    // if use wildcard in agile project,find the specific
+                    // workspace that the field belongs to
+                    List<WorkSpace> wsList = client.getWorkSpaces(Integer.parseInt(sharedSpaceId));
+                    for (WorkSpace ws : wsList) {
+                        List<FieldInfo> candidatefields = client.getEntityFields(sharedSpaceId, ws.getId(), entityType);
+                        for (FieldInfo field : candidatefields) {
+                            if ((isLogicalName && fieldName.equals(field.getLogicalName()))||(!isLogicalName)&&fieldName.equals(field.getName())) {
+                                workSpaceId = ws.getId();
+                                break;
+                            }
+                        }
+
+                        if (!workSpaceId.isEmpty()) {
+                            break;
+                        }
+                    }
+                } else {
+                    JSONObject workspaceJson = (JSONObject)JSONSerializer.toJSON(agileProjectValue);
+                    workSpaceId = workspaceJson.getString(OctaneConstants.WORKSPACE_ID);
+                    sharedSpaceId = workspaceJson.getString(OctaneConstants.SHARED_SPACE_ID);
+                }
+            }
+            if (!workSpaceId.isEmpty()) {
+                fields = getAgileFieldValueList(sharedSpaceId, workSpaceId, entityType, fieldName, isLogicalName,
+                        client);
+            }
+
         }
+
+        client.signOut(instanceConfigurationParameters);
+        return fields;
+    }
+
+    /**
+     * get detail field value list according to specific space and workspace id
+     * @param agileProjectValue
+     * @param entityType
+     * @param fieldName
+     * @param isLogicalName
+     * @param client
+     * @return
+     */
+    private List<AgileEntityFieldValue> getAgileFieldValueList(String sharedSpaceId, String workSpaceId,
+            String entityType, final String fieldName, final boolean isLogicalName, ClientPublicAPI client)
+    {
         List<AgileEntityFieldValue> fields = null;
         if (isLogicalName) {
             fields = client.getEntityFieldListNode(sharedSpaceId, workSpaceId, fieldName);
@@ -231,7 +275,6 @@ public class OctaneRequestIntegration extends RequestIntegration {
             }
             fields = client.getEntityFieldValueList(sharedSpaceId, workSpaceId, entityType, newFieldName);
         }
-        client.signOut(instanceConfigurationParameters);
         return fields;
     }
 
