@@ -200,13 +200,17 @@ public class OctaneRequestIntegration extends RequestIntegration {
                     // workspace that the field belongs to
                     List<WorkSpace> wsList = client.getWorkSpaces(Integer.parseInt(sharedSpaceId));
                     for (WorkSpace ws : wsList) {
-                        Map<String, FieldInfo> fieldsMap =
-                                getFieldInfoMap(client, sharedSpaceId, ws.getId(), entityType);
-                        if (fieldsMap.containsKey(fieldName)) {
-                            workSpaceId = ws.getId();
-                            break;
+                        List<FieldInfo> candidatefields = client.getEntityFields(sharedSpaceId, ws.getId(), entityType);
+                        for (FieldInfo field : candidatefields) {
+                            if ((isLogicalName && fieldName.equals(field.getLogicalName()))||(!isLogicalName)&&fieldName.equals(field.getName())) {
+                                workSpaceId = ws.getId();
+                                break;
+                            }
                         }
 
+                        if (!workSpaceId.isEmpty()) {
+                            break;
+                        }
                     }
                 } else {
                     JSONObject workspaceJson = (JSONObject)JSONSerializer.toJSON(agileProjectValue);
