@@ -1610,15 +1610,24 @@ public class ClientPublicAPI {
     public JSONArray getUsersWithSearchFilter(String sharedspaceId, String workspaceId, Long limit, Long offset,
             String filter)
     {
-        String url = null;
+
+        String limitedField = null;
         if (limit != null && offset != null) {
+            limitedField = String.format("&limit=%s&offset=%s", limit, offset);
+        }
+
+        String url = null;
+        if (workspaceId != null) {
+            // get workspace users
             url = String.format(
-                    "%s/api/shared_spaces/%s/users?fields=email,id,full_name,name,first_name,last_modified,last_name,activity_level,workspace_roles,license_type&order_by=last_modified&show_hidden_entities=true&limit=%s&offset=%s&query=%s",
-                    baseURL, sharedspaceId, limit, offset, filter);
+                    "%s/api/shared_spaces/%s/workspaces/%s/workspace_users?fields=email,id,full_name,name,first_name,last_modified,last_name,activity_level,roles&order_by=last_modified&show_hidden_entities=true%s&query=%s",
+                    baseURL, sharedspaceId, workspaceId, limitedField, filter);
+
         } else {
+            // get sharedSpace users
             url = String.format(
-                    "%s/api/shared_spaces/%s/users?fields=email,id,full_name,name,first_name,last_modified,last_name,activity_level,workspace_roles,license_type&order_by=last_modified&show_hidden_entities=true&query=%s",
-                    baseURL, sharedspaceId, filter);
+                    "%s/api/shared_spaces/%s/users?fields=email,id,full_name,name,first_name,last_modified,last_name,activity_level,workspace_roles,license_type&order_by=last_modified&show_hidden_entities=true%s&query=%s",
+                    baseURL, sharedspaceId, limitedField, filter);
         }
 
 
@@ -1890,7 +1899,7 @@ public class ClientPublicAPI {
     	this.cookies = cookies;
     }
 
-    public JSONArray getUsersActiveLevel(String sharedSpaceId, String workSpaceId, List<String> ids) {
+    public JSONArray getUsersLicenseType(String sharedSpaceId, List<String> ids) {
         String query = "";
         if (null != ids && ids.size() > 0) {
             query += "\"id IN '" + StringUtils.join(ids, "','") + "'\"";
@@ -1904,8 +1913,8 @@ public class ClientPublicAPI {
             logger.error(" UnsupportedEncodingException when encoding url query", e);
         }
         String url =
-                String.format("%s/api/shared_spaces/%s/workspaces/%s/workspace_users?fields=id,activity_level&query=%s",
-                        baseURL, sharedSpaceId, workSpaceId, query);
+                String.format("%s/api/shared_spaces/%s/users?fields=id,license_type&query=%s",
+                        baseURL, sharedSpaceId, query);
 
         RestResponse response = sendGet(url);
         JSONObject dataObj = JSONObject.fromObject(response.getData());
