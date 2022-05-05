@@ -29,7 +29,6 @@ import javax.ws.rs.core.MediaType;
 
 import org.apache.commons.lang.StringUtils;
 import org.apache.http.HttpStatus;
-import org.apache.log4j.Logger;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -442,6 +441,18 @@ public class ClientPublicAPI {
     }
 
     public List<WorkSpace> getWorkSpaces(int sharedSpacesId) {
+        
+        String userurl = String.format(
+                "%s/api/shared_spaces/%s/users?fields=name,workspace_roles&query=\"is_api_key=true;name=%27%s%27\"",
+                baseURL, sharedSpacesId, "");
+
+
+
+    RestResponse response1 = sendGet(userurl);
+    JSONObject dataObj = JSONObject.fromObject(response1.getData());
+    JSONArray userList = JSONArray.fromObject(dataObj.get("data"));
+        
+        JSONArray user = getUsersWithSearchFilter(sharedSpacesId+"", null, new Long(10), new Long(0),null);
 
         String url = String.format("%s/api/shared_spaces/%d/workspaces?fields=id,name", baseURL, sharedSpacesId);
 
