@@ -146,9 +146,7 @@ public class ClientPublicAPI {
 
       String data = String.format("{\"client_id\":\"%s\",\"client_secret\":\"%s\",\"enable_csrf\": \"false\"}", new Object[] { clientId, clientSecret });
 
-      Map headers = new HashMap();
-      headers.put("Content-Type", "application/json");
-      RestResponse response = sendRequest(url, "POST", data, headers);
+      RestResponse response = sendRequest(url, "POST", data);
       return verifyResult(200, response.getStatusCode());
     }
 
