@@ -496,7 +496,9 @@ public class ClientPublicAPI {
                     if(WORKSPACE_ADMIN_ROLE.equalsIgnoreCase(roleName)) {
                         net.sf.json.JSONObject ws = wsRole.getJSONObject("workspace");
                         String wsId = ws.getString("id");
-                        workspaceIds.add(wsId);
+                        if(!OctaneConstants.SHARED_EPIC_DEFAULT_WORKSPACE.equalsIgnoreCase(wsId)) {
+                            workspaceIds.add(wsId);
+                        }
                     }
                     
                 }
