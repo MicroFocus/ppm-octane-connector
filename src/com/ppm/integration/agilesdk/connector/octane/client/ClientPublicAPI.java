@@ -14,6 +14,8 @@ import java.net.URL;
 import java.net.URLEncoder;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -29,6 +31,7 @@ import javax.ws.rs.core.MediaType;
 
 import org.apache.commons.lang.StringUtils;
 import org.apache.http.HttpStatus;
+import org.apache.log4j.Logger;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -74,10 +77,14 @@ import net.sf.json.JSONObject;
 public class ClientPublicAPI {
 
     private static final String JSON_TIME_SUFFIX = "T12:00:00Z";
+    
+    private static final String WORKSPACE_ADMIN_ROLE = "role.workspace.admin";
 
     private final Logger logger = Logger.getLogger(this.getClass());
 
     private String baseURL = "";
+    
+    private String clientId = "";
 
     private Integer workSpaceId = null;
 
@@ -441,20 +448,14 @@ public class ClientPublicAPI {
     }
 
     public List<WorkSpace> getWorkSpaces(int sharedSpacesId) {
-        
-        String userurl = String.format(
-                "%s/api/shared_spaces/%s/users?fields=name,workspace_roles&query=\"is_api_key=true;name=%27%s%27\"",
-                baseURL, sharedSpacesId, "");
-
-
-
-    RestResponse response1 = sendGet(userurl);
-    JSONObject dataObj = JSONObject.fromObject(response1.getData());
-    JSONArray userList = JSONArray.fromObject(dataObj.get("data"));
-        
-        JSONArray user = getUsersWithSearchFilter(sharedSpacesId+"", null, new Long(10), new Long(0),null);
-
-        String url = String.format("%s/api/shared_spaces/%d/workspaces?fields=id,name", baseURL, sharedSpacesId);
+        List<String> ids = getApiAccessWorkSpaces(sharedSpacesId);
+        if(ids.size()==0) {
+            return new ArrayList<>();
+        }
+        String query = generateInQuery(ids,"id");
+        query  = queryEncode(query);
+                
+        String url = String.format("%s/api/shared_spaces/%d/workspaces?fields=id,name&query=%s", baseURL, sharedSpacesId,query);
 
         RestResponse response = sendGet(url);
 
@@ -466,6 +467,41 @@ public class ClientPublicAPI {
             throw new OctaneClientException("AGM_APP", "error in get WorkSpace:", e.getMessage());
         }
         return tempWorkSpace.getCollection();
+    }
+    
+    public List<String> getApiAccessWorkSpaces(int sharedSpacesId) {
+
+        String query = queryEncode("\"is_api_key=true;name='" + this.clientId + "'\"");
+        String url = String.format(
+                "%s/api/shared_spaces/%s/users?fields=name,workspace_roles&query=%s",
+                baseURL, sharedSpacesId, query);
+        
+        RestResponse response = sendGet(url);
+        List<String> workspaceIds = new ArrayList<String>();
+
+        net.sf.json.JSONObject object = net.sf.json.JSONObject.fromObject(response.getData());
+        if(object.get("data") == null){
+            return workspaceIds;
+        }
+        net.sf.json.JSONArray jsonarray = (net.sf.json.JSONArray)(object.get("data"));
+        if(!jsonarray.isEmpty()) {
+            net.sf.json.JSONObject tempObj = jsonarray.getJSONObject(0);
+                net.sf.json.JSONObject workspaceRole = net.sf.json.JSONObject.fromObject(tempObj.get("workspace_roles"));
+                net.sf.json.JSONArray wsroles = (net.sf.json.JSONArray)(workspaceRole.get("data"));
+                for (int i = 0, length = wsroles.size(); i < length; i++) {
+                    net.sf.json.JSONObject wsRole = wsroles.getJSONObject(i);
+                    net.sf.json.JSONObject role = wsRole.getJSONObject("role");
+                    String roleName = role.getString("logical_name");
+                    if(WORKSPACE_ADMIN_ROLE.equalsIgnoreCase(roleName)) {
+                        net.sf.json.JSONObject ws = wsRole.getJSONObject("workspace");
+                        String wsId = ws.getString("id");
+                        workspaceIds.add(wsId);
+                    }
+                    
+                }
+
+        }
+        return workspaceIds;
     }
 
     public Release getRelease(int sharedSpacesId, int workSpaceId, int releaseId) {
@@ -1409,6 +1445,10 @@ public class ClientPublicAPI {
             this.sharedSpaceId = Integer.parseInt(sharedSpaceId);
         }
     }
+    
+    public void setClientId(String clientId) {
+        this.clientId = clientId;
+    }
 
     public Map<String, String> getAllPhases() {
 
@@ -1594,18 +1634,11 @@ public class ClientPublicAPI {
 
 
     public JSONArray getUsersByIds(String sharedspaceId, String workspaceId, String[] ids) {
-        String query = "";
-        if (null != ids && ids.length > 0) {
-            query += "\"id IN '" + StringUtils.join(ids, "','")  + "'\"";
-        } else {
-            return null;
+        if(ids.length==0) {
+            return new JSONArray();
         }
-
-        try {
-            query = URLEncoder.encode(query, "UTF-8");
-        } catch (UnsupportedEncodingException e) {
-            e.printStackTrace();
-        }
+        String query = generateInQuery(Arrays.asList(ids),"id");
+        query  = queryEncode(query);
         String url = String.format(
                 "%s/api/shared_spaces/%s/workspaces/%s/workspace_users?fields=email,id,full_name,name&query=%s",
                 baseURL, sharedspaceId, workspaceId, query);
@@ -1647,18 +1680,11 @@ public class ClientPublicAPI {
     }
 
     public JSONArray getUsersByEmails(String sharedspaceId, String workSpaceId, String[] emails) {
-        String query = "";
-        if (null != emails && emails.length > 0) {
-            query += "\"email IN '" + StringUtils.join(emails, "','") + "'\"";
-        } else {
-            return null;
+        if(emails.length==0) {
+            return new JSONArray();
         }
-        try {
-            query = URLEncoder.encode(query, "UTF-8");
-        } catch (UnsupportedEncodingException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-        }
+        String query = generateInQuery(Arrays.asList(emails)," email ");
+        query =  queryEncode(query);
         String url = String.format("%s/api/shared_spaces/%s/workspaces/%s/workspace_users?fields=email,id,full_name,name&query=%s", baseURL,
                 sharedspaceId, workSpaceId, query);
         RestResponse response = sendGet(url);
@@ -1916,11 +1942,7 @@ public class ClientPublicAPI {
             return new JSONArray();
         }
 
-        try {
-            query = URLEncoder.encode(query, "UTF-8");
-        } catch (UnsupportedEncodingException e) {
-            logger.error(" UnsupportedEncodingException when encoding url query", e);
-        }
+        query = queryEncode(query);
         String url =
                 String.format("%s/api/shared_spaces/%s/users?fields=id,license_type&query=%s",
                         baseURL, sharedSpaceId, query);
@@ -1929,5 +1951,22 @@ public class ClientPublicAPI {
         JSONObject dataObj = JSONObject.fromObject(response.getData());
         JSONArray userList = JSONArray.fromObject(dataObj.get("data"));
         return userList;
+    }
+    
+    private String generateInQuery(List collection, String parameterName) {
+        String query = "";
+        if (null != collection && collection.size() > 0) {
+            query += "\" "+parameterName +" IN '" + StringUtils.join(collection, "','")  + "'\"";
+        } 
+        return query;
+    }
+    
+    public String queryEncode(String query) {
+        try {
+            query = URLEncoder.encode(query, "UTF-8");
+        } catch (UnsupportedEncodingException e) {
+            logger.error(" UnsupportedEncodingException when encoding url query", e);
+        }
+        return query;
     }
 }
