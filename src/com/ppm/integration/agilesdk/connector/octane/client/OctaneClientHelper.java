@@ -23,6 +23,7 @@ public class OctaneClientHelper {
         ClientPublicAPI client = new ClientPublicAPI(values.get(OctaneConstants.KEY_BASE_URL));
         client.setSharedSpaceId(values.get(OctaneConstants.KEY_SHAREDSPACEID));
         client.setWorkSpaceId(values.get(OctaneConstants.KEY_WORKSPACEID));
+        client.setClientId(values.get(OctaneConstants.APP_CLIENT_ID));
         String proxyHost = null, proxyPort = null;
         if (values.getBoolean(OctaneConstants.KEY_USE_GLOBAL_PROXY, false)) {
             String proxyURL = Providers.getServerConfigurationProvider(OctaneIntegrationConnector.class).getServerProperty("HTTP_PROXY_URL");
