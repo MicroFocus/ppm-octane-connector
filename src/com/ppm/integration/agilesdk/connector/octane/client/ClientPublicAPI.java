@@ -469,6 +469,7 @@ public class ClientPublicAPI {
         return tempWorkSpace.getCollection();
     }
     
+    // get all workspace that this token has workspace admin access
     public List<String> getApiAccessWorkSpaces(int sharedSpacesId) {
 
         String query = queryEncode("\"is_api_key=true;name='" + this.clientId + "'\"");
