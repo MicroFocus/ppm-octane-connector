@@ -77,13 +77,6 @@ public class OctaneIntegrationConnector extends IntegrationConnector {
             ClientPublicAPI client = ClientPublicAPI.getClient(paramValueSet);
             List<SharedSpace> sharedSpacesList = client.getSharedSpaces();
             
-            if ("true".equals(paramValueSet.get(OctaneConstants.KEY_ALLOW_WILDCARD_PROJECT))) {
-                AgileProject agileProject = new AgileProject();
-                agileProject.setDisplayName("*");
-                agileProject.setValue("*");
-                agileProjectList.add(agileProject);
-            }
-            
             for (SharedSpace sharedSpace : sharedSpacesList) {
                   int sharedSpaceId = Integer.parseInt(sharedSpace.getId());
                   String sharedSpaceName = sharedSpace.getName();
@@ -99,6 +92,13 @@ public class OctaneIntegrationConnector extends IntegrationConnector {
                     project.setValue(workspaceJson.toString());
                     agileProjectList.add(project);
                 }
+            }
+            if(!agileProjectList.isEmpty() && 
+                    "true".equals(paramValueSet.get(OctaneConstants.KEY_ALLOW_WILDCARD_PROJECT))) {
+                AgileProject agileProject = new AgileProject();
+                agileProject.setDisplayName("*");
+                agileProject.setValue("*");
+                agileProjectList.add(0,agileProject);
             }
         } catch (Throwable e) {
             logger.error("Error when retrieving Octane workspaces list", e);

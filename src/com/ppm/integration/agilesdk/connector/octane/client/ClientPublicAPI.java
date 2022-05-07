@@ -1,5 +1,6 @@
 package com.ppm.integration.agilesdk.connector.octane.client;
 
+
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
@@ -449,7 +450,9 @@ public class ClientPublicAPI {
 
     public List<WorkSpace> getWorkSpaces(int sharedSpacesId) {
         List<String> ids = getApiAccessWorkSpaces(sharedSpacesId);
-        if(ids.size()==0) {
+        //remove the default master workspace that belong to the current space as it could not be seen from octane front-end
+        ids.remove(OctaneConstants.SHARED_EPIC_DEFAULT_WORKSPACE);
+        if (ids.size() == 0) {
             return new ArrayList<>();
         }
         String query = generateInQuery(ids,"id");
@@ -496,9 +499,7 @@ public class ClientPublicAPI {
                     if(WORKSPACE_ADMIN_ROLE.equalsIgnoreCase(roleName)) {
                         net.sf.json.JSONObject ws = wsRole.getJSONObject("workspace");
                         String wsId = ws.getString("id");
-                        if(!OctaneConstants.SHARED_EPIC_DEFAULT_WORKSPACE.equalsIgnoreCase(wsId)) {
-                            workspaceIds.add(wsId);
-                        }
+                        workspaceIds.add(wsId);
                     }
                     
                 }
@@ -1637,11 +1638,11 @@ public class ClientPublicAPI {
 
 
     public JSONArray getUsersByIds(String sharedspaceId, String workspaceId, String[] ids) {
-        if(ids.length==0) {
+        if (ids.length == 0) {
             return new JSONArray();
         }
-        String query = generateInQuery(Arrays.asList(ids),"id");
-        query  = queryEncode(query);
+        String query = generateInQuery(Arrays.asList(ids), "id");
+        query = queryEncode(query);
         String url = String.format(
                 "%s/api/shared_spaces/%s/workspaces/%s/workspace_users?fields=email,id,full_name,name&query=%s",
                 baseURL, sharedspaceId, workspaceId, query);

@@ -68,6 +68,7 @@ public class OctaneRequestIntegration extends RequestIntegration {
         ClientPublicAPI client = ClientPublicAPI.getClient(instanceConfigurationParameters);
         SharedSpace space = client.getActiveSharedSpace();
         if (null != space) {
+            List<String> wsIds = client.getApiAccessWorkSpaces(Integer.parseInt(space.getId()));
             AgileEntityInfo epic = new AgileEntityInfo();
             epic.setName("Epic");
             epic.setType(OctaneConstants.SUB_TYPE_EPIC);
@@ -80,7 +81,9 @@ public class OctaneRequestIntegration extends RequestIntegration {
             userStory.setName("User Story");
             userStory.setType(OctaneConstants.SUB_TYPE_STORY);
             entityList.add(userStory);
-            if(SHARED_SPACE_MODE_SHARED.equalsIgnoreCase(space.getMode())) {
+            //only api access with space admin and shared mode space could manage shared epic
+            if (SHARED_SPACE_MODE_SHARED.equalsIgnoreCase(space.getMode())
+                    && wsIds.contains(OctaneConstants.SHARED_EPIC_DEFAULT_WORKSPACE)) {
                 AgileEntityInfo sharedEpic = new AgileEntityInfo();
            	 	sharedEpic.setName("Shared Epic");
            	 	sharedEpic.setType(OctaneConstants.SUB_SHARED_EPIC);
@@ -319,13 +322,30 @@ public class OctaneRequestIntegration extends RequestIntegration {
         String workSpaceId = OctaneConstants.WILDCARD_PLACEHOLDER;
         String sharedSpaceId = OctaneConstants.WILDCARD_PLACEHOLDER;
         List<String> workspaceIds = new ArrayList<>();
+        // As ppm agile SDK support use wildcard(*) to configure request mapping
+        // info for all workspaces from 10.0.1. agileProjectValue will be "*"
+        // that passed from PPM side if getAgileProjects interface has the "*"
+        // option.
+
+        // Octane need to handle those entities that don't have a accurate
+        // workspace id. It need to retrieve all the workspaces until
+        // get all the entities except the entity type is shared epic
+
+        // Pre-condition is that all entities don't have the same id along all
+        // workspaces.(It is consistently with octane.)
         if (OctaneConstants.WILDCARD_PLACEHOLDER.equalsIgnoreCase(agileProjectValue)) {
             SharedSpace sharedSpace = client.getActiveSharedSpace();
             if (sharedSpace != null) {
                 sharedSpaceId = sharedSpace.getId();
-                workspaceIds = client.getApiAccessWorkSpaces(Integer.parseInt(sharedSpaceId));
+                if (OctaneConstants.SUB_SHARED_EPIC.equalsIgnoreCase(entityType)) {
+                    workspaceIds.add(OctaneConstants.SHARED_EPIC_DEFAULT_WORKSPACE);
+                } else {
+                    workspaceIds = client.getApiAccessWorkSpaces(Integer.parseInt(sharedSpaceId));
+                }
             }
         } else {
+            // if it has accurate agile project value, just retrieve the right
+            // one
             JSONObject workspaceJson = (JSONObject)JSONSerializer.toJSON(agileProjectValue);
             workSpaceId = workspaceJson.getString(OctaneConstants.WORKSPACE_ID);
             sharedSpaceId = workspaceJson.getString(OctaneConstants.SHARED_SPACE_ID);
@@ -338,13 +358,25 @@ public class OctaneRequestIntegration extends RequestIntegration {
             }
 
             List<AgileEntity> entitiesCollection =
-                    getSpecificWorkspaceEntities(client, sharedSpaceId, id,
-                    entityType, entityIds, lastUpdateTime);
+                    getSpecificWorkspaceEntities(client, sharedSpaceId, id, entityType, entityIds, lastUpdateTime);
             entities.addAll(entitiesCollection);
         }
         client.signOut(instanceConfigurationParameters);
         return entities;
     }
+    
+    
+    /**
+     * get entity from accurate workspace. if the entity type is shared epic,
+     * try to retrieve epic from the default workspace
+     * @param client
+     * @param sharedSpaceId
+     * @param workSpaceId
+     * @param entityType
+     * @param entityIds
+     * @param lastUpdateTime
+     * @return
+     */
 
     private List<AgileEntity> getSpecificWorkspaceEntities(ClientPublicAPI client, String sharedSpaceId,
             String workSpaceId, String entityType, Set<String> entityIds, Date lastUpdateTime)
