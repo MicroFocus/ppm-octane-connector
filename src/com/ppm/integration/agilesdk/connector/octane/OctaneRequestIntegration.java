@@ -102,7 +102,7 @@ public class OctaneRequestIntegration extends RequestIntegration {
         if (OctaneConstants.WILDCARD_PLACEHOLDER.equalsIgnoreCase(agileProjectValue)) {
             fields = getWildcardFields(entityType, client);
         } else {
-            JSONObject workspaceJson = (JSONObject)JSONSerializer.toJSON(agileProjectValue);
+            JSONObject workspaceJson = parseAgileProject(agileProjectValue);
             String workSpaceId = workspaceJson.getString(OctaneConstants.WORKSPACE_ID);
             String sharedSpaceId = workspaceJson.getString(OctaneConstants.SHARED_SPACE_ID);
             fields = client.getEntityFields(sharedSpaceId, workSpaceId, entityType);
@@ -216,7 +216,7 @@ public class OctaneRequestIntegration extends RequestIntegration {
                         }
                     }
                 } else {
-                    JSONObject workspaceJson = (JSONObject)JSONSerializer.toJSON(agileProjectValue);
+                    JSONObject workspaceJson = parseAgileProject(agileProjectValue);
                     workSpaceId = workspaceJson.getString(OctaneConstants.WORKSPACE_ID);
                     sharedSpaceId = workspaceJson.getString(OctaneConstants.SHARED_SPACE_ID);
                 }
@@ -346,7 +346,7 @@ public class OctaneRequestIntegration extends RequestIntegration {
         } else {
             // if it has accurate agile project value, just retrieve the right
             // one
-            JSONObject workspaceJson = (JSONObject)JSONSerializer.toJSON(agileProjectValue);
+            JSONObject workspaceJson = parseAgileProject(agileProjectValue);
             workSpaceId = workspaceJson.getString(OctaneConstants.WORKSPACE_ID);
             sharedSpaceId = workspaceJson.getString(OctaneConstants.SHARED_SPACE_ID);
             workspaceIds.add(workSpaceId);
@@ -411,7 +411,7 @@ public class OctaneRequestIntegration extends RequestIntegration {
         AgileEntity entity = null;
 
         ClientPublicAPI client = ClientPublicAPI.getClient(instanceConfigurationParameters);
-        JSONObject workspaceJson = (JSONObject)JSONSerializer.toJSON(agileProjectValue);
+        JSONObject workspaceJson = parseAgileProject(agileProjectValue);
         String workSpaceId = workspaceJson.getString(OctaneConstants.WORKSPACE_ID);
         String sharedSpaceId = workspaceJson.getString(OctaneConstants.SHARED_SPACE_ID);
 
@@ -452,7 +452,8 @@ public class OctaneRequestIntegration extends RequestIntegration {
     {
         AgileEntity agileEntity = null;
         ClientPublicAPI client = ClientPublicAPI.getClient(instanceConfigurationParameters);
-        JSONObject workspaceJson = (JSONObject)JSONSerializer.toJSON(agileProjectValue);
+
+        JSONObject workspaceJson = parseAgileProject(agileProjectValue);
         String workSpaceId = workspaceJson.getString(OctaneConstants.WORKSPACE_ID);
         String sharedSpaceId = workspaceJson.getString(OctaneConstants.SHARED_SPACE_ID);
 
@@ -764,7 +765,7 @@ public class OctaneRequestIntegration extends RequestIntegration {
             final ValueSet instanceConfigurationParameters, String entityId)
     {
         ClientPublicAPI client = ClientPublicAPI.getClient(instanceConfigurationParameters);
-        JSONObject workspaceJson = (JSONObject)JSONSerializer.toJSON(agileProjectValue);
+        JSONObject workspaceJson = parseAgileProject(agileProjectValue);
         String workSpaceId = workspaceJson.getString(OctaneConstants.WORKSPACE_ID);
         String sharedSpaceId = workspaceJson.getString(OctaneConstants.SHARED_SPACE_ID);
 
@@ -1014,6 +1015,17 @@ public class OctaneRequestIntegration extends RequestIntegration {
         } else {
             return false;
         }
+    }
+
+    private JSONObject parseAgileProject(String agileProjectValue) {
+        JSONObject workspaceJson = null;
+        try {
+            workspaceJson = (JSONObject)JSONSerializer.toJSON(agileProjectValue);
+        } catch (Exception e) {
+            throw new OctaneClientException("OCTANE_CONNECTOR", "ERROR_TO_PARSE_PROJECT",
+                    new String[] {agileProjectValue});
+        }
+        return workspaceJson;
     }
 
     private JSONObject createNullJSONObject(boolean isMulti) {

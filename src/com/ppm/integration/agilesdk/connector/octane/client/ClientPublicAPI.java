@@ -80,6 +80,8 @@ public class ClientPublicAPI {
     private static final String JSON_TIME_SUFFIX = "T12:00:00Z";
     
     private static final String WORKSPACE_ADMIN_ROLE = "role.workspace.admin";
+    
+    private static final String SPACE_ADMIN_ROLE = "role.shared.space.admin";
 
     private final Logger logger = Logger.getLogger(this.getClass());
 
@@ -449,7 +451,7 @@ public class ClientPublicAPI {
     }
 
     public List<WorkSpace> getWorkSpaces(int sharedSpacesId) {
-        List<String> ids = getApiAccessWorkSpaces(sharedSpacesId);
+       List<String> ids = getApiAccessWorkSpaces(sharedSpacesId);
         //remove the default master workspace that belong to the current space as it could not be seen from octane front-end
         ids.remove(OctaneConstants.SHARED_EPIC_DEFAULT_WORKSPACE);
         if (ids.size() == 0) {
@@ -492,6 +494,8 @@ public class ClientPublicAPI {
             net.sf.json.JSONObject tempObj = jsonarray.getJSONObject(0);
                 net.sf.json.JSONObject workspaceRole = net.sf.json.JSONObject.fromObject(tempObj.get("workspace_roles"));
                 net.sf.json.JSONArray wsroles = (net.sf.json.JSONArray)(workspaceRole.get("data"));
+                boolean isSpaceAdmin = false;
+                boolean hasMasterWorkspace = false;
                 for (int i = 0, length = wsroles.size(); i < length; i++) {
                     net.sf.json.JSONObject wsRole = wsroles.getJSONObject(i);
                     net.sf.json.JSONObject role = wsRole.getJSONObject("role");
@@ -499,9 +503,19 @@ public class ClientPublicAPI {
                     if(WORKSPACE_ADMIN_ROLE.equalsIgnoreCase(roleName)) {
                         net.sf.json.JSONObject ws = wsRole.getJSONObject("workspace");
                         String wsId = ws.getString("id");
-                        workspaceIds.add(wsId);
+                        if (OctaneConstants.SHARED_EPIC_DEFAULT_WORKSPACE.equalsIgnoreCase(wsId)) {
+                            hasMasterWorkspace = true;
+                        } else {
+                            workspaceIds.add(wsId); 
+                        }
+                    } else if (SPACE_ADMIN_ROLE.equalsIgnoreCase(roleName)) {
+                        isSpaceAdmin = true;
                     }
                     
+                }
+                
+                if(isSpaceAdmin && hasMasterWorkspace) {
+                    workspaceIds.add(OctaneConstants.SHARED_EPIC_DEFAULT_WORKSPACE);
                 }
 
         }
