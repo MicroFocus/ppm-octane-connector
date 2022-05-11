@@ -81,7 +81,7 @@ public class OctaneIntegrationConnector extends IntegrationConnector {
                   int sharedSpaceId = Integer.parseInt(sharedSpace.getId());
                   String sharedSpaceName = sharedSpace.getName();
                 //workspace
-                List<WorkSpace> workspaces = client.getWorkSpaces(sharedSpaceId);
+                List<WorkSpace> workspaces = client.getWorkSpaces(sharedSpaceId, true);
                 for (WorkSpace workspace : workspaces) {
                     AgileProject project = new AgileProject();
                     String displayName = workspace.getName() + "(" + sharedSpaceName + ")";

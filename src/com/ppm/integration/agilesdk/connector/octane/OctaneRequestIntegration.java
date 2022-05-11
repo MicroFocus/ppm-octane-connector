@@ -139,7 +139,7 @@ public class OctaneRequestIntegration extends RequestIntegration {
             if (OctaneConstants.SUB_SHARED_EPIC.equalsIgnoreCase(entityType)) {
                 return client.getEntityFields(space.getId(), OctaneConstants.SHARED_EPIC_DEFAULT_WORKSPACE, entityType);
             } else {
-                List<WorkSpace> workspaces = client.getWorkSpaces(Integer.parseInt(space.getId()));
+                List<WorkSpace> workspaces = client.getWorkSpaces(Integer.parseInt(space.getId()), true);
                 Map<String, FieldInfo> fieldsMap = new HashMap<>();
                 if (!workspaces.isEmpty()) {
                     fieldsMap = getFieldInfoMap(client, space.getId(), workspaces.get(0).getId(), entityType);
@@ -201,7 +201,7 @@ public class OctaneRequestIntegration extends RequestIntegration {
                 if (OctaneConstants.WILDCARD_PLACEHOLDER.equalsIgnoreCase(agileProjectValue)) {
                     // if use wildcard in agile project,find the specific
                     // workspace that the field belongs to
-                    List<WorkSpace> wsList = client.getWorkSpaces(Integer.parseInt(sharedSpaceId));
+                    List<WorkSpace> wsList = client.getWorkSpaces(Integer.parseInt(sharedSpaceId), true);
                     for (WorkSpace ws : wsList) {
                         List<FieldInfo> candidatefields = client.getEntityFields(sharedSpaceId, ws.getId(), entityType);
                         for (FieldInfo field : candidatefields) {

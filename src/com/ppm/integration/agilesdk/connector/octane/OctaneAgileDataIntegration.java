@@ -65,7 +65,7 @@ public class OctaneAgileDataIntegration extends AgileDataIntegration {
                 //workspace
                 String strSharedSpaceId = sharedSpacesList.get(i).id;
                 int sharedSpaceId = Integer.parseInt(strSharedSpaceId);
-                List<WorkSpace> workSpaces = client.getWorkSpaces(sharedSpaceId);
+                List<WorkSpace> workSpaces = client.getWorkSpaces(sharedSpaceId, true);
                 workSpacesWithSharedSpaceMap.put(sharedSpaceId, workSpaces);
                 for (int j = 0, sizej = workSpaces.size(); j < sizej; j++) {
                     String strWorkSpaceId = workSpaces.get(j).id;
