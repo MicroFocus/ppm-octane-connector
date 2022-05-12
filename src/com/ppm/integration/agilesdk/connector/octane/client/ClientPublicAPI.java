@@ -450,10 +450,24 @@ public class ClientPublicAPI {
         return null;
     }
     
+    /***
+     * 
+     * This method should be invoke when invoker just get those workspaces that the current authentication has access.
+     * Authentication Cookies will decide how many workspaces can be retrieve.
+     * @param sharedSpacesId
+     * @return
+     */
     public List<WorkSpace> getWorkSpaces(int sharedSpacesId) {
         return getWorkSpaces(sharedSpacesId, false);
     }
 
+    /***
+     * @param sharedSpacesId
+     * @param filterApiAccess: whether need just include those workspaces which the current 'Api Access' has assigned build-in 'Workspace Admin Role' on.
+     * It can set to be true if it is authenticated by client secret instead of user.
+     * @return
+     */
+    
     public List<WorkSpace> getWorkSpaces(int sharedSpacesId,boolean filterApiAccess) {
         String url = "";
         if(filterApiAccess) {
