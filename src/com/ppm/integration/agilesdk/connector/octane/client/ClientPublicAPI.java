@@ -449,18 +449,40 @@ public class ClientPublicAPI {
         }
         return null;
     }
-
+    
+    /***
+     * 
+     * This method should be invoke when invoker just get those workspaces that the current authentication has access.
+     * Authentication Cookies will decide how many workspaces can be retrieve.
+     * @param sharedSpacesId
+     * @return
+     */
     public List<WorkSpace> getWorkSpaces(int sharedSpacesId) {
-       List<String> ids = getApiAccessWorkSpaces(sharedSpacesId);
-        //remove the default master workspace that belong to the current space as it could not be seen from octane front-end
-        ids.remove(OctaneConstants.SHARED_EPIC_DEFAULT_WORKSPACE);
-        if (ids.size() == 0) {
-            return new ArrayList<>();
+        return getWorkSpaces(sharedSpacesId, false);
+    }
+
+    /***
+     * @param sharedSpacesId
+     * @param filterApiAccess: whether need just include those workspaces which the current 'Api Access' has assigned build-in 'Workspace Admin Role' on.
+     * It can set to be true if it is authenticated by client secret instead of user.
+     * @return
+     */
+    
+    public List<WorkSpace> getWorkSpaces(int sharedSpacesId,boolean filterApiAccess) {
+        String url = "";
+        if(filterApiAccess) {
+            List<String> ids = getApiAccessWorkSpaces(sharedSpacesId);
+            //remove the default master workspace that belong to the current space as it could not be seen from octane front-end
+            ids.remove(OctaneConstants.SHARED_EPIC_DEFAULT_WORKSPACE);
+            if (ids.size() == 0) {
+                return new ArrayList<>();
+            }
+            String query = generateInQuery(ids,"id");
+            query  = queryEncode(query);
+            url = String.format("%s/api/shared_spaces/%d/workspaces?fields=id,name&query=%s", baseURL, sharedSpacesId,query);
+        } else {
+            url = String.format("%s/api/shared_spaces/%d/workspaces?fields=id,name", baseURL, sharedSpacesId);
         }
-        String query = generateInQuery(ids,"id");
-        query  = queryEncode(query);
-                
-        String url = String.format("%s/api/shared_spaces/%d/workspaces?fields=id,name&query=%s", baseURL, sharedSpacesId,query);
 
         RestResponse response = sendGet(url);
 
