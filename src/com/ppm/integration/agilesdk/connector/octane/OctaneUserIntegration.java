@@ -9,11 +9,8 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
-import org.apache.commons.lang.StringUtils;
 import org.apache.log4j.Logger;
-
 
 import com.ppm.integration.agilesdk.ValueSet;
 import com.ppm.integration.agilesdk.agiledata.AgileDataUser;
@@ -58,7 +55,7 @@ public class OctaneUserIntegration extends UserIntegration {
         String workSpaceId = String.valueOf(userConfiguration.getAgileProjectValue().getWorkspaceId());
         String sharedSpaceId = String.valueOf(userConfiguration.getAgileProjectValue().getSharedSpaceId());
 
-        String filter = getFilterByDateQuery(queryParams, null);
+        String filter = getUserQueryFilter(queryParams, null);
         Long offset = null;
         Long limit = null;
         try {
@@ -77,7 +74,7 @@ public class OctaneUserIntegration extends UserIntegration {
         Map<String, String> licenseTypeMap = new HashMap<>();
         if (isGettingWorkspaceUsers(workSpaceId)) {
             // get license type of users from sharedSpace api, which can not be
-            // got by workspace api when use "last_modified > queryDate"
+            // got by workspace api
             licenseTypeMap = getUserLicenseType(client, sharedSpaceId, userArray);
 
             addMissingUsersForIncrementalSync(queryParams, client, workSpaceId, sharedSpaceId, limit,
@@ -150,15 +147,15 @@ public class OctaneUserIntegration extends UserIntegration {
         if (lastUpdateTime != null && userArray.size() < limit) {
             // When lastUpdateTime is not null, we should consider both
             // getting users by workspace api and
-            // sharedSpace api, because last_modified for one users in these
-            // two level could be different
+            // sharedSpace api, because last_modified for one user in the
+            // two levels could be different
             JSONArray userArrayByWorkpaceApi =
                     client.getUsersWithSearchFilter(sharedSpaceId, workSpaceId, null, null,
-                            getFilterByDateQuery(queryParams, null));
+                            getUserQueryFilter(queryParams, null));
 
             String appendFilter = "workspaces={id=" + workSpaceId + "};";
             JSONArray userArrayBySharedSpaceApi = client.getUsersBySharedSpaceApi(sharedSpaceId, null, null,
-                    getFilterByDateQuery(queryParams, appendFilter));
+                    getUserQueryFilter(queryParams, appendFilter));
 
             addMissingUsersToUserArray(userArrayByWorkpaceApi, userArrayBySharedSpaceApi, userArray);
         }
@@ -316,7 +313,7 @@ public class OctaneUserIntegration extends UserIntegration {
 
     }
 
-    private String getFilterByDateQuery(Map<String, Object> queryParams, String appendFilter) {
+    private String getUserQueryFilter(Map<String, Object> queryParams, String appendFilter) {
         String filter = "\"";
         Date lastUpdateTime = (Date)queryParams.get("last_modified");
         if (lastUpdateTime != null) {

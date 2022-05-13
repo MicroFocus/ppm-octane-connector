@@ -1691,9 +1691,9 @@ public class ClientPublicAPI {
 
     /**
      * get users from workspace level or sharedSpace level which depends on
-     * configured json in ppm_int_agile_user_sync if these have both
-     * sharedspaceId and workspaceId, this means getting users from workspace
-     * level if these is only sharedspaceId, this means getting users from
+     * configured json in ppm_int_agile_user_sync. If these have both
+     * sharedspaceId and workspaceId, this means to get users from workspace
+     * level. If these is only sharedspaceId, this means to get users from
      * sharedSpace level
      * @param sharedspaceId
      * @param workspaceId
