@@ -77,7 +77,7 @@ public class OctaneUserIntegration extends UserIntegration {
             // got by workspace api
             licenseTypeMap = getUserLicenseType(client, sharedSpaceId, userArray);
 
-            addMissingUsersForIncrementalSync(queryParams, client, workSpaceId, sharedSpaceId, limit,
+            addMissingUsersForIncrementalSync(client, queryParams, sharedSpaceId, workSpaceId, limit,
                     userArray);
 
         }
@@ -139,39 +139,38 @@ public class OctaneUserIntegration extends UserIntegration {
         return users;
     }
 
-    private void addMissingUsersForIncrementalSync(Map<String, Object> queryParams, ClientPublicAPI client, String workSpaceId,
-            String sharedSpaceId, Long limit, JSONArray userArray)
-    {
-        Date lastUpdateTime = (Date)queryParams.get("last_modified");
-        // at the last time of this incremental synchronization
-        if (lastUpdateTime != null && userArray.size() < limit) {
-            // When lastUpdateTime is not null, we should consider both
-            // getting users by workspace api and
-            // sharedSpace api, because last_modified for one user in the
-            // two levels could be different
-            JSONArray userArrayByWorkpaceApi =
-                    client.getUsersWithSearchFilter(sharedSpaceId, workSpaceId, null, null,
-                            getUserQueryFilter(queryParams, null));
-
-            String appendFilter = "workspaces={id=" + workSpaceId + "};";
-            JSONArray userArrayBySharedSpaceApi = client.getUsersBySharedSpaceApi(sharedSpaceId, null, null,
-                    getUserQueryFilter(queryParams, appendFilter));
-
-            addMissingUsersToUserArray(userArrayByWorkpaceApi, userArrayBySharedSpaceApi, userArray);
-        }
-    }
-
     /**
      * For users which have been updated license_type in sharedSpace level,
      * their last_modified ONLY been updated in sharedSpace level, thus these
      * users won't been updated by workspace api with query "last_modified >
      * stored date". By getting users by sharedSpace api and add these missing
-     * users at last in this time synchronous.
-     * @param userArray
-     * @param userArrayBySharedSpaceApi
-     * @param offset
-     * @param limit
-     * @return
+     * users at last in this incremental synchronization.
+     */
+    private void addMissingUsersForIncrementalSync(ClientPublicAPI client, Map<String, Object> queryParams,
+            String sharedSpaceId, String workSpaceId, Long limit, JSONArray userArray)
+    {
+        Date lastUpdateTime = (Date)queryParams.get("last_modified");
+        // at the last time of this incremental synchronization
+        if (lastUpdateTime != null && userArray.size() < limit) {
+            // get incremental users from workspace api
+            JSONArray userArrayByWorkpaceApi =
+                    client.getUsersWithSearchFilter(sharedSpaceId, workSpaceId, null, null,
+                            getUserQueryFilter(queryParams, null));
+
+            // get incremental users from sharedSpace api
+            String appendFilter = "workspaces={id=" + workSpaceId + "};";
+            JSONArray userArrayBySharedSpaceApi = client.getUsersBySharedSpaceApi(sharedSpaceId, null, null,
+                    getUserQueryFilter(queryParams, appendFilter));
+
+            // add mission users whose license_type is updated at sharedSpace
+            // level
+            addMissingUsersToUserArray(userArrayByWorkpaceApi, userArrayBySharedSpaceApi, userArray);
+        }
+    }
+
+
+    /**
+     * add mission users to userArray
      */
     private JSONArray addMissingUsersToUserArray(JSONArray userArrayByWorkpaceApi, JSONArray userArrayBySharedSpaceApi,
             JSONArray userArray)
@@ -190,8 +189,6 @@ public class OctaneUserIntegration extends UserIntegration {
             userInSharedSpace.put(userObj.getString("id"), userObj);
 
         }
-
-        // the last time to getting octane users for this synchronous
 
         if (userArrayByWorkpaceApi.isEmpty() && !userArrayBySharedSpaceApi.isEmpty()) {
             for (JSONObject userJson : userInSharedSpace.values()) {
