@@ -1689,6 +1689,19 @@ public class ClientPublicAPI {
         return userList;
     }
 
+    /**
+     * get users from workspace level or sharedSpace level which depends on
+     * configured json in ppm_int_agile_user_sync if these have both
+     * sharedspaceId and workspaceId, this means getting users from workspace
+     * level if these is only sharedspaceId, this means getting users from
+     * sharedSpace level
+     * @param sharedspaceId
+     * @param workspaceId
+     * @param limit
+     * @param offset
+     * @param filter
+     * @return
+     */
     public JSONArray getUsersWithSearchFilter(String sharedspaceId, String workspaceId, Long limit, Long offset,
             String filter)
     {
@@ -2008,5 +2021,21 @@ public class ClientPublicAPI {
             logger.error(" UnsupportedEncodingException when encoding url query", e);
         }
         return query;
+    }
+
+    public JSONArray getUsersBySharedSpaceApi(String sharedSpaceId, Long limit, Long offset, String filter) {
+
+        String limitedField = null;
+        if (limit != null && offset != null) {
+            limitedField = String.format("&limit=%s&offset=%s", limit, offset);
+        }
+
+        String url = String.format(
+                "%s/api/shared_spaces/%s/users?fields=email,id,full_name,name,first_name,last_modified,last_name,activity_level,workspace_roles,license_type&order_by=last_modified&show_hidden_entities=true%s&query=%s",
+                baseURL, sharedSpaceId, limitedField, filter);
+        RestResponse response = sendGet(url);
+        JSONObject dataObj = JSONObject.fromObject(response.getData());
+        JSONArray userList = JSONArray.fromObject(dataObj.get("data"));
+        return userList;
     }
 }
