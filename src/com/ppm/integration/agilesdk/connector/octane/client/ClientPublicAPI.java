@@ -1703,26 +1703,33 @@ public class ClientPublicAPI {
      * @return
      */
     public JSONArray getUsersWithSearchFilter(String sharedspaceId, String workspaceId, Long limit, Long offset,
-            String filter)
+            String filter, Boolean onlyGettingIds)
     {
 
         String limitedField = null;
         if (limit != null && offset != null) {
             limitedField = String.format("&limit=%s&offset=%s", limit, offset);
+
         }
 
         String url = null;
         if (workspaceId != null) {
+            String fields = onlyGettingIds ? "id"
+                    : "email,id,full_name,name,first_name,last_modified,last_name,activity_level,roles";
+
             // get workspace users
             url = String.format(
-                    "%s/api/shared_spaces/%s/workspaces/%s/workspace_users?fields=email,id,full_name,name,first_name,last_modified,last_name,activity_level,roles&order_by=last_modified&show_hidden_entities=true%s&query=%s",
-                    baseURL, sharedspaceId, workspaceId, limitedField, filter);
+                    "%s/api/shared_spaces/%s/workspaces/%s/workspace_users?fields=%s&order_by=last_modified&show_hidden_entities=true%s&query=%s",
+                    baseURL, sharedspaceId, workspaceId, fields, limitedField, filter);
 
         } else {
+            String fields = onlyGettingIds ? "id" :
+                    "email,id,full_name,name,first_name,last_modified,last_name,activity_level,workspace_roles,license_type";
+
             // get sharedSpace users
             url = String.format(
-                    "%s/api/shared_spaces/%s/users?fields=email,id,full_name,name,first_name,last_modified,last_name,activity_level,workspace_roles,license_type&order_by=last_modified&show_hidden_entities=true%s&query=%s",
-                    baseURL, sharedspaceId, limitedField, filter);
+                    "%s/api/shared_spaces/%s/users?fields=%s&order_by=last_modified&show_hidden_entities=true%s&query=%s",
+                    baseURL, sharedspaceId, fields, limitedField, filter);
         }
 
 

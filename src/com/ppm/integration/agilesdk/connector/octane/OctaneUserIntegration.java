@@ -69,7 +69,7 @@ public class OctaneUserIntegration extends UserIntegration {
         }
 
 
-        JSONArray userArray = client.getUsersWithSearchFilter(sharedSpaceId, workSpaceId, limit, offset, filter);
+        JSONArray userArray = client.getUsersWithSearchFilter(sharedSpaceId, workSpaceId, limit, offset, filter, false);
 
         Map<String, String> licenseTypeMap = new HashMap<>();
         if (isGettingWorkspaceUsers(workSpaceId)) {
@@ -155,7 +155,7 @@ public class OctaneUserIntegration extends UserIntegration {
             // get incremental users from workspace api
             JSONArray userArrayByWorkpaceApi =
                     client.getUsersWithSearchFilter(sharedSpaceId, workSpaceId, null, null,
-                            getUserQueryFilter(queryParams, null));
+                            getUserQueryFilter(queryParams, null), true);
 
             // get incremental users from sharedSpace api
             String appendFilter = "workspaces={id=" + workSpaceId + "};";
