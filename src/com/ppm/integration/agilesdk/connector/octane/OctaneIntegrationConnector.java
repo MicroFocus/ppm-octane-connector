@@ -10,6 +10,7 @@ import com.ppm.integration.agilesdk.FunctionIntegration;
 import com.ppm.integration.agilesdk.IntegrationConnector;
 import com.ppm.integration.agilesdk.ValueSet;
 import com.ppm.integration.agilesdk.connector.octane.client.ClientPublicAPI;
+import com.ppm.integration.agilesdk.connector.octane.client.OctaneClientException;
 import com.ppm.integration.agilesdk.connector.octane.client.OctaneConnectivityExceptionHandler;
 import com.ppm.integration.agilesdk.connector.octane.model.SharedSpace;
 import com.ppm.integration.agilesdk.connector.octane.model.WorkSpace;
@@ -102,7 +103,7 @@ public class OctaneIntegrationConnector extends IntegrationConnector {
             }
         } catch (Throwable e) {
             logger.error("Error when retrieving Octane workspaces list", e);
-            new OctaneConnectivityExceptionHandler().uncaughtException(Thread.currentThread(), e);
+            throw new OctaneClientException("AGM_APP", "ERROR_IN_HTTP_CONNECTIVITY", new String[] {e.getMessage()});
         }
         return agileProjectList;
     }
