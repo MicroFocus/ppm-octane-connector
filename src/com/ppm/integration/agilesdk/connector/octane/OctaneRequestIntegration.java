@@ -57,7 +57,7 @@ public class OctaneRequestIntegration extends RequestIntegration {
 
     private UserProvider up = null;
     
-    public static final String SHARED_SPACE_MODE_SHARED = "SHARED";      // all vale:SHARED,ISOLATED
+    public static final String SHARED_SPACE_MODE_SHARED = "SHARED";      // all value:SHARED,ISOLATED
 
     @Override
     public List<AgileEntityInfo> getAgileEntitiesInfo(final String agileProjectValue,
