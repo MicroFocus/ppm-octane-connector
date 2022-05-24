@@ -1689,27 +1689,47 @@ public class ClientPublicAPI {
         return userList;
     }
 
+    /**
+     * get users from workspace level or sharedSpace level which depends on
+     * configured json in ppm_int_agile_user_sync. If these have both
+     * sharedspaceId and workspaceId, this means to get users from workspace
+     * level. If these is only sharedspaceId, this means to get users from
+     * sharedSpace level
+     * @param sharedspaceId
+     * @param workspaceId
+     * @param limit
+     * @param offset
+     * @param filter
+     * @return
+     */
     public JSONArray getUsersWithSearchFilter(String sharedspaceId, String workspaceId, Long limit, Long offset,
-            String filter)
+            String filter, Boolean onlyGettingIds)
     {
 
         String limitedField = null;
         if (limit != null && offset != null) {
             limitedField = String.format("&limit=%s&offset=%s", limit, offset);
+
         }
 
         String url = null;
         if (workspaceId != null) {
+            String fields = onlyGettingIds ? "id"
+                    : "email,id,full_name,name,first_name,last_modified,last_name,activity_level,roles";
+
             // get workspace users
             url = String.format(
-                    "%s/api/shared_spaces/%s/workspaces/%s/workspace_users?fields=email,id,full_name,name,first_name,last_modified,last_name,activity_level,roles&order_by=last_modified&show_hidden_entities=true%s&query=%s",
-                    baseURL, sharedspaceId, workspaceId, limitedField, filter);
+                    "%s/api/shared_spaces/%s/workspaces/%s/workspace_users?fields=%s&order_by=last_modified&show_hidden_entities=true%s&query=%s",
+                    baseURL, sharedspaceId, workspaceId, fields, limitedField, filter);
 
         } else {
+            String fields = onlyGettingIds ? "id" :
+                    "email,id,full_name,name,first_name,last_modified,last_name,activity_level,workspace_roles,license_type";
+
             // get sharedSpace users
             url = String.format(
-                    "%s/api/shared_spaces/%s/users?fields=email,id,full_name,name,first_name,last_modified,last_name,activity_level,workspace_roles,license_type&order_by=last_modified&show_hidden_entities=true%s&query=%s",
-                    baseURL, sharedspaceId, limitedField, filter);
+                    "%s/api/shared_spaces/%s/users?fields=%s&order_by=last_modified&show_hidden_entities=true%s&query=%s",
+                    baseURL, sharedspaceId, fields, limitedField, filter);
         }
 
 
@@ -2008,5 +2028,21 @@ public class ClientPublicAPI {
             logger.error(" UnsupportedEncodingException when encoding url query", e);
         }
         return query;
+    }
+
+    public JSONArray getUsersBySharedSpaceApi(String sharedSpaceId, Long limit, Long offset, String filter) {
+
+        String limitedField = null;
+        if (limit != null && offset != null) {
+            limitedField = String.format("&limit=%s&offset=%s", limit, offset);
+        }
+
+        String url = String.format(
+                "%s/api/shared_spaces/%s/users?fields=email,id,full_name,name,first_name,last_modified,last_name,activity_level,workspace_roles,license_type&order_by=last_modified&show_hidden_entities=true%s&query=%s",
+                baseURL, sharedSpaceId, limitedField, filter);
+        RestResponse response = sendGet(url);
+        JSONObject dataObj = JSONObject.fromObject(response.getData());
+        JSONArray userList = JSONArray.fromObject(dataObj.get("data"));
+        return userList;
     }
 }

@@ -10,9 +10,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.commons.lang.StringUtils;
 import org.apache.log4j.Logger;
-
 
 import com.ppm.integration.agilesdk.ValueSet;
 import com.ppm.integration.agilesdk.agiledata.AgileDataUser;
@@ -57,7 +55,7 @@ public class OctaneUserIntegration extends UserIntegration {
         String workSpaceId = String.valueOf(userConfiguration.getAgileProjectValue().getWorkspaceId());
         String sharedSpaceId = String.valueOf(userConfiguration.getAgileProjectValue().getSharedSpaceId());
 
-        String filter = getFilterByDateQuery(queryParams);
+        String filter = getUserQueryFilter(queryParams, null);
         Long offset = null;
         Long limit = null;
         try {
@@ -70,10 +68,20 @@ public class OctaneUserIntegration extends UserIntegration {
             logger.error("Exception when parsing query parameter", e);
         }
 
-        JSONArray userArray = client.getUsersWithSearchFilter(sharedSpaceId, workSpaceId, limit, offset, filter);
 
-        // get license type of users from sharedSpace api
-        Map<String, String> licenseTypeMap = getUserLicenseType(client, workSpaceId, sharedSpaceId, userArray);
+        JSONArray userArray = client.getUsersWithSearchFilter(sharedSpaceId, workSpaceId, limit, offset, filter, false);
+
+        Map<String, String> licenseTypeMap = new HashMap<>();
+        if (isGettingWorkspaceUsers(workSpaceId)) {
+            // get license type of users from sharedSpace api, which can not be
+            // got by workspace api
+            licenseTypeMap = getUserLicenseType(client, sharedSpaceId, userArray);
+
+            addMissingUsersForIncrementalSync(client, queryParams, sharedSpaceId, workSpaceId, limit,
+                    userArray);
+
+        }
+
 
         List<AgileDataUser> users = new ArrayList<>();
 
@@ -94,7 +102,7 @@ public class OctaneUserIntegration extends UserIntegration {
             user.setLastName(userObj.getString("last_name"));
             user.setEmail(userObj.getString("email"));
 
-            List<String> roleList = getRoleListofUser(workSpaceId, userObj);
+            List<String> roleList = getRoleListOfUser(workSpaceId, userObj);
 
             String licenseTypeId = null;
             if (userObj.containsKey("license_type")) {
@@ -102,8 +110,9 @@ public class OctaneUserIntegration extends UserIntegration {
                 licenseTypeId = licenseType.getString("id");
 
             } else {
-                // workspace level, there is no license_type key
+                // add license_type for workspace users
                 licenseTypeId = licenseTypeMap.get(userObj.getString("id"));
+
 
             }
 
@@ -124,8 +133,6 @@ public class OctaneUserIntegration extends UserIntegration {
             }
 
 
-
-
             users.add(user);
         }
 
@@ -133,61 +140,141 @@ public class OctaneUserIntegration extends UserIntegration {
     }
 
     /**
-     * get license_type of users from sharedSpace level
+     * For users which have been updated license_type in sharedSpace level,
+     * their last_modified ONLY been updated in sharedSpace level, thus these
+     * users won't been updated by workspace api with query "last_modified >
+     * stored date". By getting users by sharedSpace api and add these missing
+     * users at last in this incremental synchronization.
+     */
+    private void addMissingUsersForIncrementalSync(ClientPublicAPI client, Map<String, Object> queryParams,
+            String sharedSpaceId, String workSpaceId, Long limit, JSONArray userArray)
+    {
+        Date lastUpdateTime = (Date)queryParams.get("last_modified");
+        // at the last time of this incremental synchronization
+        if (lastUpdateTime != null && userArray.size() < limit) {
+            // get incremental users from workspace api
+            JSONArray userArrayByWorkpaceApi =
+                    client.getUsersWithSearchFilter(sharedSpaceId, workSpaceId, null, null,
+                            getUserQueryFilter(queryParams, null), true);
+
+            // get incremental users from sharedSpace api
+            String appendFilter = "workspaces={id=" + workSpaceId + "};";
+            JSONArray userArrayBySharedSpaceApi = client.getUsersBySharedSpaceApi(sharedSpaceId, null, null,
+                    getUserQueryFilter(queryParams, appendFilter));
+
+            // add mission users whose license_type is updated at sharedSpace
+            // level
+            addMissingUsersToUserArray(userArrayByWorkpaceApi, userArrayBySharedSpaceApi, userArray);
+        }
+    }
+
+
+    /**
+     * add mission users to userArray
+     */
+    private JSONArray addMissingUsersToUserArray(JSONArray userArrayByWorkpaceApi, JSONArray userArrayBySharedSpaceApi,
+            JSONArray userArray)
+    {
+        Map<String, JSONObject> userInWorkspace = new HashMap<>();
+        Map<String, JSONObject> userInSharedSpace = new HashMap<>();
+
+
+        for (int i = 0; i < userArrayByWorkpaceApi.size(); i++) {
+            JSONObject userObj = userArray.getJSONObject(i);
+            userInWorkspace.put(userObj.getString("id"), userObj);
+        }
+
+        for (int j = 0; j < userArrayBySharedSpaceApi.size(); j++) {
+            JSONObject userObj = userArrayBySharedSpaceApi.getJSONObject(j);
+            userInSharedSpace.put(userObj.getString("id"), userObj);
+
+        }
+
+        if (userArrayByWorkpaceApi.isEmpty() && !userArrayBySharedSpaceApi.isEmpty()) {
+            for (JSONObject userJson : userInSharedSpace.values()) {
+                userArray.add(userJson);
+            }
+
+        } else {
+            userInSharedSpace.keySet().removeAll(userInWorkspace.keySet());
+            for (String userId : userInSharedSpace.keySet()) {
+                userArray.add(userInSharedSpace.get(userId));
+            }
+
+        }
+
+        return userArray;
+
+    }
+
+    /**
+     * get license_type of users from sharedSpace level, because this field
+     * can't be got by worksapce api
      * @param client
      * @param workSpaceId
      * @param sharedSpaceId
      * @param userArray
      * @return
      */
-    private Map<String, String> getUserLicenseType(ClientPublicAPI client, String workSpaceId,
+    private Map<String, String> getUserLicenseType(ClientPublicAPI client,
             String sharedSpaceId, JSONArray userArray)
     {
         Map<String, String> licenseTypeMap = new HashMap<>();
-        if (workSpaceId != null) {
-            List<String> ids = new ArrayList<>();
-            for (int i = 0; i < userArray.size(); i++) {
-                JSONObject userObj = userArray.getJSONObject(i);
-                ids.add(userObj.getString("id"));
-            }
-            JSONArray userLicenseTypeArray = client.getUsersLicenseType(sharedSpaceId, ids);
 
-            for (int i = 0; i < userLicenseTypeArray.size(); i++) {
-                JSONObject userObj = userLicenseTypeArray.getJSONObject(i);
-                JSONObject licenseType = userObj.getJSONObject("license_type");
-                licenseTypeMap.put(userObj.getString("id"), licenseType.getString("id"));
-            }
+        List<String> ids = new ArrayList<>();
+        for (int i = 0; i < userArray.size(); i++) {
+            JSONObject userObj = userArray.getJSONObject(i);
+            ids.add(userObj.getString("id"));
+        }
+        JSONArray userLicenseTypeArray = client.getUsersLicenseType(sharedSpaceId, ids);
+
+        for (int i = 0; i < userLicenseTypeArray.size(); i++) {
+            JSONObject userObj = userLicenseTypeArray.getJSONObject(i);
+            JSONObject licenseType = userObj.getJSONObject("license_type");
+            licenseTypeMap.put(userObj.getString("id"), licenseType.getString("id"));
         }
 
         return licenseTypeMap;
     }
 
-    private List<String> getRoleListofUser(String workSpaceId, JSONObject userObj) {
+    private boolean isGettingWorkspaceUsers(String workSpaceId) {
+        return workSpaceId != null;
+    }
+
+    private List<String> getRoleListOfUser(String workSpaceId, JSONObject userObj) {
         List<String> roleList = new ArrayList<>();
         if (userObj.containsKey("workspace_roles")) {
-            // sharedSpace level
-            JSONObject workspaceRoles = userObj.getJSONObject("workspace_roles");
-            JSONArray rolesArray = workspaceRoles.getJSONArray("data");
-            for (int j = 0; j < rolesArray.size(); j++) {
-                JSONObject roleJson = rolesArray.getJSONObject(j);
-                JSONObject workspace = roleJson.getJSONObject("workspace");
-                if (!workspace.isNullObject() && workspace.getString("id").equals(workSpaceId)) {
-                    JSONObject role = roleJson.getJSONObject("role");
-                    roleList.add(role.getString("logical_name"));
-                }
-            }
+            parseSharedSpaceRoles(workSpaceId, userObj, roleList);
         } else if (userObj.containsKey("roles")) {
-            // workspace level
-            JSONObject roles = userObj.getJSONObject("roles");
-            JSONArray rolesArray = roles.getJSONArray("data");
-            for (int j = 0; j < rolesArray.size(); j++) {
-                JSONObject roleJson = rolesArray.getJSONObject(j);
-                roleList.add(roleJson.getString("logical_name"));
-
-            }
+            parseWorkspaceRoles(userObj, roleList);
         }
 
         return roleList;
+    }
+
+    private void parseWorkspaceRoles(JSONObject userObj, List<String> roleList) {
+        // workspace level
+        JSONObject roles = userObj.getJSONObject("roles");
+        JSONArray rolesArray = roles.getJSONArray("data");
+        for (int j = 0; j < rolesArray.size(); j++) {
+            JSONObject roleJson = rolesArray.getJSONObject(j);
+            roleList.add(roleJson.getString("logical_name"));
+
+        }
+    }
+
+    private void parseSharedSpaceRoles(String workSpaceId, JSONObject userObj, List<String> roleList) {
+        // sharedSpace level
+        JSONObject workspaceRoles = userObj.getJSONObject("workspace_roles");
+        JSONArray rolesArray = workspaceRoles.getJSONArray("data");
+        for (int j = 0; j < rolesArray.size(); j++) {
+            JSONObject roleJson = rolesArray.getJSONObject(j);
+            JSONObject workspace = roleJson.getJSONObject("workspace");
+            if (!workspace.isNullObject() && workspace.getString("id").equals(workSpaceId)) {
+                JSONObject role = roleJson.getJSONObject("role");
+                roleList.add(role.getString("logical_name"));
+            }
+        }
     }
 
     /**
@@ -223,13 +310,17 @@ public class OctaneUserIntegration extends UserIntegration {
 
     }
 
-    private String getFilterByDateQuery(Map<String, Object> queryParams) {
+    private String getUserQueryFilter(Map<String, Object> queryParams, String appendFilter) {
         String filter = "\"";
         Date lastUpdateTime = (Date)queryParams.get("last_modified");
         if (lastUpdateTime != null) {
             String formatDate = sdf.format(lastUpdateTime);
 
             filter += "last_modified > '" + formatDate + "' ; ";
+        }
+
+        if (appendFilter != null) {
+            filter += appendFilter;
         }
 
         // filter out api access
