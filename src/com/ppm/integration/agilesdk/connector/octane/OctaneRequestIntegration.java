@@ -177,6 +177,10 @@ public class OctaneRequestIntegration extends RequestIntegration {
                 return DATA_TYPE.ListNode.name();
             case OctaneConstants.KEY_FIELD_INTEGER:
                 return DATA_TYPE.INTEGER.name();
+			// For now, octane can't add float type field.Even perceived value and actual value are float, they display with integer type in octane configuration page,just keep the same with octane until they change.
+            case OctaneConstants.KEY_FIELD_FLOAT:
+                return DATA_TYPE.INTEGER.name();
+
             default :
                 return DATA_TYPE.STRING.name();                
         }
@@ -543,6 +547,13 @@ public class OctaneRequestIntegration extends RequestIntegration {
                         } catch(NumberFormatException e) {
                             entityObj.put(key, field.get());
                         }
+                    } else if(OctaneConstants.KEY_FIELD_FLOAT.equals(fieldInfo.getFieldType())) {
+                        try {
+                            entityObj.put(key, new Float((String)field.get()));
+                        } catch (NumberFormatException e) {
+                            entityObj.put(key, field.get());
+                        }
+                        
                     } else if(fieldInfo.getFieldType().equals(OctaneConstants.KEY_FIELD_USER_LIST)){
                         List<String> userEmails = new ArrayList<String>();
                         userEmails.add((String)field.get());
@@ -919,7 +930,9 @@ public class OctaneRequestIntegration extends RequestIntegration {
                             entity.addField(key, null);
                         }
                     }
-                } else if (info.getFieldType().equals(OctaneConstants.KEY_FIELD_STRING) || info.getFieldType().equals(OctaneConstants.KEY_FIELD_INTEGER)) {
+                } else if (info.getFieldType().equals(OctaneConstants.KEY_FIELD_STRING)
+                        || info.getFieldType().equals(OctaneConstants.KEY_FIELD_INTEGER)
+                        || info.getFieldType().equals(OctaneConstants.KEY_FIELD_FLOAT)) {
                     String value = item.getString(key);
                     if (value == null || value.equals("null")) {
                         value = "";
