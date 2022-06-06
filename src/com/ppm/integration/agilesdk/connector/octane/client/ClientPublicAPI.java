@@ -1137,7 +1137,7 @@ public class ClientPublicAPI {
         }
     	String url = String.format("%s/api/shared_spaces/%s/workspaces/%s/metadata/fields?query=%s%s%s",
                 baseURL, sharedspaceId, workspaceId, "%22entity_name%20EQ%20'", entityName,
-                "';field_type%20IN%20'string','reference','memo','integer'%22");
+                "';field_type%20IN%20'string','reference','memo','float','integer'%22");
         // "';visible_in_ui%20EQ%20true;editable%20EQ%20true;field_type%20IN%20'string','reference','memo'%22");
         List fieldsList = new ArrayList();
         RestResponse response = sendGet(url);
@@ -1165,6 +1165,7 @@ public class ClientPublicAPI {
             case OctaneConstants.KEY_SUB_TYPE_LIST_NODE:
             case OctaneConstants.KEY_FIELD_MEMO:
             case OctaneConstants.KEY_FIELD_INTEGER:
+            case OctaneConstants.KEY_FIELD_FLOAT:
                 return true;
             //hide some reference fields(eg: sprint, team) whose real field
             //type is actually auto complete list field.
