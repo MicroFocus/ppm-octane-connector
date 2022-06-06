@@ -541,19 +541,12 @@ public class OctaneRequestIntegration extends RequestIntegration {
                 // String and Memo field use same logic
                 case STRING:
                 case MEMO:
-                    if(OctaneConstants.KEY_FIELD_INTEGER.equals(fieldInfo.getFieldType())) {
+                    if(OctaneConstants.KEY_FIELD_INTEGER.equals(fieldInfo.getFieldType())||OctaneConstants.KEY_FIELD_FLOAT.equals(fieldInfo.getFieldType())) {
                         try {
                             entityObj.put(key, new Double((String)field.get()));
                         } catch(NumberFormatException e) {
                             entityObj.put(key, field.get());
                         }
-                    } else if(OctaneConstants.KEY_FIELD_FLOAT.equals(fieldInfo.getFieldType())) {
-                        try {
-                            entityObj.put(key, new Float((String)field.get()));
-                        } catch (NumberFormatException e) {
-                            entityObj.put(key, field.get());
-                        }
-                        
                     } else if(fieldInfo.getFieldType().equals(OctaneConstants.KEY_FIELD_USER_LIST)){
                         List<String> userEmails = new ArrayList<String>();
                         userEmails.add((String)field.get());

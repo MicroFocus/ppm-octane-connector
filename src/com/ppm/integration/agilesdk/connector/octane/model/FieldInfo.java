@@ -118,6 +118,9 @@ public class FieldInfo {
                 fieldType = OctaneConstants.KEY_FIELD_MEMO;                
             } else if(OctaneConstants.KEY_FIELD_INTEGER.equals(dataObj.getString(OctaneConstants.KEY_FIELD_FIELD_TYPE))){
                 fieldType = OctaneConstants.KEY_FIELD_INTEGER;
+            } else if (OctaneConstants.KEY_FIELD_FLOAT
+                    .equals(dataObj.getString(OctaneConstants.KEY_FIELD_FIELD_TYPE))) {
+                fieldType = OctaneConstants.KEY_FIELD_FLOAT;
             }else {
                 fieldType = OctaneConstants.KEY_FIELD_STRING;                
             }
