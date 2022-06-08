@@ -55,6 +55,8 @@ import net.sf.json.JSONSerializer;
  */
 public class OctaneRequestIntegration extends RequestIntegration {
 
+    private static final String PROGRESS = "progress";
+
     private UserProvider up = null;
     
     public static final String SHARED_SPACE_MODE_SHARED = "SHARED";      // all value:SHARED,ISOLATED
@@ -556,6 +558,9 @@ public class OctaneRequestIntegration extends RequestIntegration {
                         String value = (String)field.get();
                         value = null == value ? "" : value.trim();
                         switch (key){
+                            // progress is a read only field
+                            case PROGRESS:
+                                break;
                             //allow PPM text to Octane phase, release, if add new field in future, just add <case> field
                             case OctaneConstants.KEY_FIELD_PHASE:
                             case OctaneConstants.KEY_FIELD_RELEASE:
@@ -929,6 +934,16 @@ public class OctaneRequestIntegration extends RequestIntegration {
                     String value = item.getString(key);
                     if (value == null || value.equals("null")) {
                         value = "";
+                    }
+
+                    if (PROGRESS.equalsIgnoreCase(key)) {
+                        String progressStr = item.getString(key);
+                        JSONObject progressData = (JSONObject)JSONSerializer.toJSON(progressStr);
+                        float percentage =
+                                (progressData.getInt("storiesSumDone") + progressData.getInt("defectsSumDone"))
+                                        / (float)(progressData.getInt("storiesSumTotal")
+                                                + progressData.getInt("defectsSumTotal"));
+                        value = percentage * 100 + "%";
                     }
                     StringField stringField = new StringField();
                     stringField.set(value);
