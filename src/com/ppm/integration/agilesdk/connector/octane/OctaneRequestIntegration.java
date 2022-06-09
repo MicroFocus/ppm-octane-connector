@@ -943,7 +943,7 @@ public class OctaneRequestIntegration extends RequestIntegration {
                                 (progressData.getInt("storiesSumDone") + progressData.getInt("defectsSumDone"))
                                         / (float)(progressData.getInt("storiesSumTotal")
                                                 + progressData.getInt("defectsSumTotal"));
-                        value = percentage * 100 + "%";
+                        value = Math.round(percentage * 100) + "";
                     }
                     StringField stringField = new StringField();
                     stringField.set(value);
