@@ -179,9 +179,8 @@ public class OctaneRequestIntegration extends RequestIntegration {
                 return DATA_TYPE.ListNode.name();
             case OctaneConstants.KEY_FIELD_INTEGER:
                 return DATA_TYPE.INTEGER.name();
-			// For now, octane can't add float type field.Even perceived value and actual value are float, they display with integer type in octane configuration page,just keep the same with octane until they change.
             case OctaneConstants.KEY_FIELD_FLOAT:
-                return DATA_TYPE.INTEGER.name();
+                return DATA_TYPE.FLOAT.name();
 
             default :
                 return DATA_TYPE.STRING.name();                
