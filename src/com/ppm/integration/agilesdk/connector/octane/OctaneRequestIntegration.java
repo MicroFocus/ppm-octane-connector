@@ -941,7 +941,7 @@ public class OctaneRequestIntegration extends RequestIntegration {
                         value = "";
                     }
                     if (PROGRESS.equalsIgnoreCase(key)) {
-                        value = caculateProgress(item);
+                        value = calculateProgress(item);
                     }
                     StringField stringField = new StringField();
                     stringField.set(value);
@@ -1022,7 +1022,7 @@ public class OctaneRequestIntegration extends RequestIntegration {
             "plannedStoryPoints": 4
         }
      * */
-    private String caculateProgress(JSONObject item) {
+    private String calculateProgress(JSONObject item) {
         String progressStr = item.getString(PROGRESS);
         String entityType = item.getString("type");
         JSONObject progressData = (JSONObject)JSONSerializer.toJSON(progressStr);
@@ -1030,7 +1030,8 @@ public class OctaneRequestIntegration extends RequestIntegration {
         // result of 0/(float)0 is NAN
         if (OctaneConstants.SUB_TYPE_STORY.equalsIgnoreCase(entityType)) {
             percentage = progressData.getInt("tasksInvestedHoursSumTotal")
-                    / (float)progressData.getInt("tasksEstimatedHoursSumTotal");
+                    / (float)(progressData.getInt("tasksRemainingHoursSumTotal")
+                            + progressData.getInt("tasksInvestedHoursSumTotal"));
 
         } else if (OctaneConstants.SUB_TYPE_EPIC.equalsIgnoreCase(entityType)
                 || OctaneConstants.SUB_TYPE_FEATURE.equalsIgnoreCase(entityType)) {
