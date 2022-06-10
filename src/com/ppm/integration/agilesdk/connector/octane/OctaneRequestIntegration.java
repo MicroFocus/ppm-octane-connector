@@ -934,15 +934,8 @@ public class OctaneRequestIntegration extends RequestIntegration {
                     if (value == null || value.equals("null")) {
                         value = "";
                     }
-
                     if (PROGRESS.equalsIgnoreCase(key)) {
-                        String progressStr = item.getString(key);
-                        JSONObject progressData = (JSONObject)JSONSerializer.toJSON(progressStr);
-                        float percentage =
-                                (progressData.getInt("storiesSumDone") + progressData.getInt("defectsSumDone"))
-                                        / (float)(progressData.getInt("storiesSumTotal")
-                                                + progressData.getInt("defectsSumTotal"));
-                        value = Math.round(percentage * 100) + "";
+                        value = caculateProgress(item);
                     }
                     StringField stringField = new StringField();
                     stringField.set(value);
@@ -1003,6 +996,41 @@ public class OctaneRequestIntegration extends RequestIntegration {
             }
         }
         return entity;
+    }
+
+    /* response data of progress of story
+     * {"storyId":2002,"tasksInvestedHoursSumTotal":0,"tasksEstimatedHoursSumTotal":0,"tasksRemainingHoursSumTotal":0}
+     * response data of progress of feature and epic
+     *     {
+            "themeId": 0, 
+            "featuresCountDone": 0, 
+            "featuresCountTotal": 1, 
+            "storiesCountDone": 2, 
+            "storiesCountTotal": 5, 
+            "defectsCountDone": 0, 
+            "defectsCountTotal": 2, 
+            "storiesSumDone": 9, 
+            "storiesSumTotal": 22, 
+            "defectsSumDone": 0, 
+            "defectsSumTotal": 5, 
+            "plannedStoryPoints": 4
+        }
+     * */
+    private String caculateProgress(JSONObject item) {
+        String progressStr = item.getString(PROGRESS);
+        String entityType = item.getString("type");
+        JSONObject progressData = (JSONObject)JSONSerializer.toJSON(progressStr);
+        float percentage = 0;
+        if (OctaneConstants.SUB_TYPE_STORY.equalsIgnoreCase(entityType)) {
+            percentage = progressData.getInt("tasksInvestedHoursSumTotal")
+                    / (float)progressData.getInt("tasksEstimatedHoursSumTotal");
+
+        } else if (OctaneConstants.SUB_TYPE_EPIC.equalsIgnoreCase(entityType)
+                || OctaneConstants.SUB_TYPE_FEATURE.equalsIgnoreCase(entityType)) {
+            percentage = (progressData.getInt("storiesSumDone") + progressData.getInt("defectsSumDone"))
+                    / (float)(progressData.getInt("storiesSumTotal") + progressData.getInt("defectsSumTotal"));
+        }
+        return Math.round(percentage * 100) + "";
     }
 
     private User buildUser(JSONObject userJson) {
