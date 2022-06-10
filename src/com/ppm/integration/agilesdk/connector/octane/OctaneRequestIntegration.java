@@ -55,6 +55,12 @@ import net.sf.json.JSONSerializer;
  */
 public class OctaneRequestIntegration extends RequestIntegration {
 
+    /** TODO Comment for <code>MAX_PROGRESS</code>. */
+    
+    private static final double MIN_PROGRESS = 0.01;
+
+    private static final double MAX_PROGRESS = 0.99;
+
     private static final String PROGRESS = "progress";
 
     private UserProvider up = null;
@@ -1021,6 +1027,7 @@ public class OctaneRequestIntegration extends RequestIntegration {
         String entityType = item.getString("type");
         JSONObject progressData = (JSONObject)JSONSerializer.toJSON(progressStr);
         float percentage = 0;
+        // result of 0/(float)0 is NAN
         if (OctaneConstants.SUB_TYPE_STORY.equalsIgnoreCase(entityType)) {
             percentage = progressData.getInt("tasksInvestedHoursSumTotal")
                     / (float)progressData.getInt("tasksEstimatedHoursSumTotal");
@@ -1029,6 +1036,15 @@ public class OctaneRequestIntegration extends RequestIntegration {
                 || OctaneConstants.SUB_TYPE_FEATURE.equalsIgnoreCase(entityType)) {
             percentage = (progressData.getInt("storiesSumDone") + progressData.getInt("defectsSumDone"))
                     / (float)(progressData.getInt("storiesSumTotal") + progressData.getInt("defectsSumTotal"));
+        }
+        return formatProgress(percentage);
+    }
+
+    private String formatProgress(float percentage) {
+        if (0 < percentage && percentage < MIN_PROGRESS) {
+            percentage = new Float(MIN_PROGRESS);
+        } else if (MAX_PROGRESS < percentage && percentage < 1) {
+            percentage = new Float(MAX_PROGRESS);
         }
         return Math.round(percentage * 100) + "";
     }
