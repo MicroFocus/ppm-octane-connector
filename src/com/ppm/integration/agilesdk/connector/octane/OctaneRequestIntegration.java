@@ -563,9 +563,6 @@ public class OctaneRequestIntegration extends RequestIntegration {
                         String value = (String)field.get();
                         value = null == value ? "" : value.trim();
                         switch (key){
-                            // progress is a read only field
-                            case PROGRESS:
-                                break;
                             //allow PPM text to Octane phase, release, if add new field in future, just add <case> field
                             case OctaneConstants.KEY_FIELD_PHASE:
                             case OctaneConstants.KEY_FIELD_RELEASE:
