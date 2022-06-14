@@ -180,7 +180,7 @@ public class OctaneUserIntegration extends UserIntegration {
 
 
         for (int i = 0; i < userArrayByWorkpaceApi.size(); i++) {
-            JSONObject userObj = userArray.getJSONObject(i);
+            JSONObject userObj = userArrayByWorkpaceApi.getJSONObject(i);
             userInWorkspace.put(userObj.getString("id"), userObj);
         }
 
