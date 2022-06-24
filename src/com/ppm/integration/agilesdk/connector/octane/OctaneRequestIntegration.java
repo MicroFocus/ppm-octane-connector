@@ -393,24 +393,21 @@ public class OctaneRequestIntegration extends RequestIntegration {
             String workSpaceId, String entityType, Set<String> entityIds, Date lastUpdateTime)
     {
         List<AgileEntity> entities = new ArrayList<>();
-        if (OctaneConstants.SUB_TYPE_FEATURE.equals(entityType)) {
-            List<JSONObject> featureJson =
-                    client.getFeaturesAfterDate(sharedSpaceId, workSpaceId, entityIds, lastUpdateTime);
-            entities = getAgileEntities(client, featureJson, sharedSpaceId, workSpaceId, "feature");
 
-        } else if (OctaneConstants.SUB_TYPE_STORY.equals(entityType)) {
-            List<JSONObject> userStoryJson =
-                    client.getUserStoriesAfterDate(sharedSpaceId, workSpaceId, entityIds, lastUpdateTime);
-            entities = getAgileEntities(client, userStoryJson, sharedSpaceId, workSpaceId, "story");
-        } else if (OctaneConstants.SUB_TYPE_EPIC.equals(entityType)
-                || OctaneConstants.SUB_SHARED_EPIC.equals(entityType)) {
-            if (OctaneConstants.SUB_SHARED_EPIC.equals(entityType)) {
-                workSpaceId = OctaneConstants.SHARED_EPIC_DEFAULT_WORKSPACE;
-            }
-            List<JSONObject> userEpicJson =
-                    client.getEpicsAfterDate(sharedSpaceId, workSpaceId, entityIds, lastUpdateTime);
-            entities = getAgileEntities(client, userEpicJson, sharedSpaceId, workSpaceId, "epic");
+        if (OctaneConstants.SUB_SHARED_EPIC.equals(entityType)) {
+            workSpaceId = OctaneConstants.SHARED_EPIC_DEFAULT_WORKSPACE;
+            entityType = OctaneConstants.SUB_TYPE_EPIC;
         }
+
+        Map<String, Object> queryParams = new HashMap<String, Object>();
+        queryParams.put("id", entityIds);
+        if (null != lastUpdateTime) {
+            queryParams.put("last_modified", lastUpdateTime);
+        }
+
+        List<JSONObject> itemJson = client.getWorkItems(sharedSpaceId, workSpaceId,
+                ClientPublicAPI.EntityType.fromName(entityType), queryParams);
+        entities = getAgileEntities(client, itemJson, sharedSpaceId, workSpaceId, entityType);
         return entities;
 
     }
@@ -425,35 +422,20 @@ public class OctaneRequestIntegration extends RequestIntegration {
         JSONObject workspaceJson = parseAgileProject(agileProjectValue);
         String workSpaceId = workspaceJson.getString(OctaneConstants.WORKSPACE_ID);
         String sharedSpaceId = workspaceJson.getString(OctaneConstants.SHARED_SPACE_ID);
-
-        if (OctaneConstants.SUB_TYPE_FEATURE.equals(entityType)) {
-            List<JSONObject> featureJson = client.getFeature(sharedSpaceId, workSpaceId, entityId);
-            if (featureJson.size() > 0) {
-                Map<String, FieldInfo> fieldInfoMap  = getFieldInfoMap(client, sharedSpaceId, workSpaceId, "feature");
-                Map<String, JSONObject> usersMap = collectAllUsers(client,featureJson,sharedSpaceId,workSpaceId,fieldInfoMap);
-                entity = wrapperEntity(featureJson.get(0), fieldInfoMap, usersMap);
-            }
-        } else if (OctaneConstants.SUB_TYPE_STORY.equals(entityType)) {
-            List<JSONObject> userStoryJson = client.getUserStory(sharedSpaceId, workSpaceId, entityId);
-            if (userStoryJson.size() > 0) {
-                Map<String, FieldInfo> fieldInfoMap  = getFieldInfoMap(client, sharedSpaceId, workSpaceId, "story");
-                Map<String, JSONObject> usersMap = collectAllUsers(client,userStoryJson,sharedSpaceId,workSpaceId,fieldInfoMap);
-                entity = wrapperEntity(userStoryJson.get(0), fieldInfoMap, usersMap);
-            }
-        } else if (OctaneConstants.SUB_TYPE_EPIC.equals(entityType)||OctaneConstants.SUB_SHARED_EPIC.equals(entityType)) {
-			// shared epic is special epic who belong to a master workflow whose id is 500
-        	if(OctaneConstants.SUB_SHARED_EPIC.equals(entityType)) {
-            	workSpaceId = OctaneConstants.SHARED_EPIC_DEFAULT_WORKSPACE;
-            	entityType = OctaneConstants.SUB_TYPE_EPIC;
-            }
-        	
-            List<JSONObject> epicJson = client.getEpic(sharedSpaceId, workSpaceId, entityId);
-            if (epicJson.size() > 0) {
-                Map<String, FieldInfo> fieldInfoMap  = getFieldInfoMap(client, sharedSpaceId, workSpaceId, "epic");
-                Map<String, JSONObject> usersMap = collectAllUsers(client,epicJson,sharedSpaceId,workSpaceId,fieldInfoMap);
-                entity = wrapperEntity(epicJson.get(0), fieldInfoMap, usersMap);
-            }
+        if (OctaneConstants.SUB_SHARED_EPIC.equals(entityType)) {
+            workSpaceId = OctaneConstants.SHARED_EPIC_DEFAULT_WORKSPACE;
+            entityType = OctaneConstants.SUB_TYPE_EPIC;
         }
+
+        JSONObject itemJson = client.getWorkItem(sharedSpaceId, workSpaceId,
+                ClientPublicAPI.EntityType.fromName(entityType), entityId);
+        List<JSONObject> items = new ArrayList<JSONObject>();
+        items.add(itemJson);
+
+        Map<String, FieldInfo> fieldInfoMap = getFieldInfoMap(client, sharedSpaceId, workSpaceId, entityType);
+        Map<String, JSONObject> usersMap = collectAllUsers(client, items, sharedSpaceId, workSpaceId, fieldInfoMap);
+        entity = wrapperEntity(itemJson, fieldInfoMap, usersMap);
+
         client.signOut(instanceConfigurationParameters);
         return entity;
     }
@@ -473,31 +455,26 @@ public class OctaneRequestIntegration extends RequestIntegration {
         if (entity.getId() != null) {
             method = HttpMethod.PUT;
         }
-        if (OctaneConstants.SUB_TYPE_FEATURE.equals(entityType)) {
-            String entityStr = buildEntity(client, sharedSpaceId, workSpaceId, fieldInfos, entityType, entity, null);
-            JSONObject feature = client.saveFeatureInWorkspace(sharedSpaceId, workSpaceId, entityStr, method);
-            agileEntity = wrapperEntity(feature, null, null);
-        } else if (OctaneConstants.SUB_TYPE_STORY.equals(entityType)) {
-            SimpleEntity root = client.getWorkItemRoot(Integer.parseInt(sharedSpaceId), Integer.parseInt(workSpaceId));
-            String entityStr = buildEntity(client, sharedSpaceId, workSpaceId, fieldInfos, entityType, entity, root);
-            JSONObject userStory = client.saveStoryInWorkspace(sharedSpaceId, workSpaceId, entityStr, method);
-            agileEntity = wrapperEntity(userStory, null, null);
-        } else if (OctaneConstants.SUB_TYPE_EPIC.equals(entityType)
+        
+
+        String finalWorkSpaceId = workSpaceId;
+        if (OctaneConstants.SUB_TYPE_EPIC.equals(entityType)
                 || OctaneConstants.SUB_SHARED_EPIC.equals(entityType)) {
-            String finalWorkSpaceId = workSpaceId;
             // shared epic is special epic who belong to a master workflow whose
             // id is 500
             if (OctaneConstants.SUB_SHARED_EPIC.equals(entityType)) {
                 finalWorkSpaceId = OctaneConstants.SHARED_EPIC_DEFAULT_WORKSPACE;
                 entityType = OctaneConstants.SUB_TYPE_EPIC;
             }
-            SimpleEntity root =
-                    client.getWorkItemRoot(Integer.parseInt(sharedSpaceId), Integer.parseInt(finalWorkSpaceId));
-            String entityStr =
-                    buildEntity(client, sharedSpaceId, finalWorkSpaceId, fieldInfos, entityType, entity, root);
-            JSONObject userEpic = client.saveEpicInWorkspace(sharedSpaceId, finalWorkSpaceId, entityStr, method);
-            agileEntity = wrapperEntity(userEpic, null, null);
         }
+        SimpleEntity root =
+                client.getWorkItemRoot(Integer.parseInt(sharedSpaceId), Integer.parseInt(finalWorkSpaceId));
+        String entityStr =
+                buildEntity(client, sharedSpaceId, finalWorkSpaceId, fieldInfos, entityType, entity, root);
+        JSONObject workItem = client.saveWorkItem(sharedSpaceId, finalWorkSpaceId,
+                ClientPublicAPI.EntityType.fromName(entityType), method, entityStr);
+        agileEntity = wrapperEntity(workItem, null, null);
+
         if (agileEntity != null) {
             agileEntity.setEntityUrl(
                     String.format(ClientPublicAPI.DEFAULT_ENTITY_ITEM_URL, client.getBaseURL(), sharedSpaceId, workSpaceId, agileEntity.getId()));
@@ -755,6 +732,7 @@ public class OctaneRequestIntegration extends RequestIntegration {
             }
         }
 
+        entityObj.put("subtype", entityType);
         entityList.add(entityObj);
 
         return entityList.toString();

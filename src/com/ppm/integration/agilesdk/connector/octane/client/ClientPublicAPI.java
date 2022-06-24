@@ -16,7 +16,6 @@ import java.net.URLEncoder;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -81,6 +80,8 @@ public class ClientPublicAPI {
     
     private static final String WORKSPACE_ADMIN_ROLE = "role.workspace.admin";
     
+    private static final String SPM_INTEGRATION_ROLE = "role.spm.integration";
+
     private static final String SPACE_ADMIN_ROLE = "role.shared.space.admin";
 
     private final Logger logger = Logger.getLogger(this.getClass());
@@ -472,14 +473,16 @@ public class ClientPublicAPI {
         String url = "";
         if(filterApiAccess) {
             List<String> ids = getApiAccessWorkSpaces(sharedSpacesId);
-            //remove the default master workspace that belong to the current space as it could not be seen from octane front-end
-            ids.remove(OctaneConstants.SHARED_EPIC_DEFAULT_WORKSPACE);
-            if (ids.size() == 0) {
-                return new ArrayList<>();
+            if(ids!=null) {
+                //remove the default master workspace that belong to the current space as it could not be seen from octane front-end
+                ids.remove(OctaneConstants.SHARED_EPIC_DEFAULT_WORKSPACE);
+                if (ids.size() == 0) {
+                    return new ArrayList<>();
+                }
+                String query = generateInQuery(ids,"id");
+                query  = queryEncode(query);
+                url = String.format("%s/api/shared_spaces/%d/workspaces?fields=id,name&query=%s", baseURL, sharedSpacesId,query);
             }
-            String query = generateInQuery(ids,"id");
-            query  = queryEncode(query);
-            url = String.format("%s/api/shared_spaces/%d/workspaces?fields=id,name&query=%s", baseURL, sharedSpacesId,query);
         } else {
             url = String.format("%s/api/shared_spaces/%d/workspaces?fields=id,name", baseURL, sharedSpacesId);
         }
@@ -503,7 +506,6 @@ public class ClientPublicAPI {
         String url = String.format(
                 "%s/api/shared_spaces/%s/users?fields=name,workspace_roles&query=%s",
                 baseURL, sharedSpacesId, query);
-        
         RestResponse response = sendGet(url);
         List<String> workspaceIds = new ArrayList<String>();
 
@@ -532,6 +534,11 @@ public class ClientPublicAPI {
                         }
                     } else if (SPACE_ADMIN_ROLE.equalsIgnoreCase(roleName)) {
                         isSpaceAdmin = true;
+                    } else if(SPM_INTEGRATION_ROLE.equalsIgnoreCase(roleName)) {
+						// to do
+                        // if the current token is generated in site level with 'SPM Integration Role', 
+                        //  don't filter workspace.workspace cotent relay on the role
+                        return null;
                     }
                     
                 }
@@ -1304,75 +1311,6 @@ public class ClientPublicAPI {
 
     }
 
-    public JSONObject saveFeatureInWorkspace(final String sharedspaceId, final String workspaceId,
-            final String entity, final String method)
-    {
-        // comments is a special field which can only add value but can not be updated/removed,
-        // so execute add comment action before save  feature/story workspace
-        String entityStr = addComment(sharedspaceId, workspaceId, entity);
-
-
-        String url =
-                String.format("%s/api/shared_spaces/%s/workspaces/%s/features", baseURL, sharedspaceId, workspaceId);
-
-        RestResponse response = sendRequest(url, method, this.getJsonStrForPOSTData(entityStr));
-        if (HttpStatus.SC_CREATED != response.getStatusCode() && HttpStatus.SC_OK != response.getStatusCode()) {
-            this.logger
-                    .error("Error occurs when creating feature in Octane: Response code = " + response.getStatusCode());
-            this.logger.error(response.getData());
-            throw new OctaneClientException("AGM_APP", "ERROR_AGILE_ENTITY_SAVE_ERROR",
-                    new String[] {getError(response.getData())});
-        }
-
-        JSONObject obj = getCreateEntityFromResponse(response.getData());
-
-        return this.getFeature(sharedspaceId, workspaceId, obj.getString("id")).get(0);
-    }
-
-    public JSONObject saveStoryInWorkspace(final String sharedspaceId, final String workspaceId,
-            final String entity, final String method)
-    {
-        // comments is a special field which can only add value but can not be updated/removed,
-        // so execute add comment action before save  feature/story workspace
-        String entityStr = addComment(sharedspaceId, workspaceId, entity);
-
-        String url =
-                String.format("%s/api/shared_spaces/%s/workspaces/%s/stories", baseURL, sharedspaceId, workspaceId);
-
-        RestResponse response = sendRequest(url, method, this.getJsonStrForPOSTData(entityStr));
-        if (HttpStatus.SC_CREATED != response.getStatusCode() && HttpStatus.SC_OK != response.getStatusCode()) {
-            this.logger.error("Error occurs when saving story in Octane: Response code = " + response.getStatusCode());
-            this.logger.error(response.getData());
-            throw new OctaneClientException("AGM_APP", "ERROR_AGILE_ENTITY_SAVE_ERROR",
-                    new String[] {getError(response.getData())});
-        }
-        JSONObject obj = getCreateEntityFromResponse(response.getData());
-
-        return this.getUserStory(sharedspaceId, workspaceId, obj.getString("id")).get(0);
-    }
-    
-    public JSONObject saveEpicInWorkspace(final String sharedspaceId, final String workspaceId,
-            final String entity, final String method)
-    {
-        // comments is a special field which can only add value but can not be updated/removed,
-        // so execute add comment action before save  feature/story/epic workspace
-        String entityStr = addComment(sharedspaceId, workspaceId, entity);
-
-        String url =
-                String.format("%s/api/shared_spaces/%s/workspaces/%s/epics", baseURL, sharedspaceId, workspaceId);
-
-        RestResponse response = sendRequest(url, method, this.getJsonStrForPOSTData(entityStr));
-        if (HttpStatus.SC_CREATED != response.getStatusCode() && HttpStatus.SC_OK != response.getStatusCode()) {
-            this.logger.error("Error occurs when saving epic in Octane: Response code = " + response.getStatusCode());
-            this.logger.error(response.getData());
-            throw new OctaneClientException("AGM_APP", "ERROR_AGILE_ENTITY_SAVE_ERROR",
-                    new String[] {getError(response.getData())});
-        }
-        JSONObject obj = getCreateEntityFromResponse(response.getData());
-
-        return this.getEpic(sharedspaceId, workspaceId, obj.getString("id")).get(0);
-    }
-
     private JSONObject getCreateEntityFromResponse(String jsonData) {
         JSONObject obj = null;
         try {
@@ -1542,69 +1480,6 @@ public class ClientPublicAPI {
 
         return results;
     }
-    
-    public List<JSONObject> getEpic(String sharedspaceId, String workspaceId, String id) {
-        if (id == null || "".equals(id)) {
-            return null;
-        }
-
-        String query = "id=" + id;
-        List<JSONObject> workItemsJson = getEpicJson(sharedspaceId, workspaceId, query);
-        return workItemsJson;
-    }
-    
-    public List<JSONObject> getEpics(String sharedspaceId, String workspaceId, Set<String> ids) {
-        if (ids == null || ids.isEmpty()) {
-            return null;
-        }
-
-        String query = "id%20IN%20" + StringUtils.join(ids, ",");
-        List<JSONObject> workItemsJson = getEpicJson(sharedspaceId, workspaceId, query);
-
-        return workItemsJson;
-    }
-
-    public List<JSONObject> getUserStory(String sharedspaceId, String workspaceId, String id) {
-        if (id == null || "".equals(id)) {
-            return null;
-        }
-
-        String query = "id=" + id;
-        List<JSONObject> workItemsJson = getUserStoriesJson(sharedspaceId, workspaceId, query);
-        return workItemsJson;
-    }
-
-    public List<JSONObject> getUserStories(String sharedspaceId, String workspaceId, Set<String> ids) {
-        if (ids == null || ids.isEmpty()) {
-            return null;
-        }
-
-        String query = "id%20IN%20" + StringUtils.join(ids, ",");
-        List<JSONObject> workItemsJson = getUserStoriesJson(sharedspaceId, workspaceId, query);
-
-        return workItemsJson;
-    }
-
-    public List<JSONObject> getFeature(String sharedspaceId, String workspaceId, String id) {
-        if (id == null || "".equals(id)) {
-            return null;
-        }
-
-        String query = "id=" + id;
-        List<JSONObject> workItemsJson = getFeatureJson(sharedspaceId, workspaceId, query);
-        return workItemsJson;
-    }
-
-    public List<JSONObject> getFeatures(String sharedspaceId, String workspaceId, Set<String> ids) {
-        if (ids == null || ids.isEmpty()) {
-            return null;
-        }
-
-        String query = "id%20IN%20" + StringUtils.join(ids, ",");
-        List<JSONObject> workItemsJson = getFeatureJson(sharedspaceId, workspaceId, query);
-
-       return workItemsJson;
-    }
 
     public void deleteEntity(String sharedspaceId, String workspaceId, String entityType, String entityId) {
         String url = String.format("%s/api/shared_spaces/%s/workspaces/%s/%s/%s", baseURL, sharedspaceId, workspaceId,
@@ -1618,61 +1493,6 @@ public class ClientPublicAPI {
         }
 
     }
-    
-    public List<JSONObject> getEpicsAfterDate(String sharedspaceId, String workspaceId, Set<String> ids,
-            Date updateDate)
-    {
-        if (null == updateDate) {
-            return getEpics(sharedspaceId, workspaceId, ids);
-        }
-
-        String query = "";
-        if (null != ids && !ids.isEmpty()) {
-            query += "id%20IN%20" + StringUtils.join(ids, ",") + "%20;%20";
-        }
-        query += "last_modified%20GT%20^" + transformDateFormat(updateDate) + "^";
-
-        List<JSONObject> workItemsJson = getEpicJson(sharedspaceId, workspaceId, query);
-
-        return workItemsJson;
-    }
-
-    public List<JSONObject> getUserStoriesAfterDate(String sharedspaceId, String workspaceId, Set<String> ids,
-            Date updateDate)
-    {
-        if (null == updateDate) {
-            return getUserStories(sharedspaceId, workspaceId, ids);
-        }
-
-        String query = "";
-        if (null != ids && !ids.isEmpty()) {
-            query += "id%20IN%20" + StringUtils.join(ids, ",") + "%20;%20";
-        }
-        query += "last_modified%20GT%20^" + transformDateFormat(updateDate) + "^";
-
-        List<JSONObject> workItemsJson = getUserStoriesJson(sharedspaceId, workspaceId, query);
-
-        return workItemsJson;
-    }
-
-    public List<JSONObject> getFeaturesAfterDate(String sharedspaceId, String workspaceId, Set<String> ids,
-            Date updateDate)
-    {
-        if (null == updateDate) {
-            return getFeatures(sharedspaceId, workspaceId, ids);
-        }
-
-        String query = "";
-        if (null != ids && !ids.isEmpty()) {
-            query += "id%20IN%20" + StringUtils.join(ids, ",") + "%20;%20";
-        }
-        query += "last_modified%20GT%20^" + transformDateFormat(updateDate) + "^";
-
-        List<JSONObject> workItemsJson = getFeatureJson(sharedspaceId, workspaceId, query);
-
-        return workItemsJson;
-    }
-
 
     public JSONArray getUsersByIds(String sharedspaceId, String workspaceId, String[] ids) {
         if (ids.length == 0) {
@@ -1762,59 +1582,6 @@ public class ClientPublicAPI {
         dateString = sdf.format(dateStr);
 
         return dateString;
-    }
-    
-    private List<JSONObject> getEpicJson(String sharedspaceId, String workspaceId, String queryFilter) {
-
-        List<FieldInfo> fieldsInfos = getEntityFields(sharedspaceId, workspaceId, "epic");
-        List fieldNames = new ArrayList();
-        for (FieldInfo field : fieldsInfos) {
-            fieldNames.add(field.getName());
-        }
-        fieldNames.add(KEY_LAST_UPDATE_DATE);
-        String url = String.format("%s/api/shared_spaces/%s/workspaces/%s/epics?fields=%s", baseURL, sharedspaceId, workspaceId,StringUtils.join(fieldNames, ","));
-        if (!StringUtils.isBlank(queryFilter)) {
-            url += "&query=\"" + queryFilter + "\"";
-        }
-
-        List<JSONObject> resultJsonList = new JsonPaginatedOctaneGetter().get(url);
-        resetComments(resultJsonList, sharedspaceId, workspaceId);
-        return resultJsonList;
-    }
-
-    private List<JSONObject> getUserStoriesJson(String sharedspaceId, String workspaceId, String queryFilter) {
-
-        List<FieldInfo> fieldsInfos = getEntityFields(sharedspaceId, workspaceId, "story");
-    	List fieldNames = new ArrayList();
-        for (FieldInfo field : fieldsInfos) {
-    		fieldNames.add(field.getName());
-    	}
-        fieldNames.add(KEY_LAST_UPDATE_DATE);
-        String url = String.format("%s/api/shared_spaces/%s/workspaces/%s/stories?fields=%s", baseURL, sharedspaceId, workspaceId,StringUtils.join(fieldNames, ","));
-        if (!StringUtils.isBlank(queryFilter)) {
-            url += "&query=\"" + queryFilter + "\"";
-        }
-
-        List<JSONObject> resultJsonList = new JsonPaginatedOctaneGetter().get(url);
-        resetComments(resultJsonList, sharedspaceId, workspaceId);
-        return resultJsonList;
-    }
-
-    private List<JSONObject> getFeatureJson(String sharedspaceId, String workspaceId, String queryFilter) {
-
-        List<FieldInfo> fieldsInfos = getEntityFields(sharedspaceId, workspaceId, "feature");
-    	List fieldNames = new ArrayList();
-        for (FieldInfo field : fieldsInfos) {
-    		fieldNames.add(field.getName());
-    	}
-        fieldNames.add(KEY_LAST_UPDATE_DATE);
-        String url = String.format("%s/api/shared_spaces/%s/workspaces/%s/features?fields=%s", baseURL, sharedspaceId, workspaceId, StringUtils.join(fieldNames, ","));
-        if (!StringUtils.isBlank(queryFilter)) {
-            url += "&query=\"" + queryFilter + "\"";
-        }
-        List<JSONObject> resultJsonList = new JsonPaginatedOctaneGetter().get(url);
-        resetComments(resultJsonList, sharedspaceId, workspaceId);
-        return resultJsonList;
     }
 
     private void resetComments(List<JSONObject> resultJsonList, String sharedspaceId, String workspaceId){
@@ -2045,5 +1812,104 @@ public class ClientPublicAPI {
         JSONObject dataObj = JSONObject.fromObject(response.getData());
         JSONArray userList = JSONArray.fromObject(dataObj.get("data"));
         return userList;
+    }
+
+    public List<JSONObject> getWorkItems(String sharedspaceId, String workspaceId, EntityType entityType,
+            Map<String, Object> queryParams)
+    {
+
+        String url = String.format("%s/api/shared_spaces/%s/workspaces/%s/work_items?fields=%s", baseURL, sharedspaceId,
+                workspaceId, getEntityFieldString(sharedspaceId, workspaceId, entityType));
+
+        url = url + generateFilterString(queryParams);
+        List<JSONObject> resultJsonList = new JsonPaginatedOctaneGetter().get(url);
+        resetComments(resultJsonList, sharedspaceId, workspaceId);
+        return resultJsonList;
+    }
+
+    public JSONObject getWorkItem(String sharedspaceId, String workspaceId, EntityType entityType, String id) {
+        Map<String, Object> queryParams = new HashMap<String, Object>();
+        queryParams.put("id", id);
+        List<JSONObject> items = getWorkItems(sharedspaceId, workspaceId, entityType, queryParams);
+        if (items.size() > 0) {
+            return items.get(0);
+        }
+        return null;
+    }
+
+    private String generateFilterString(Map<String, Object> queryParams) {
+        if (queryParams != null && !queryParams.isEmpty()) {
+            StringBuilder queryBuilder = new StringBuilder("&query=\"");
+            StringBuilder builder = new StringBuilder();
+            for (Map.Entry<String, Object> entry : queryParams.entrySet()) {
+                if (entry.getValue() instanceof String) {
+                    builder.append(entry.getKey()).append(" = ").append(entry.getValue());
+                } else if (entry.getValue() instanceof Set) {
+                    Set values = (Set)entry.getValue();
+                    builder.append(entry.getKey()).append(" IN '").append(StringUtils.join(values, "','")).append("'");
+                } else if (entry.getValue() instanceof Date) {
+                    builder.append(entry.getKey()).append(" GT ^").append(transformDateFormat((Date)entry.getValue()))
+                            .append("^");
+                }
+                builder.append(";");
+            }
+            builder.deleteCharAt(builder.length() - 1);
+            return queryBuilder.append(queryEncode(builder.toString())).append("\"").toString();
+        }
+        return null;
+    }
+
+    /**
+     * generate fields string of all kinds of entity
+     * @param sharedspaceId
+     * @param workspaceId
+     * @return
+     */
+    private String getEntityFieldString(String sharedspaceId, String workspaceId, EntityType entityType) {
+        List<FieldInfo> fieldsInfos = getEntityFields(sharedspaceId, workspaceId, entityType.name());
+        List fieldNames = new ArrayList();
+        for (FieldInfo field : fieldsInfos) {
+            fieldNames.add(field.getName());
+        }
+        fieldNames.add(KEY_LAST_UPDATE_DATE);
+        return StringUtils.join(fieldNames, ",");
+    }
+
+    public enum EntityType {
+        story,
+        epic,
+        feature;
+
+        public static EntityType fromName(String name) {
+            for (EntityType entry : EntityType.values()) {
+                if (entry.name().equalsIgnoreCase(name)) {
+                    return entry;
+                }
+            }
+            return null;
+        }
+    }
+
+    public JSONObject saveWorkItem(final String sharedspaceId, final String workspaceId, final EntityType entityType,
+            final String method, final String entity)
+    {
+        // comments is a special field which can only add value but can not be
+        // updated/removed,
+        // so execute add comment action before save feature/story workspace
+        String entityStr = addComment(sharedspaceId, workspaceId, entity);
+
+        String url =
+                String.format("%s/api/shared_spaces/%s/workspaces/%s/work_items", baseURL, sharedspaceId, workspaceId);
+
+        RestResponse response = sendRequest(url, method, this.getJsonStrForPOSTData(entityStr));
+        if (HttpStatus.SC_CREATED != response.getStatusCode() && HttpStatus.SC_OK != response.getStatusCode()) {
+            this.logger.error("Error occurs when saving " + entityType.name() + " in Octane: Response code = "
+                    + response.getStatusCode());
+            this.logger.error(response.getData());
+            throw new OctaneClientException("AGM_APP", "ERROR_AGILE_ENTITY_SAVE_ERROR",
+                    new String[] {getError(response.getData())});
+        }
+        JSONObject obj = getCreateEntityFromResponse(response.getData());
+        return getWorkItem(sharedspaceId, workspaceId, entityType, obj.getString("id"));
     }
 }
