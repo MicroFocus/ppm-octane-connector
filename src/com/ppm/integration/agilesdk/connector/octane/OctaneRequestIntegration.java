@@ -355,6 +355,10 @@ public class OctaneRequestIntegration extends RequestIntegration {
         return entities;
     }
 
+    /*
+     * get specific space id and workspace ids no matter agileProjectValue is
+     * wildcard or specific space and workspace id
+     */
     private Map<String, Object> getSpaceAndWorkspace(ClientPublicAPI client, String agileProjectValue,
             String entityType)
     {
@@ -1186,7 +1190,7 @@ public class OctaneRequestIntegration extends RequestIntegration {
                     getNewCreatedEntities(client, spaceId, id, entityType, createdSinceDate);
             ids.addAll(entitiesCollection);
         }
-        return null;
+        return ids;
     }
 
     private List<IdProjectDate> getNewCreatedEntities(ClientPublicAPI client, String spaceId, String workSpaceId,
