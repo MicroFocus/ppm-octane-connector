@@ -1817,9 +1817,21 @@ public class ClientPublicAPI {
     public List<JSONObject> getWorkItems(String sharedspaceId, String workspaceId, EntityType entityType,
             Map<String, Object> queryParams)
     {
+        return getWorkItems(sharedspaceId, workspaceId, entityType, queryParams, null);
+    }
 
+    public List<JSONObject> getWorkItems(String sharedspaceId, String workspaceId, EntityType entityType,
+            Map<String, Object> queryParams, List<String> fields)
+    {
+        String retrieveFields = null;
+
+        if (fields == null || fields.isEmpty()) {
+            retrieveFields = getEntityFieldString(sharedspaceId, workspaceId, entityType);
+        } else {
+            retrieveFields = StringUtils.join(fields, ",");
+        }
         String url = String.format("%s/api/shared_spaces/%s/workspaces/%s/work_items?fields=%s", baseURL, sharedspaceId,
-                workspaceId, getEntityFieldString(sharedspaceId, workspaceId, entityType));
+                workspaceId, retrieveFields);
 
         url = url + generateFilterString(queryParams);
         List<JSONObject> resultJsonList = new JsonPaginatedOctaneGetter().get(url);
