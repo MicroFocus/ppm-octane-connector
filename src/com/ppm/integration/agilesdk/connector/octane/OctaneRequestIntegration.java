@@ -19,6 +19,7 @@ import org.joda.time.DateTime;
 import org.joda.time.format.DateTimeFormatter;
 import org.joda.time.format.ISODateTimeFormat;
 
+import com.hp.ppm.common.model.IdProjectDate;
 import com.hp.ppm.integration.model.AgileEntityFieldValue;
 import com.ppm.integration.agilesdk.ValueSet;
 import com.ppm.integration.agilesdk.connector.octane.client.ClientPublicAPI;
@@ -54,6 +55,14 @@ import net.sf.json.JSONSerializer;
  * @since 10/16/2017
  */
 public class OctaneRequestIntegration extends RequestIntegration {
+
+    /** TODO Comment for <code>WORKSPACE_PLACEHOLDER</code>. */
+    
+    private static final String WORKSPACE_PLACEHOLDER = "workspace";
+
+    /** TODO Comment for <code>SPACE_PLACEHOLDER</code>. */
+    
+    private static final String SPACE_PLACEHOLDER = "space";
 
     /** TODO Comment for <code>MAX_PROGRESS</code>. */
     
@@ -330,8 +339,32 @@ public class OctaneRequestIntegration extends RequestIntegration {
         List<AgileEntity> entities = new ArrayList<>();
 
         ClientPublicAPI client = ClientPublicAPI.getClient(instanceConfigurationParameters);
-        String workSpaceId = OctaneConstants.WILDCARD_PLACEHOLDER;
+        Map<String, Object> spaceAndWorkspace = getSpaceAndWorkspace(client, agileProjectValue, entityType);
+        String sharedSpaceId = (String)spaceAndWorkspace.get(SPACE_PLACEHOLDER);
+        List<String> workspaceIds = (List)spaceAndWorkspace.get(WORKSPACE_PLACEHOLDER);
+        for (String id : workspaceIds) {
+            if (entities.size() >= entityIds.size()) {
+                break;
+            }
+
+            List<AgileEntity> entitiesCollection =
+                    getSpecificWorkspaceEntities(client, sharedSpaceId, id, entityType, entityIds, lastUpdateTime);
+            entities.addAll(entitiesCollection);
+        }
+        client.signOut(instanceConfigurationParameters);
+        return entities;
+    }
+
+    /*
+     * get specific space id and workspace ids no matter agileProjectValue is
+     * wildcard or specific space and workspace id
+     */
+    private Map<String, Object> getSpaceAndWorkspace(ClientPublicAPI client, String agileProjectValue,
+            String entityType)
+    {
         String sharedSpaceId = OctaneConstants.WILDCARD_PLACEHOLDER;
+        String workSpaceId = OctaneConstants.WILDCARD_PLACEHOLDER;
+        Map<String, Object> spaceAndWorkspace = new HashMap<String, Object>();
         List<String> workspaceIds = new ArrayList<>();
         // As ppm agile SDK support use wildcard(*) to configure request mapping
         // info for all workspaces from 10.0.1. agileProjectValue will be "*"
@@ -362,18 +395,10 @@ public class OctaneRequestIntegration extends RequestIntegration {
             sharedSpaceId = workspaceJson.getString(OctaneConstants.SHARED_SPACE_ID);
             workspaceIds.add(workSpaceId);
         }
-
-        for (String id : workspaceIds) {
-            if (entities.size() >= entityIds.size()) {
-                break;
-            }
-
-            List<AgileEntity> entitiesCollection =
-                    getSpecificWorkspaceEntities(client, sharedSpaceId, id, entityType, entityIds, lastUpdateTime);
-            entities.addAll(entitiesCollection);
-        }
-        client.signOut(instanceConfigurationParameters);
-        return entities;
+        
+        spaceAndWorkspace.put(SPACE_PLACEHOLDER, sharedSpaceId);
+        spaceAndWorkspace.put(WORKSPACE_PLACEHOLDER, workspaceIds);
+        return spaceAndWorkspace;
     }
     
     
@@ -435,6 +460,8 @@ public class OctaneRequestIntegration extends RequestIntegration {
         Map<String, FieldInfo> fieldInfoMap = getFieldInfoMap(client, sharedSpaceId, workSpaceId, entityType);
         Map<String, JSONObject> usersMap = collectAllUsers(client, items, sharedSpaceId, workSpaceId, fieldInfoMap);
         entity = wrapperEntity(itemJson, fieldInfoMap, usersMap);
+        entity.setEntityUrl(String.format(ClientPublicAPI.DEFAULT_ENTITY_ITEM_URL, client.getBaseURL(), sharedSpaceId,
+                workSpaceId, entity.getId()));
 
         client.signOut(instanceConfigurationParameters);
         return entity;
@@ -1136,6 +1163,72 @@ public class OctaneRequestIntegration extends RequestIntegration {
 
     	return usersMap;
     }
+
+    @Override
+    /** @since 10.0.3 */
+    public boolean supportsAgileEntityToNewPPMRequestSync() {
+        return true;
+    }
+
+    @Override
+    /** @since 10.0.3 */
+    public List<IdProjectDate> getAgileEntityIDsToCreateInPPM(final String agileProjectValue, final String entityType,
+            final ValueSet instanceConfigurationParameters, Date createdSinceDate)
+    {
+        // Return all the IDs that new created since specific time stamp and it
+        // will filter out the id that already mapped with ppm request in PPM
+        // agile SDK
+        if (agileProjectValue == null || entityType.isEmpty()) {
+            return new ArrayList<>();
+        }
+        List<IdProjectDate> ids = new ArrayList<IdProjectDate>();
+        ClientPublicAPI client = ClientPublicAPI.getClient(instanceConfigurationParameters);
+        Map spaceAndWorkspace = getSpaceAndWorkspace(client, agileProjectValue, entityType);
+        String spaceId = (String)spaceAndWorkspace.get(SPACE_PLACEHOLDER);
+        List<String> workspaceIds = (List)spaceAndWorkspace.get(WORKSPACE_PLACEHOLDER);
+
+        for (String id : workspaceIds) {
+            List<IdProjectDate> entitiesCollection =
+                    getNewCreatedEntities(client, spaceId, id, entityType, createdSinceDate);
+            ids.addAll(entitiesCollection);
+        }
+        return ids;
+    }
+
+    private List<IdProjectDate> getNewCreatedEntities(ClientPublicAPI client, String spaceId, String workSpaceId,
+            String entityType, Date creationDate)
+    {
+        if (OctaneConstants.SUB_SHARED_EPIC.equals(entityType)) {
+            workSpaceId = OctaneConstants.SHARED_EPIC_DEFAULT_WORKSPACE;
+            entityType = OctaneConstants.SUB_TYPE_EPIC;
+        }
+
+        Map<String, Object> queryParams = new HashMap<String, Object>();
+        if (null != creationDate) {
+            queryParams.put("creation_time", creationDate);
+        }
+        List<String> fields = new ArrayList<>();
+        fields.add("id");
+        fields.add("creation_time");
+        List<JSONObject> itemJson =
+                client.getWorkItems(spaceId, workSpaceId, ClientPublicAPI.EntityType.fromName(entityType), queryParams,
+                        fields);
+
+        return constructIdProjectDate(itemJson, spaceId, workSpaceId);
+    }
+
+    private List<IdProjectDate> constructIdProjectDate(List<JSONObject> items, String spaceId, String workspaceId) {
+        List<IdProjectDate> entities = new ArrayList<>();
+        JSONObject workspaceJson = new JSONObject();
+        workspaceJson.put(OctaneConstants.WORKSPACE_ID, Integer.parseInt(workspaceId));
+        workspaceJson.put(OctaneConstants.SHARED_SPACE_ID, Integer.parseInt(spaceId));
+        for (JSONObject obj : items) {
+            entities.add(new IdProjectDate(obj.getString("id"), workspaceJson.toString(),
+                    parserDate(obj.getString("creation_time"))));
+        }
+        return entities;
+    }
+
 }
 
 class AgileFieldComparator implements Comparator<AgileEntityFieldInfo> {

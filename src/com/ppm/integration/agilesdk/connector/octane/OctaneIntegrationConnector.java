@@ -11,11 +11,14 @@ import com.ppm.integration.agilesdk.IntegrationConnector;
 import com.ppm.integration.agilesdk.ValueSet;
 import com.ppm.integration.agilesdk.connector.octane.client.ClientPublicAPI;
 import com.ppm.integration.agilesdk.connector.octane.client.OctaneClientException;
-import com.ppm.integration.agilesdk.connector.octane.client.OctaneConnectivityExceptionHandler;
 import com.ppm.integration.agilesdk.connector.octane.model.SharedSpace;
 import com.ppm.integration.agilesdk.connector.octane.model.WorkSpace;
 import com.ppm.integration.agilesdk.model.AgileProject;
-import com.ppm.integration.agilesdk.ui.*;
+import com.ppm.integration.agilesdk.ui.CheckBox;
+import com.ppm.integration.agilesdk.ui.Field;
+import com.ppm.integration.agilesdk.ui.LineBreaker;
+import com.ppm.integration.agilesdk.ui.PasswordText;
+import com.ppm.integration.agilesdk.ui.PlainText;
 
 import net.sf.json.JSONObject;
 
@@ -63,7 +66,7 @@ public class OctaneIntegrationConnector extends IntegrationConnector {
     }
 
     @Override public String getConnectorVersion() {
-        return "1.2 beta";
+        return "2.0";
     }
 
     /**
@@ -106,6 +109,21 @@ public class OctaneIntegrationConnector extends IntegrationConnector {
             throw new OctaneClientException("AGM_APP", "ERROR_IN_HTTP_CONNECTIVITY", new String[] {e.getMessage()});
         }
         return agileProjectList;
+    }
+
+    @Override
+    /** @since 10.0.3 */
+    public String testConnection(ValueSet instanceConfigurationParameters) {
+
+        try {
+            // It will login with client id and secret to test connection.
+            ClientPublicAPI client = ClientPublicAPI.getClient(instanceConfigurationParameters);
+            logger.debug("Login successfully!");
+        } catch (Exception e) {
+            logger.error("Error when testing connectivity", e);
+            return e.getMessage();
+        }
+        return null;
     }
 
 }
