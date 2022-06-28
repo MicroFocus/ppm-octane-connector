@@ -460,6 +460,8 @@ public class OctaneRequestIntegration extends RequestIntegration {
         Map<String, FieldInfo> fieldInfoMap = getFieldInfoMap(client, sharedSpaceId, workSpaceId, entityType);
         Map<String, JSONObject> usersMap = collectAllUsers(client, items, sharedSpaceId, workSpaceId, fieldInfoMap);
         entity = wrapperEntity(itemJson, fieldInfoMap, usersMap);
+        entity.setEntityUrl(String.format(ClientPublicAPI.DEFAULT_ENTITY_ITEM_URL, client.getBaseURL(), sharedSpaceId,
+                workSpaceId, entity.getId()));
 
         client.signOut(instanceConfigurationParameters);
         return entity;
