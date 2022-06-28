@@ -1026,7 +1026,7 @@ public class OctaneRequestIntegration extends RequestIntegration {
      * */
     private String calculateProgress(JSONObject item) {
         String progressStr = item.getString(PROGRESS);
-        String entityType = item.getString("type");
+        String entityType = item.getString("subtype");
         JSONObject progressData = (JSONObject)JSONSerializer.toJSON(progressStr);
         float percentage = 0;
         // result of 0/(float)0 is NAN
