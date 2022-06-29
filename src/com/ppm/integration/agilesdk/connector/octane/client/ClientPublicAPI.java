@@ -1855,7 +1855,7 @@ public class ClientPublicAPI {
             StringBuilder builder = new StringBuilder();
             for (Map.Entry<String, Object> entry : queryParams.entrySet()) {
                 if (entry.getValue() instanceof String) {
-                    builder.append(entry.getKey()).append(" = ").append(entry.getValue());
+                    builder.append(entry.getKey()).append(" = '").append(entry.getValue()).append("'");
                 } else if (entry.getValue() instanceof Set) {
                     Set values = (Set)entry.getValue();
                     builder.append(entry.getKey()).append(" IN '").append(StringUtils.join(values, "','")).append("'");

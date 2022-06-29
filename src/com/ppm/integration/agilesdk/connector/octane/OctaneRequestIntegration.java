@@ -385,6 +385,9 @@ public class OctaneRequestIntegration extends RequestIntegration {
                     workspaceIds.add(OctaneConstants.SHARED_EPIC_DEFAULT_WORKSPACE);
                 } else {
                     workspaceIds = client.getApiAccessWorkSpaces(Integer.parseInt(sharedSpaceId));
+                    // remove the default master workspace that belong to the
+                    // current space as it can only create shared epic
+                    workspaceIds.remove(OctaneConstants.SHARED_EPIC_DEFAULT_WORKSPACE);
                 }
             }
         } else {
@@ -446,6 +449,7 @@ public class OctaneRequestIntegration extends RequestIntegration {
         ClientPublicAPI client = ClientPublicAPI.getClient(instanceConfigurationParameters);
         JSONObject workspaceJson = parseAgileProject(agileProjectValue);
         String workSpaceId = workspaceJson.getString(OctaneConstants.WORKSPACE_ID);
+        String originWorkspaceID = workSpaceId;
         String sharedSpaceId = workspaceJson.getString(OctaneConstants.SHARED_SPACE_ID);
         if (OctaneConstants.SUB_SHARED_EPIC.equals(entityType)) {
             workSpaceId = OctaneConstants.SHARED_EPIC_DEFAULT_WORKSPACE;
@@ -454,14 +458,16 @@ public class OctaneRequestIntegration extends RequestIntegration {
 
         JSONObject itemJson = client.getWorkItem(sharedSpaceId, workSpaceId,
                 ClientPublicAPI.EntityType.fromName(entityType), entityId);
-        List<JSONObject> items = new ArrayList<JSONObject>();
-        items.add(itemJson);
+        if (itemJson != null) {
+            List<JSONObject> items = new ArrayList<JSONObject>();
+            items.add(itemJson);
 
-        Map<String, FieldInfo> fieldInfoMap = getFieldInfoMap(client, sharedSpaceId, workSpaceId, entityType);
-        Map<String, JSONObject> usersMap = collectAllUsers(client, items, sharedSpaceId, workSpaceId, fieldInfoMap);
-        entity = wrapperEntity(itemJson, fieldInfoMap, usersMap);
-        entity.setEntityUrl(String.format(ClientPublicAPI.DEFAULT_ENTITY_ITEM_URL, client.getBaseURL(), sharedSpaceId,
-                workSpaceId, entity.getId()));
+            Map<String, FieldInfo> fieldInfoMap = getFieldInfoMap(client, sharedSpaceId, workSpaceId, entityType);
+            Map<String, JSONObject> usersMap = collectAllUsers(client, items, sharedSpaceId, workSpaceId, fieldInfoMap);
+            entity = wrapperEntity(itemJson, fieldInfoMap, usersMap);
+            entity.setEntityUrl(String.format(ClientPublicAPI.DEFAULT_ENTITY_ITEM_URL, client.getBaseURL(),
+                    sharedSpaceId, originWorkspaceID, entity.getId()));
+        }
 
         client.signOut(instanceConfigurationParameters);
         return entity;
@@ -1198,8 +1204,11 @@ public class OctaneRequestIntegration extends RequestIntegration {
     private List<IdProjectDate> getNewCreatedEntities(ClientPublicAPI client, String spaceId, String workSpaceId,
             String entityType, Date creationDate)
     {
+        // if it is shared epic,its real workspace id is 500.But it could
+        // navigation to using the mask workspace id
+        String realWorkspaceId = workSpaceId;
         if (OctaneConstants.SUB_SHARED_EPIC.equals(entityType)) {
-            workSpaceId = OctaneConstants.SHARED_EPIC_DEFAULT_WORKSPACE;
+            realWorkspaceId = OctaneConstants.SHARED_EPIC_DEFAULT_WORKSPACE;
             entityType = OctaneConstants.SUB_TYPE_EPIC;
         }
 
@@ -1207,22 +1216,33 @@ public class OctaneRequestIntegration extends RequestIntegration {
         if (null != creationDate) {
             queryParams.put("creation_time", creationDate);
         }
+        queryParams.put("subtype", entityType);
         List<String> fields = new ArrayList<>();
         fields.add("id");
         fields.add("creation_time");
+        fields.add("workspace_id");
         List<JSONObject> itemJson =
-                client.getWorkItems(spaceId, workSpaceId, ClientPublicAPI.EntityType.fromName(entityType), queryParams,
+                client.getWorkItems(spaceId, realWorkspaceId, ClientPublicAPI.EntityType.fromName(entityType),
+                        queryParams,
                         fields);
 
-        return constructIdProjectDate(itemJson, spaceId, workSpaceId);
+        return constructIdProjectDate(itemJson, spaceId, workSpaceId, realWorkspaceId);
     }
 
-    private List<IdProjectDate> constructIdProjectDate(List<JSONObject> items, String spaceId, String workspaceId) {
+    private List<IdProjectDate> constructIdProjectDate(List<JSONObject> items, String spaceId, String workspaceId,
+            String realWorkspaceId)
+    {
         List<IdProjectDate> entities = new ArrayList<>();
         JSONObject workspaceJson = new JSONObject();
         workspaceJson.put(OctaneConstants.WORKSPACE_ID, Integer.parseInt(workspaceId));
         workspaceJson.put(OctaneConstants.SHARED_SPACE_ID, Integer.parseInt(spaceId));
         for (JSONObject obj : items) {
+            // if the entity is epic, items contains shared epic.Exclude them
+            String entityWorkspace = obj.getString("workspace_id");
+            if (!OctaneConstants.SHARED_EPIC_DEFAULT_WORKSPACE.equals(realWorkspaceId)
+                    && OctaneConstants.SHARED_EPIC_DEFAULT_WORKSPACE.equals(entityWorkspace)) {
+                continue;
+            }
             entities.add(new IdProjectDate(obj.getString("id"), workspaceJson.toString(),
                     parserDate(obj.getString("creation_time"))));
         }
