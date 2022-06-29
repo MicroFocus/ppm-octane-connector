@@ -449,6 +449,7 @@ public class OctaneRequestIntegration extends RequestIntegration {
         ClientPublicAPI client = ClientPublicAPI.getClient(instanceConfigurationParameters);
         JSONObject workspaceJson = parseAgileProject(agileProjectValue);
         String workSpaceId = workspaceJson.getString(OctaneConstants.WORKSPACE_ID);
+        String originWorkspaceID = workSpaceId;
         String sharedSpaceId = workspaceJson.getString(OctaneConstants.SHARED_SPACE_ID);
         if (OctaneConstants.SUB_SHARED_EPIC.equals(entityType)) {
             workSpaceId = OctaneConstants.SHARED_EPIC_DEFAULT_WORKSPACE;
@@ -457,14 +458,16 @@ public class OctaneRequestIntegration extends RequestIntegration {
 
         JSONObject itemJson = client.getWorkItem(sharedSpaceId, workSpaceId,
                 ClientPublicAPI.EntityType.fromName(entityType), entityId);
-        List<JSONObject> items = new ArrayList<JSONObject>();
-        items.add(itemJson);
+        if (itemJson != null) {
+            List<JSONObject> items = new ArrayList<JSONObject>();
+            items.add(itemJson);
 
-        Map<String, FieldInfo> fieldInfoMap = getFieldInfoMap(client, sharedSpaceId, workSpaceId, entityType);
-        Map<String, JSONObject> usersMap = collectAllUsers(client, items, sharedSpaceId, workSpaceId, fieldInfoMap);
-        entity = wrapperEntity(itemJson, fieldInfoMap, usersMap);
-        entity.setEntityUrl(String.format(ClientPublicAPI.DEFAULT_ENTITY_ITEM_URL, client.getBaseURL(), sharedSpaceId,
-                workSpaceId, entity.getId()));
+            Map<String, FieldInfo> fieldInfoMap = getFieldInfoMap(client, sharedSpaceId, workSpaceId, entityType);
+            Map<String, JSONObject> usersMap = collectAllUsers(client, items, sharedSpaceId, workSpaceId, fieldInfoMap);
+            entity = wrapperEntity(itemJson, fieldInfoMap, usersMap);
+            entity.setEntityUrl(String.format(ClientPublicAPI.DEFAULT_ENTITY_ITEM_URL, client.getBaseURL(),
+                    sharedSpaceId, originWorkspaceID, entity.getId()));
+        }
 
         client.signOut(instanceConfigurationParameters);
         return entity;
