@@ -1179,7 +1179,7 @@ public class OctaneRequestIntegration extends RequestIntegration {
     @Override
     /** @since 10.0.3 */
     public List<IdProjectDate> getAgileEntityIDsToCreateInPPM(final String agileProjectValue, final String entityType,
-            final ValueSet instanceConfigurationParameters, Date createdSinceDate)
+            final ValueSet instanceConfigurationParameters, final String filter, Date createdSinceDate)
     {
         // Return all the IDs that new created since specific time stamp and it
         // will filter out the id that already mapped with ppm request in PPM
@@ -1195,14 +1195,14 @@ public class OctaneRequestIntegration extends RequestIntegration {
 
         for (String id : workspaceIds) {
             List<IdProjectDate> entitiesCollection =
-                    getNewCreatedEntities(client, spaceId, id, entityType, createdSinceDate);
+                    getNewCreatedEntities(client, spaceId, id, entityType, filter, createdSinceDate);
             ids.addAll(entitiesCollection);
         }
         return ids;
     }
 
     private List<IdProjectDate> getNewCreatedEntities(ClientPublicAPI client, String spaceId, String workSpaceId,
-            String entityType, Date creationDate)
+            String entityType, String filter, Date creationDate)
     {
         // if it is shared epic,its real workspace id is 500.But it could
         // navigation to using the mask workspace id
@@ -1217,6 +1217,9 @@ public class OctaneRequestIntegration extends RequestIntegration {
             queryParams.put("creation_time", creationDate);
         }
         queryParams.put("subtype", entityType);
+        if (filter != null && !filter.isEmpty()) {
+            queryParams.put("fullQuery", filter);
+        }
         List<String> fields = new ArrayList<>();
         fields.add("id");
         fields.add("creation_time");
