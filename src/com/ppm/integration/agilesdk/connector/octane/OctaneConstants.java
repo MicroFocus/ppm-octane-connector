@@ -69,6 +69,8 @@ public class OctaneConstants {
     
     public static final String SHARED_EPIC_DEFAULT_WORKSPACE = "500";
 
+    public static final String DEFAULT_WORKSPACE_LOGICAL_NAME = "workspaces.default_workspace";
+
     public static final String WORKSPACE_ID = "WORKSPACE_ID";
 
     public static final String SHARED_SPACE_ID = "SHARED_SPACE_ID";
