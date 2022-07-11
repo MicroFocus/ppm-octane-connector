@@ -484,7 +484,7 @@ public class OctaneRequestIntegration extends RequestIntegration {
         List<WorkSpace> workspaces = client.getWorkSpaces(Integer.parseInt(spaceId), true);
         for (WorkSpace ws : workspaces) {
             if (OctaneConstants.DEFAULT_WORKSPACE_LOGICAL_NAME.equalsIgnoreCase(ws.getLogicalName())) {
-                return ws.getLogicalName();
+                return ws.getId();
             }
 
         }
