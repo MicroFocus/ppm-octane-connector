@@ -1,6 +1,7 @@
 package com.ppm.integration.agilesdk.connector.octane.model;
 
 import java.util.List;
+
 import net.sf.json.JSONArray;
 import net.sf.json.JSONObject;
 
@@ -26,6 +27,7 @@ public class WorkSpaces extends SimpleEntityCollection<WorkSpace> {
             tempSharedSpace.id = (String)tempObj.get("id");
             tempSharedSpace.name = (String)tempObj.get("name");
             tempSharedSpace.type = (String)tempObj.get("type");
+            tempSharedSpace.logicalName = (String)tempObj.get("logical_name");
             super.add(tempSharedSpace);
         }
     }

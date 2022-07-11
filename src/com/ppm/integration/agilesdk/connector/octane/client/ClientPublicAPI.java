@@ -481,10 +481,10 @@ public class ClientPublicAPI {
                 }
                 String query = generateInQuery(ids,"id");
                 query  = queryEncode(query);
-                url = String.format("%s/api/shared_spaces/%d/workspaces?fields=id,name&query=%s", baseURL, sharedSpacesId,query);
+                url = String.format("%s/api/shared_spaces/%d/workspaces?fields=id,name,logical_name&query=%s", baseURL, sharedSpacesId,query);
             }
         } else {
-            url = String.format("%s/api/shared_spaces/%d/workspaces?fields=id,name", baseURL, sharedSpacesId);
+            url = String.format("%s/api/shared_spaces/%d/workspaces?fields=id,name,logical_name", baseURL, sharedSpacesId);
         }
 
         RestResponse response = sendGet(url);

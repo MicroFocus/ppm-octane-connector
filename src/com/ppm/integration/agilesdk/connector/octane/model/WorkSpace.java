@@ -5,4 +5,14 @@ package com.ppm.integration.agilesdk.connector.octane.model;
  */
 public class WorkSpace extends SimpleEntity {
     public String description;
+
+    public String logicalName;
+
+    public String getLogicalName() {
+        return logicalName;
+    }
+
+    public void setLogicalName(String logicalName) {
+        this.logicalName = logicalName;
+    }
 }

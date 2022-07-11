@@ -465,12 +465,30 @@ public class OctaneRequestIntegration extends RequestIntegration {
             Map<String, FieldInfo> fieldInfoMap = getFieldInfoMap(client, sharedSpaceId, workSpaceId, entityType);
             Map<String, JSONObject> usersMap = collectAllUsers(client, items, sharedSpaceId, workSpaceId, fieldInfoMap);
             entity = wrapperEntity(itemJson, fieldInfoMap, usersMap);
+            // if the entity is shared epic and is created from PPM through
+            // wildcard, it workspace id is default shared epic's workspace id
+            // which is 500.as workspace 500 can't navigate to any entity.
+            // replace 500 with default workspace as it can't be deleted.
+            if(OctaneConstants.SHARED_EPIC_DEFAULT_WORKSPACE.equals(originWorkspaceID)) {
+                originWorkspaceID = findSpaceDefaultWorkspaceId(client, sharedSpaceId);
+            }
             entity.setEntityUrl(String.format(ClientPublicAPI.DEFAULT_ENTITY_ITEM_URL, client.getBaseURL(),
                     sharedSpaceId, originWorkspaceID, entity.getId()));
         }
 
         client.signOut(instanceConfigurationParameters);
         return entity;
+    }
+
+    private String findSpaceDefaultWorkspaceId(ClientPublicAPI client, String spaceId) {
+        List<WorkSpace> workspaces = client.getWorkSpaces(Integer.parseInt(spaceId), true);
+        for (WorkSpace ws : workspaces) {
+            if (OctaneConstants.DEFAULT_WORKSPACE_LOGICAL_NAME.equalsIgnoreCase(ws.getLogicalName())) {
+                return ws.getId();
+            }
+
+        }
+        return null;
     }
 
     private AgileEntity saveOrUpdateEntity(final String agileProjectValue, String entityType,
