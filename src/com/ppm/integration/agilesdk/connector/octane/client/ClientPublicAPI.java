@@ -80,7 +80,7 @@ public class ClientPublicAPI {
     
     private static final String WORKSPACE_ADMIN_ROLE = "role.workspace.admin";
     
-    private static final String SPM_INTEGRATION_ROLE = "role.spm.integration";
+    private static final String SPM_INTEGRATION_ROLE = "role.workspace.spm.integration";
 
     private static final String SPACE_ADMIN_ROLE = "role.shared.space.admin";
 
@@ -535,10 +535,11 @@ public class ClientPublicAPI {
                     } else if (SPACE_ADMIN_ROLE.equalsIgnoreCase(roleName)) {
                         isSpaceAdmin = true;
                     } else if(SPM_INTEGRATION_ROLE.equalsIgnoreCase(roleName)) {
-						// to do
                         // if the current token is generated in site level with 'SPM Integration Role', 
-                        //  don't filter workspace.workspace cotent relay on the role
-                        return null;
+                        // don't filter workspace.workspace content relay on the
+                        // role
+                        net.sf.json.JSONObject ws = wsRole.getJSONObject("workspace");
+                        workspaceIds.add(ws.getString("id"));
                     }
                     
                 }
@@ -1833,6 +1834,11 @@ public class ClientPublicAPI {
         String url = String.format("%s/api/shared_spaces/%s/workspaces/%s/work_items?fields=%s", baseURL, sharedspaceId,
                 workspaceId, retrieveFields);
 
+        // if it is shared entity,add those parameter to distinguish those.now
+        // its for progress calculate
+        if (OctaneConstants.SHARED_EPIC_DEFAULT_WORKSPACE.equalsIgnoreCase(workspaceId)) {
+            url = url + "&cross_workspace=true&shared=true";
+        }
         url = url + generateFilterString(queryParams);
         List<JSONObject> resultJsonList = new JsonPaginatedOctaneGetter().get(url);
         resetComments(resultJsonList, sharedspaceId, workspaceId);
