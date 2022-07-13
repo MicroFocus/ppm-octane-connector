@@ -19,7 +19,7 @@ import org.joda.time.DateTime;
 import org.joda.time.format.DateTimeFormatter;
 import org.joda.time.format.ISODateTimeFormat;
 
-import com.hp.ppm.common.model.IdProjectDate;
+import com.hp.ppm.common.model.AgileEntityIdProjectDate;
 import com.hp.ppm.integration.model.AgileEntityFieldValue;
 import com.ppm.integration.agilesdk.ValueSet;
 import com.ppm.integration.agilesdk.connector.octane.client.ClientPublicAPI;
@@ -1196,7 +1196,8 @@ public class OctaneRequestIntegration extends RequestIntegration {
 
     @Override
     /** @since 10.0.3 */
-    public List<IdProjectDate> getAgileEntityIDsToCreateInPPM(final String agileProjectValue, final String entityType,
+    public List<AgileEntityIdProjectDate> getAgileEntityIDsToCreateInPPM(final String agileProjectValue,
+            final String entityType,
             final ValueSet instanceConfigurationParameters, Date createdSinceDate)
     {
         // Return all the IDs that new created since specific time stamp and it
@@ -1205,21 +1206,22 @@ public class OctaneRequestIntegration extends RequestIntegration {
         if (agileProjectValue == null || entityType.isEmpty()) {
             return new ArrayList<>();
         }
-        List<IdProjectDate> ids = new ArrayList<IdProjectDate>();
+        List<AgileEntityIdProjectDate> ids = new ArrayList<AgileEntityIdProjectDate>();
         ClientPublicAPI client = ClientPublicAPI.getClient(instanceConfigurationParameters);
         Map spaceAndWorkspace = getSpaceAndWorkspace(client, agileProjectValue, entityType);
         String spaceId = (String)spaceAndWorkspace.get(SPACE_PLACEHOLDER);
         List<String> workspaceIds = (List)spaceAndWorkspace.get(WORKSPACE_PLACEHOLDER);
 
         for (String id : workspaceIds) {
-            List<IdProjectDate> entitiesCollection =
+            List<AgileEntityIdProjectDate> entitiesCollection =
                     getNewCreatedEntities(client, spaceId, id, entityType, createdSinceDate);
             ids.addAll(entitiesCollection);
         }
         return ids;
     }
 
-    private List<IdProjectDate> getNewCreatedEntities(ClientPublicAPI client, String spaceId, String workSpaceId,
+    private List<AgileEntityIdProjectDate> getNewCreatedEntities(ClientPublicAPI client, String spaceId,
+            String workSpaceId,
             String entityType, Date creationDate)
     {
         // if it is shared epic,its real workspace id is 500.But it could
@@ -1247,10 +1249,11 @@ public class OctaneRequestIntegration extends RequestIntegration {
         return constructIdProjectDate(itemJson, spaceId, workSpaceId, realWorkspaceId);
     }
 
-    private List<IdProjectDate> constructIdProjectDate(List<JSONObject> items, String spaceId, String workspaceId,
+    private List<AgileEntityIdProjectDate> constructIdProjectDate(List<JSONObject> items, String spaceId,
+            String workspaceId,
             String realWorkspaceId)
     {
-        List<IdProjectDate> entities = new ArrayList<>();
+        List<AgileEntityIdProjectDate> entities = new ArrayList<>();
         JSONObject workspaceJson = new JSONObject();
         workspaceJson.put(OctaneConstants.WORKSPACE_ID, Integer.parseInt(workspaceId));
         workspaceJson.put(OctaneConstants.SHARED_SPACE_ID, Integer.parseInt(spaceId));
@@ -1261,7 +1264,7 @@ public class OctaneRequestIntegration extends RequestIntegration {
                     && OctaneConstants.SHARED_EPIC_DEFAULT_WORKSPACE.equals(entityWorkspace)) {
                 continue;
             }
-            entities.add(new IdProjectDate(obj.getString("id"), workspaceJson.toString(),
+            entities.add(new AgileEntityIdProjectDate(obj.getString("id"), workspaceJson.toString(),
                     parserDate(obj.getString("creation_time"))));
         }
         return entities;
