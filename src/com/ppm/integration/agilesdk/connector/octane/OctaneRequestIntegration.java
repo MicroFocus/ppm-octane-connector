@@ -425,6 +425,10 @@ public class OctaneRequestIntegration extends RequestIntegration {
         if (OctaneConstants.SUB_SHARED_EPIC.equals(entityType)) {
             workSpaceId = OctaneConstants.SHARED_EPIC_DEFAULT_WORKSPACE;
             entityType = OctaneConstants.SUB_TYPE_EPIC;
+            // if it is shared epic, get all of them as it is hard to decide its
+            // last update date as its progress's modified time not affect its
+            // last update time
+            lastUpdateTime = null;
         }
 
         Map<String, Object> queryParams = new HashMap<String, Object>();
@@ -464,7 +468,7 @@ public class OctaneRequestIntegration extends RequestIntegration {
 
             Map<String, FieldInfo> fieldInfoMap = getFieldInfoMap(client, sharedSpaceId, workSpaceId, entityType);
             Map<String, JSONObject> usersMap = collectAllUsers(client, items, sharedSpaceId, workSpaceId, fieldInfoMap);
-            entity = wrapperEntity(itemJson, fieldInfoMap, usersMap);
+            entity = wrapperEntity(itemJson, fieldInfoMap, usersMap, null);
             // if the entity is shared epic and is created from PPM through
             // wildcard, it workspace id is default shared epic's workspace id
             // which is 500.as workspace 500 can't navigate to any entity.
@@ -524,7 +528,7 @@ public class OctaneRequestIntegration extends RequestIntegration {
                 buildEntity(client, sharedSpaceId, finalWorkSpaceId, fieldInfos, entityType, entity, root);
         JSONObject workItem = client.saveWorkItem(sharedSpaceId, finalWorkSpaceId,
                 ClientPublicAPI.EntityType.fromName(entityType), method, entityStr);
-        agileEntity = wrapperEntity(workItem, null, null);
+        agileEntity = wrapperEntity(workItem, null, null, null);
 
         if (agileEntity != null) {
             agileEntity.setEntityUrl(
@@ -911,7 +915,17 @@ public class OctaneRequestIntegration extends RequestIntegration {
     
     
 
-    private AgileEntity wrapperEntity(JSONObject item, Map<String, FieldInfo> fieldInfoMap, Map<String, JSONObject> usersMap)
+    /***
+     * @param item
+     * @param fieldInfoMap
+     * @param usersMap
+     * @param forceUpdateDate:as shared epic don't change its last update date
+     *            when its progress change, set shared epic entity to the latest
+     *            to always update it
+     * @return
+     */
+    private AgileEntity wrapperEntity(JSONObject item, Map<String, FieldInfo> fieldInfoMap,
+            Map<String, JSONObject> usersMap, Date forceUpdateDate)
     {
 
         AgileEntity entity = new AgileEntity();
@@ -919,8 +933,12 @@ public class OctaneRequestIntegration extends RequestIntegration {
         while (sIterator.hasNext()) {
             String key = sIterator.next();
             if (key.equals(ClientPublicAPI.KEY_LAST_UPDATE_DATE)) {
-                String value = item.getString(key);
-                entity.setLastUpdateTime(parserDate(value));
+                if (forceUpdateDate != null) {
+                    entity.setLastUpdateTime(forceUpdateDate);
+                } else {
+                    String value = item.getString(key);
+                    entity.setLastUpdateTime(parserDate(value));
+                }
             } else if (key.equals("id")) {
                 String value = item.getString(key);
                 entity.setId(value);
@@ -1140,11 +1158,15 @@ public class OctaneRequestIntegration extends RequestIntegration {
 
     private List<AgileEntity> getAgileEntities(ClientPublicAPI client, List<JSONObject> workItemsJson, String sharedspaceId, String workspaceId, String entityType) {
         List<AgileEntity> agileEntities = new ArrayList<>();
+        Date forceLastUpdateTime = null;
+        if (workspaceId.equals(OctaneConstants.SHARED_EPIC_DEFAULT_WORKSPACE)) {
+            forceLastUpdateTime = new Date();
+        }
         if (workItemsJson != null && workItemsJson.size() > 0) {
             Map<String, FieldInfo> fieldInfoMap  = getFieldInfoMap(client, sharedspaceId, workspaceId, entityType);
             Map<String, JSONObject> usersMap = collectAllUsers(client,workItemsJson,sharedspaceId,workspaceId,fieldInfoMap);
             for (JSONObject workItemJson : workItemsJson) {
-                AgileEntity entity = wrapperEntity(workItemJson, fieldInfoMap, usersMap);
+                AgileEntity entity = wrapperEntity(workItemJson, fieldInfoMap, usersMap, forceLastUpdateTime);
                 agileEntities.add(entity);
             }
         }
@@ -1196,8 +1218,7 @@ public class OctaneRequestIntegration extends RequestIntegration {
 
     @Override
     /** @since 10.0.3 */
-    public List<AgileEntityIdProjectDate> getAgileEntityIDsToCreateInPPM(final String agileProjectValue,
-            final String entityType,
+    public List<AgileEntityIdProjectDate> getAgileEntityIDsToCreateInPPM(final String agileProjectValue, final String entityType,
             final ValueSet instanceConfigurationParameters, Date createdSinceDate)
     {
         // Return all the IDs that new created since specific time stamp and it
@@ -1220,8 +1241,7 @@ public class OctaneRequestIntegration extends RequestIntegration {
         return ids;
     }
 
-    private List<AgileEntityIdProjectDate> getNewCreatedEntities(ClientPublicAPI client, String spaceId,
-            String workSpaceId,
+    private List<AgileEntityIdProjectDate> getNewCreatedEntities(ClientPublicAPI client, String spaceId, String workSpaceId,
             String entityType, Date creationDate)
     {
         // if it is shared epic,its real workspace id is 500.But it could
@@ -1249,8 +1269,7 @@ public class OctaneRequestIntegration extends RequestIntegration {
         return constructIdProjectDate(itemJson, spaceId, workSpaceId, realWorkspaceId);
     }
 
-    private List<AgileEntityIdProjectDate> constructIdProjectDate(List<JSONObject> items, String spaceId,
-            String workspaceId,
+    private List<AgileEntityIdProjectDate> constructIdProjectDate(List<JSONObject> items, String spaceId, String workspaceId,
             String realWorkspaceId)
     {
         List<AgileEntityIdProjectDate> entities = new ArrayList<>();
