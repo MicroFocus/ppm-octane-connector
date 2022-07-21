@@ -52,7 +52,8 @@ public class OctaneUserIntegration extends UserIntegration {
         OctaneSyncUserConfiguration userConfiguration = (OctaneSyncUserConfiguration)agileProjectJson
                 .toBean(agileProjectJson, OctaneSyncUserConfiguration.class, classMap);
 
-        String workSpaceId = String.valueOf(userConfiguration.getAgileProjectValue().getWorkspaceId());
+        String workSpaceId = userConfiguration.getAgileProjectValue().getWorkspaceId() == null ? null
+                : String.valueOf(userConfiguration.getAgileProjectValue().getWorkspaceId());
         String sharedSpaceId = String.valueOf(userConfiguration.getAgileProjectValue().getSharedSpaceId());
 
         String filter = getUserQueryFilter(queryParams, null);
@@ -71,6 +72,7 @@ public class OctaneUserIntegration extends UserIntegration {
 
         JSONArray userArray = client.getUsersWithSearchFilter(sharedSpaceId, workSpaceId, limit, offset, filter, false);
 
+
         Map<String, String> licenseTypeMap = new HashMap<>();
         if (isGettingWorkspaceUsers(workSpaceId)) {
             // get license type of users from sharedSpace api, which can not be
@@ -81,6 +83,7 @@ public class OctaneUserIntegration extends UserIntegration {
                     userArray);
 
         }
+
 
 
         List<AgileDataUser> users = new ArrayList<>();
@@ -104,20 +107,12 @@ public class OctaneUserIntegration extends UserIntegration {
 
             List<String> roleList = getRoleListOfUser(workSpaceId, userObj);
 
-            String licenseTypeId = null;
-            if (userObj.containsKey("license_type")) {
-                JSONObject licenseType = userObj.getJSONObject("license_type");
-                licenseTypeId = licenseType.getString("id");
-
-            } else {
-                // add license_type for workspace users
-                licenseTypeId = licenseTypeMap.get(userObj.getString("id"));
-
-
-            }
-
+            JSONObject permissionsObj = userObj.getJSONObject("permissions");
+            JSONArray permissionsData = permissionsObj.getJSONArray("data");
+            List<String> permissionLogicalNames = parsePermissions(permissionsData);
             if (activityLevel == OctaneConstants.USER_ACTIVITY_STATUS_CODE) {
-                addSecurityGroupAndLicenseToUsers(user, roleList, licenseTypeId, userConfiguration.getSecurity());
+                addSecurityGroupAndLicenseToUsers(user, roleList, permissionLogicalNames,
+                        userConfiguration.getSecurity());
                 user.setEnabledFlag(true);
             } else {
                 user.setEnabledFlag(false);
@@ -137,6 +132,16 @@ public class OctaneUserIntegration extends UserIntegration {
         }
 
         return users;
+    }
+
+    private List<String> parsePermissions(JSONArray permissionsData) {
+        List<String> permissionLogicalNames = new ArrayList<>();
+        for (int i = 0; i < permissionsData.size(); i++) {
+            JSONObject permissionObj = permissionsData.getJSONObject(i);
+            String logicalName = permissionObj.getString("logical_name");
+            permissionLogicalNames.add(logicalName);
+        }
+        return permissionLogicalNames;
     }
 
     /**
@@ -270,7 +275,9 @@ public class OctaneUserIntegration extends UserIntegration {
         for (int j = 0; j < rolesArray.size(); j++) {
             JSONObject roleJson = rolesArray.getJSONObject(j);
             JSONObject workspace = roleJson.getJSONObject("workspace");
-            if (!workspace.isNullObject() && workspace.getString("id").equals(workSpaceId)) {
+            // when workspace is null, this means that the role is applied to shared
+            // space level
+            if (workspace.isNullObject()) {
                 JSONObject role = roleJson.getJSONObject("role");
                 roleList.add(role.getString("logical_name"));
             }
@@ -281,15 +288,16 @@ public class OctaneUserIntegration extends UserIntegration {
      * @param user
      * @param roleList contain user role information.
      * @param agileProjectJson
-     *            {"security":[{"role":"role_logical_Name","securityGroups":["securityGroupReferenceCode1"],"productLicenses":[productId1]},{"licenseType":"licenseTypeId","securityGroups":["securityGroupReferenceCode2"],"productLicenses":[productId2]}],"agileProjectValue":{"workspaceId":1003,"sharedSpaceId":1003}}
+     *            {"security":[{"role":"role_logical_Name","securityGroups":["securityGroupReferenceCode1"],"productLicenses":[productId1]},{"permission":"permission_logical_name","securityGroups":["securityGroupReferenceCode2"],"productLicenses":[productId2]}],"agileProjectValue":{"workspaceId":1003,"sharedSpaceId":1003}}
      */
-    private void addSecurityGroupAndLicenseToUsers(AgileDataUser user, List<String> roleList, String licenseTypeId,
+    private void addSecurityGroupAndLicenseToUsers(AgileDataUser user, List<String> roleList,
+            List<String> permissionLogicalNames,
             List<UserSecurityConfiguration> security)
     {
 
         for (UserSecurityConfiguration securityConf : security) {
             String role = securityConf.getRole();
-            String licenseType = securityConf.getLicenseType();
+            String permission = securityConf.getPermission();
             if (role != null) {
                 if (roleList.contains(role)) {
                     user.addAllSecurityGroupCodes(securityConf.getSecurityGroups());
@@ -298,8 +306,8 @@ public class OctaneUserIntegration extends UserIntegration {
                 }
             }
 
-            if (licenseType != null) {
-                if (licenseType.equalsIgnoreCase(licenseTypeId)) {
+            if (permission != null) {
+                if (permissionLogicalNames.contains(permission)) {
                     user.addAllSecurityGroupCodes(securityConf.getSecurityGroups());
                     user.addAllProductIds(securityConf.getProductLicenses());
                 }
