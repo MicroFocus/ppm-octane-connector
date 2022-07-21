@@ -1279,12 +1279,11 @@ public class OctaneRequestIntegration extends RequestIntegration {
         for (JSONObject obj : items) {
             // if the entity is epic, items contains shared epic.Exclude them
             String entityWorkspace = obj.getString("workspace_id");
-            if (!OctaneConstants.SHARED_EPIC_DEFAULT_WORKSPACE.equals(realWorkspaceId)
-                    && OctaneConstants.SHARED_EPIC_DEFAULT_WORKSPACE.equals(entityWorkspace)) {
-                continue;
+            if (realWorkspaceId.equals(entityWorkspace)) {
+                entities.add(new AgileEntityIdProjectDate(obj.getString("id"), workspaceJson.toString(),
+                        parserDate(obj.getString("creation_time"))));
             }
-            entities.add(new AgileEntityIdProjectDate(obj.getString("id"), workspaceJson.toString(),
-                    parserDate(obj.getString("creation_time"))));
+
         }
         return entities;
     }
