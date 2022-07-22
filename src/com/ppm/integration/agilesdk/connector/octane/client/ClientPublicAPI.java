@@ -1545,9 +1545,8 @@ public class ClientPublicAPI {
                     baseURL, sharedspaceId, workspaceId, fields, limitedField, filter);
 
         } else {
-            String fields = onlyGettingIds ? "id" :
-                    "email,id,full_name,name,first_name,last_modified,last_name,activity_level,workspace_roles,license_type";
-
+            String fields = onlyGettingIds ? "id"
+                    : "email,id,full_name,name,first_name,last_modified,last_name,activity_level,workspace_roles,permissions";
             // get sharedSpace users
             url = String.format(
                     "%s/api/shared_spaces/%s/users?fields=%s&order_by=last_modified&show_hidden_entities=true%s&query=%s",
@@ -1557,6 +1556,9 @@ public class ClientPublicAPI {
 
         RestResponse response = sendGet(url);
         JSONObject dataObj = JSONObject.fromObject(response.getData());
+        if (dataObj.containsKey("error_code")) {
+            throw new OctaneClientException("OCTANE_API", dataObj.getString("stack_trace"));
+        }
         JSONArray userList = JSONArray.fromObject(dataObj.get("data"));
         return userList;
     }

@@ -10,7 +10,7 @@ import java.util.List;
  */
 public class UserSecurityConfiguration {
     private String role;
-    private String licenseType;
+    private String permission;
     
     private List<String> securityGroups;
     
@@ -24,12 +24,12 @@ public class UserSecurityConfiguration {
         this.role = role;
     }
 
-    public String getLicenseType() {
-        return licenseType;
+    public String getPermission() {
+        return permission;
     }
 
-    public void setLicenseType(String licenseType) {
-        this.licenseType = licenseType;
+    public void setPermission(String permission) {
+        this.permission = permission;
     }
 
     public List<String> getSecurityGroups() {
