@@ -193,6 +193,8 @@ public class OctaneConstants {
     
     public static final String WILDCARD_PLACEHOLDER = "*";
 
+    public static final String FULL_QUERY = "fullQuery";
+
     // sync user
     public static final int USER_ACTIVITY_STATUS_CODE = 0;
 

@@ -1256,6 +1256,15 @@ public class OctaneRequestIntegration extends RequestIntegration {
         if (null != creationDate) {
             queryParams.put("creation_time", creationDate);
         }
+        
+        if (OctaneConstants.SUB_TYPE_EPIC.equals(entityType)) {
+            Map<String, FieldInfo> fieldMap = getFieldInfoMap(client, spaceId, workSpaceId, entityType);
+            if (fieldMap.containsKey("epic_level")) {
+                queryParams.put(OctaneConstants.FULL_QUERY,
+                        "!epic_level={logical_name EQ ^list_node.epic_level.local^}");
+            }
+        }
+
         queryParams.put("subtype", entityType);
         List<String> fields = new ArrayList<>();
         fields.add("id");
