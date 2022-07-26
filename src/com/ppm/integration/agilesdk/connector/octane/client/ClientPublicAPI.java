@@ -1848,7 +1848,11 @@ public class ClientPublicAPI {
             StringBuilder builder = new StringBuilder();
             for (Map.Entry<String, Object> entry : queryParams.entrySet()) {
                 if (entry.getValue() instanceof String) {
-                    builder.append(entry.getKey()).append(" = '").append(entry.getValue()).append("'");
+                    if (OctaneConstants.FULL_QUERY.equalsIgnoreCase(entry.getKey())) {
+                        builder.append(entry.getValue());
+                    } else {
+                        builder.append(entry.getKey()).append(" = '").append(entry.getValue()).append("'");
+                    }
                 } else if (entry.getValue() instanceof Set) {
                     Set values = (Set)entry.getValue();
                     builder.append(entry.getKey()).append(" IN '").append(StringUtils.join(values, "','")).append("'");
