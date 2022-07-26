@@ -1524,8 +1524,8 @@ public class ClientPublicAPI {
      * @param filter
      * @return
      */
-    public JSONArray getUsersWithSearchFilter(String sharedspaceId, String workspaceId, Long limit, Long offset,
-            String filter, Boolean onlyGettingIds)
+    public JSONArray getUsersWithSearchFilter(String sharedspaceId, Long limit, Long offset,
+            String filter)
     {
 
         String limitedField = null;
@@ -1534,25 +1534,10 @@ public class ClientPublicAPI {
 
         }
 
-        String url = null;
-        if (workspaceId != null) {
-            String fields = onlyGettingIds ? "id"
-                    : "email,id,full_name,name,first_name,last_modified,last_name,activity_level,roles";
-
-            // get workspace users
-            url = String.format(
-                    "%s/api/shared_spaces/%s/workspaces/%s/workspace_users?fields=%s&order_by=last_modified&show_hidden_entities=true%s&query=%s",
-                    baseURL, sharedspaceId, workspaceId, fields, limitedField, filter);
-
-        } else {
-            String fields = onlyGettingIds ? "id"
-                    : "email,id,full_name,name,first_name,last_modified,last_name,activity_level,workspace_roles,permissions";
-            // get sharedSpace users
-            url = String.format(
-                    "%s/api/shared_spaces/%s/users?fields=%s&order_by=last_modified&show_hidden_entities=true%s&query=%s",
-                    baseURL, sharedspaceId, fields, limitedField, filter);
-        }
-
+        // get sharedSpace users
+        String url = String.format(
+                "%s/api/shared_spaces/%s/users?fields=email,id,full_name,name,first_name,last_modified,last_name,activity_level,workspace_roles,permissions&order_by=last_modified&show_hidden_entities=true%s&query=%s",
+                baseURL, sharedspaceId, limitedField, filter);
 
         RestResponse response = sendGet(url);
         JSONObject dataObj = JSONObject.fromObject(response.getData());
