@@ -37,6 +37,10 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.gson.Gson;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import com.hp.ppm.integration.model.AgileEntityFieldValue;
 import com.ppm.integration.agilesdk.ValueSet;
 import com.ppm.integration.agilesdk.connector.octane.OctaneConstants;
@@ -1524,7 +1528,7 @@ public class ClientPublicAPI {
      * @param filter
      * @return
      */
-    public JSONArray getUsersWithSearchFilter(String sharedspaceId, Long limit, Long offset,
+    public JsonArray getUsersWithSearchFilter(String sharedspaceId, Long limit, Long offset,
             String filter)
     {
 
@@ -1536,15 +1540,16 @@ public class ClientPublicAPI {
 
         // get sharedSpace users
         String url = String.format(
-                "%s/api/shared_spaces/%s/users?fields=email,id,full_name,name,first_name,last_modified,last_name,activity_level,workspace_roles,permissions&order_by=last_modified&show_hidden_entities=true%s&query=%s",
+                "%s/api/shared_spaces/%s/users?fields=email,id,name,first_name,last_modified,last_name,activity_level,workspace_roles,permissions&order_by=last_modified&show_hidden_entities=true%s&query=%s",
                 baseURL, sharedspaceId, limitedField, filter);
 
         RestResponse response = sendGet(url);
-        JSONObject dataObj = JSONObject.fromObject(response.getData());
-        if (dataObj.containsKey("error_code")) {
-            throw new OctaneClientException("OCTANE_API", dataObj.getString("stack_trace"));
+
+        JsonObject dataObj = new JsonParser().parse(response.getData()).getAsJsonObject();
+        if (dataObj.has("error_code")) {
+            throw new OctaneClientException("OCTANE_API", null);
         }
-        JSONArray userList = JSONArray.fromObject(dataObj.get("data"));
+        JsonArray userList = dataObj.getAsJsonArray("data");
         return userList;
     }
 
