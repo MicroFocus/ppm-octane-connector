@@ -12,14 +12,21 @@ import java.util.Map;
 
 import org.apache.log4j.Logger;
 
+import com.google.gson.Gson;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
 import com.ppm.integration.agilesdk.ValueSet;
 import com.ppm.integration.agilesdk.agiledata.AgileDataUser;
 import com.ppm.integration.agilesdk.connector.octane.client.ClientPublicAPI;
 import com.ppm.integration.agilesdk.connector.octane.model.OctaneSyncUserConfiguration;
+import com.ppm.integration.agilesdk.connector.octane.model.Permission;
+import com.ppm.integration.agilesdk.connector.octane.model.PermissionData;
+import com.ppm.integration.agilesdk.connector.octane.model.RoleData;
+import com.ppm.integration.agilesdk.connector.octane.model.SharedSpaceUser;
 import com.ppm.integration.agilesdk.connector.octane.model.UserSecurityConfiguration;
+import com.ppm.integration.agilesdk.connector.octane.model.WorkspaceRole;
 import com.ppm.integration.agilesdk.user.UserIntegration;
 
-import net.sf.json.JSONArray;
 import net.sf.json.JSONObject;
 import net.sf.json.JSONSerializer;
 
@@ -68,33 +75,32 @@ public class OctaneUserIntegration extends UserIntegration {
         }
 
 
-        JSONArray userArray = client.getUsersWithSearchFilter(sharedSpaceId, limit, offset, filter);
+        JsonArray userArray = client.getUsersWithSearchFilter(sharedSpaceId, limit, offset, filter);
 
 
         List<AgileDataUser> users = new ArrayList<>();
+        Gson gson = new Gson();
+        for (JsonElement userObj : userArray) {
+            SharedSpaceUser spaceUser = gson.fromJson(userObj, SharedSpaceUser.class);
 
-        for (int i = 0; i < userArray.size(); i++) {
-            JSONObject userObj = userArray.getJSONObject(i);
             AgileDataUser user = new AgileDataUser();
-            user.setUserId(userObj.getString("id"));
-
-            int activityLevel = userObj.getInt("activity_level");
+            user.setUserId(spaceUser.getId());
+            int activityLevel = Integer.valueOf(spaceUser.getActivityLevel());
 
             if (activityLevel == OctaneConstants.USER_DELETED_STATUS_CODE) {
-                user.setUserName(userObj.getString("id") + DELETED);
+                user.setUserName(spaceUser.getId() + DELETED);
             } else {
-                user.setUserName(userObj.getString("name"));
+                user.setUserName(spaceUser.getName());
             }
 
-            user.setFirstName(userObj.getString("first_name"));
-            user.setLastName(userObj.getString("last_name"));
-            user.setEmail(userObj.getString("email"));
+            user.setFirstName(spaceUser.getFirstName());
+            user.setLastName(spaceUser.getLastName());
+            user.setEmail(spaceUser.getEmail());
+            WorkspaceRole role = spaceUser.getWorkspaceRoles();
+            Permission permission = spaceUser.getPermissions();
 
-            List<String> roleList = getRoleListOfUser(userObj);
-
-            JSONObject permissionsObj = userObj.getJSONObject("permissions");
-            JSONArray permissionsData = permissionsObj.getJSONArray("data");
-            List<String> permissionLogicalNames = parsePermissions(permissionsData);
+            List<String> roleList = getRoleListOfUser(role);
+            List<String> permissionLogicalNames = parsePermissions(permission);
             if (activityLevel == OctaneConstants.USER_ACTIVITY_STATUS_CODE) {
                 addSecurityGroupAndLicenseToUsers(user, roleList, permissionLogicalNames,
                         userConfiguration.getSecurity());
@@ -103,15 +109,13 @@ public class OctaneUserIntegration extends UserIntegration {
                 user.setEnabledFlag(false);
             }
 
-
             try {
-                Date date = sdf.parse(userObj.getString("last_modified"));
+                Date date = sdf.parse(spaceUser.getLastModified());
                 user.setLastUpdateDate(date);
 
             } catch (final ParseException e) {
                 logger.error(e.getMessage());
             }
-
 
             users.add(user);
         }
@@ -119,42 +123,31 @@ public class OctaneUserIntegration extends UserIntegration {
         return users;
     }
 
-    private List<String> parsePermissions(JSONArray permissionsData) {
+    private List<String> parsePermissions(Permission permission) {
         List<String> permissionLogicalNames = new ArrayList<>();
-        for (int i = 0; i < permissionsData.size(); i++) {
-            JSONObject permissionObj = permissionsData.getJSONObject(i);
-            String logicalName = permissionObj.getString("logical_name");
-            permissionLogicalNames.add(logicalName);
+        if (permission != null) {
+            for (PermissionData data : permission.getData()) {
+                permissionLogicalNames.add(data.getLogicalName());
+            }
         }
+
         return permissionLogicalNames;
     }
 
 
 
-    private List<String> getRoleListOfUser(JSONObject userObj) {
+    private List<String> getRoleListOfUser(WorkspaceRole role) {
         List<String> roleList = new ArrayList<>();
-        if (userObj.containsKey("workspace_roles")) {
-            parseSharedSpaceRoles(userObj, roleList);
-        }
-
-        return roleList;
-    }
-
-
-    private void parseSharedSpaceRoles(JSONObject userObj, List<String> roleList) {
-        // sharedSpace level
-        JSONObject workspaceRoles = userObj.getJSONObject("workspace_roles");
-        JSONArray rolesArray = workspaceRoles.getJSONArray("data");
-        for (int j = 0; j < rolesArray.size(); j++) {
-            JSONObject roleJson = rolesArray.getJSONObject(j);
-            JSONObject workspace = roleJson.getJSONObject("workspace");
-            // when workspace is null, this means that the role is applied to shared
-            // space level
-            if (workspace.isNullObject()) {
-                JSONObject role = roleJson.getJSONObject("role");
-                roleList.add(role.getString("logical_name"));
+        if (role != null) {
+            for (RoleData data : role.getData()) {
+                if (data.getWorkspace() == null) {
+                    roleList.add(data.getRole().getLogicalName());
+                }
             }
         }
+
+
+        return roleList;
     }
 
     /**
