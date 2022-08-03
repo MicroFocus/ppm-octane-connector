@@ -1547,7 +1547,7 @@ public class ClientPublicAPI {
 
         JsonObject dataObj = new JsonParser().parse(response.getData()).getAsJsonObject();
         if (dataObj.has("error_code")) {
-            throw new OctaneClientException("OCTANE_API", null);
+            throw new OctaneClientException("OCTANE_API", dataObj.getAsJsonPrimitive("stack_trace").toString());
         }
         JsonArray userList = dataObj.getAsJsonArray("data");
         return userList;
