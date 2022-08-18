@@ -71,6 +71,8 @@ public class OctaneRequestIntegration extends RequestIntegration {
     private static final double MAX_PROGRESS = 0.99;
 
     private static final String PROGRESS = "progress";
+    
+    private static final String ACTUAL_STORY_POINTS = "actual_story_points";
 
     private UserProvider up = null;
     
@@ -986,6 +988,9 @@ public class OctaneRequestIntegration extends RequestIntegration {
                     }
                     if (PROGRESS.equalsIgnoreCase(key)) {
                         value = calculateProgress(item);
+                    } else if(ACTUAL_STORY_POINTS.equals(key) && OctaneConstants.SHARED_EPIC_DEFAULT_WORKSPACE.equals(item.getString("workspace_id"))) {
+                        // as shared epic don't has actual story points, get its value from progress
+                        value = getSharedEpicActualPoints(item);
                     }
                     StringField stringField = new StringField();
                     stringField.set(value);
@@ -1046,6 +1051,20 @@ public class OctaneRequestIntegration extends RequestIntegration {
             }
         }
         return entity;
+    }
+
+    /**
+     * get shared epic actual story points from progress info
+     * @param item
+     */
+    private String getSharedEpicActualPoints(JSONObject item) {
+        String actualTotal = "";
+        if (item.has(PROGRESS)) {
+            String progressStr = item.getString(PROGRESS);
+            JSONObject progressData = (JSONObject)JSONSerializer.toJSON(progressStr);
+            actualTotal = (progressData.getInt("storiesSumTotal") + progressData.getInt("defectsSumTotal")) + "";
+        }
+        return actualTotal;
     }
 
     /* response data of progress of story
