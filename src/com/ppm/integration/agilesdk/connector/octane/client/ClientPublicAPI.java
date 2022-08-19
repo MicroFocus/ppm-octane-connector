@@ -18,6 +18,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
@@ -475,6 +476,7 @@ public class ClientPublicAPI {
     
     public List<WorkSpace> getWorkSpaces(int sharedSpacesId,boolean filterApiAccess) {
         String url = "";
+        Map<String, Object> queryParams = new HashMap<String, Object>();
         if(filterApiAccess) {
             List<String> ids = getApiAccessWorkSpaces(sharedSpacesId);
             if(ids!=null) {
@@ -483,14 +485,13 @@ public class ClientPublicAPI {
                 if (ids.size() == 0) {
                     return new ArrayList<>();
                 }
-                String query = generateInQuery(ids,"id");
-                query  = queryEncode(query);
-                url = String.format("%s/api/shared_spaces/%d/workspaces?fields=id,name,logical_name&query=%s", baseURL, sharedSpacesId,query);
-            }
-        } else {
-            url = String.format("%s/api/shared_spaces/%d/workspaces?fields=id,name,logical_name", baseURL, sharedSpacesId);
+                Set<String> idSet = new HashSet<String>(ids);
+                queryParams.put("id", idSet);
+                }
         }
-
+        queryParams.put("activity_level", 0);
+        url = String.format("%s/api/shared_spaces/%d/workspaces?fields=id,name,logical_name", baseURL, sharedSpacesId);
+        url = url + generateFilterString(queryParams);
         RestResponse response = sendGet(url);
 
         WorkSpaces tempWorkSpace = new WorkSpaces();
@@ -1864,6 +1865,8 @@ public class ClientPublicAPI {
                 } else if (entry.getValue() instanceof Date) {
                     builder.append(entry.getKey()).append(" GT ^").append(transformDateFormat((Date)entry.getValue()))
                             .append("^");
+                } else if(entry.getValue() instanceof Integer) {
+                    builder.append(entry.getKey()).append(" = ").append(entry.getValue());
                 }
                 builder.append(";");
             }
