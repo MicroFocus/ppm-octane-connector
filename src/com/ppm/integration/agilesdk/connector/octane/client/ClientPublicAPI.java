@@ -509,7 +509,7 @@ public class ClientPublicAPI {
 
         String query = queryEncode("\"is_api_key=true;name='" + this.clientId + "'\"");
         String url = String.format(
-                "%s/api/shared_spaces/%s/users?fields=name,workspace_roles&query=%s",
+                "%s/api/shared_spaces/%s/users?fields=name,workspace_roles,activity_level&query=%s",
                 baseURL, sharedSpacesId, query);
         RestResponse response = sendGet(url);
         List<String> workspaceIds = new ArrayList<String>();
@@ -535,7 +535,9 @@ public class ClientPublicAPI {
                         if (OctaneConstants.SHARED_EPIC_DEFAULT_WORKSPACE.equalsIgnoreCase(wsId)) {
                             hasMasterWorkspace = true;
                         } else {
-                            workspaceIds.add(wsId); 
+                            if(ws.has("activity_level") && ws.getInt("activity_level") == 0) {
+                                workspaceIds.add(wsId);  
+                            }
                         }
                     } else if (SPACE_ADMIN_ROLE.equalsIgnoreCase(roleName)) {
                         isSpaceAdmin = true;
@@ -544,7 +546,9 @@ public class ClientPublicAPI {
                         // don't filter workspace.workspace content relay on the
                         // role
                         net.sf.json.JSONObject ws = wsRole.getJSONObject("workspace");
-                        workspaceIds.add(ws.getString("id"));
+                        if(ws.has("activity_level") && ws.getInt("activity_level") == 0) {
+                            workspaceIds.add(ws.getString("id"));
+                        }
                     }
                     
                 }
