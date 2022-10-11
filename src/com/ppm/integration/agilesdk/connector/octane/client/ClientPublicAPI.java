@@ -38,7 +38,6 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
@@ -1932,5 +1931,30 @@ public class ClientPublicAPI {
         }
         JSONObject obj = getCreateEntityFromResponse(response.getData());
         return getWorkItem(sharedspaceId, workspaceId, entityType, obj.getString("id"));
+    }
+    
+    public void saveProducts(final String sharedspaceId, final String method, final String entity)
+    {
+        String url =
+                String.format("%s/api/shared_spaces/%s/workspaces/500/products", baseURL, sharedspaceId);
+
+        RestResponse response = sendRequest(url, method, this.getJsonStrForPOSTData(entity));
+        if (HttpStatus.SC_CREATED != response.getStatusCode() && HttpStatus.SC_OK != response.getStatusCode()) {
+            this.logger
+                    .error("Error occurs when saving products in Octane: Response code = "
+                    + response.getStatusCode());
+            this.logger.error(response.getData());
+            throw new OctaneClientException("AGM_APP", "ERROR_AGILE_ENTITY_SAVE_ERROR",
+                    new String[] {getError(response.getData())});
+        }
+        JSONObject obj = getCreateEntityFromResponse(response.getData());
+    }
+
+    public List<JSONObject> getProducts(String sharedspaceId, List<String> fields) {
+        String retrieveFields = StringUtils.join(fields, ",");
+        String url = String.format("%s/api/shared_spaces/%s/workspaces/500/products?fields=%s", baseURL, sharedspaceId,
+                retrieveFields);
+        List<JSONObject> resultJsonList = new JsonPaginatedOctaneGetter().get(url);
+        return resultJsonList;
     }
 }
