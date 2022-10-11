@@ -43,9 +43,8 @@ public class OctanePortfolioIntegration extends PortfolioIntegration {
     }
 
     /**
-     * @param arg0
-     * @param arg1
-     * @param arg2
+     * @param instance valueset
+     * @param product it that want to delete
      * @see com.ppm.integration.agilesdk.pfm.PortfolioIntegration#deletePortfolioEntities(java.lang.String,
      *      java.lang.String, java.util.List)
      */
@@ -55,8 +54,7 @@ public class OctanePortfolioIntegration extends PortfolioIntegration {
     }
 
     /**
-     * @param arg0
-     * @param arg1
+     * @param instance valueset
      * @return
      * @see com.ppm.integration.agilesdk.pfm.PortfolioIntegration#getAgilePortfolioEntities(com.ppm.integration.agilesdk.ValueSet,
      *      java.lang.String)
@@ -81,14 +79,13 @@ public class OctanePortfolioIntegration extends PortfolioIntegration {
     }
 
     /**
-     * @param arg0
-     * @param arg1
-     * @param arg2
+     * @param instance valueset
+     * @param portfolio list
      * @see com.ppm.integration.agilesdk.pfm.PortfolioIntegration#updatePortfolioEntities(com.ppm.integration.agilesdk.ValueSet,
      *      java.lang.String, java.util.List)
      */
     @Override
-    public void updatePortfolioEntities(ValueSet arg0, List<AgileDataPortfolio> arg2) {
+    public void updatePortfolioEntities(ValueSet valueSet, List<AgileDataPortfolio> list) {
         // TODO Auto-generated method stub
 
     }
