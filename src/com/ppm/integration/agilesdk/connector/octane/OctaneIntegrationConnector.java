@@ -62,7 +62,8 @@ public class OctaneIntegrationConnector extends IntegrationConnector {
                 .asList(new String[] {"com.ppm.integration.agilesdk.connector.octane.OctaneWorkPlanIntegration","com.ppm.integration.agilesdk.connector.octane.OctaneTimeSheetIntegration", "com.ppm.integration.agilesdk.connector.octane.OctaneAgileDataIntegration"
                         , "com.ppm.integration.agilesdk.connector.octane.OctanePortfolioEpicIntegration",
                         "com.ppm.integration.agilesdk.connector.octane.OctaneRequestIntegration",
-                        "com.ppm.integration.agilesdk.connector.octane.OctaneUserIntegration"});
+                        "com.ppm.integration.agilesdk.connector.octane.OctaneUserIntegration",
+                        "com.ppm.integration.agilesdk.connector.octane.OctanePortfolioIntegration"});
     }
 
     @Override public String getConnectorVersion() {
