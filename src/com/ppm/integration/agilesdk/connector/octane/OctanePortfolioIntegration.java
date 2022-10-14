@@ -22,6 +22,10 @@ import net.sf.json.JSONObject;
 
 public class OctanePortfolioIntegration extends PortfolioIntegration {
 
+    /** TODO Comment for <code>DEFAULT_ROOT_PRODUCT_ID</code>. */
+    
+    private static final int DEFAULT_ROOT_PRODUCT_ID = 1001;
+
     /**
      * @param instance valueset
      * @param portfolio list
@@ -37,15 +41,22 @@ public class OctanePortfolioIntegration extends PortfolioIntegration {
             JSONObject entityObj = new JSONObject();
             entityObj.put("name", p.getName());
             entityObj.put("type", "product");
+            JSONObject parent = new JSONObject();
+            parent.put("type", "product");
+            if (p.getParent() == null) {
+                parent.put("id", DEFAULT_ROOT_PRODUCT_ID);
+            } else {
+                parent.put("id", p.getParent().getId());
+            }
+            entityObj.put("parent", parent);
             entityList.add(entityObj);
         }
         client.saveProducts(space.getId(), HttpMethod.POST, entityList.toString());
     }
 
     /**
-     * @param arg0
-     * @param arg1
-     * @param arg2
+     * @param instance valueset
+     * @param product it that want to delete
      * @see com.ppm.integration.agilesdk.pfm.PortfolioIntegration#deletePortfolioEntities(java.lang.String,
      *      java.lang.String, java.util.List)
      */
@@ -55,8 +66,7 @@ public class OctanePortfolioIntegration extends PortfolioIntegration {
     }
 
     /**
-     * @param arg0
-     * @param arg1
+     * @param instance valueset
      * @return
      * @see com.ppm.integration.agilesdk.pfm.PortfolioIntegration#getAgilePortfolioEntities(com.ppm.integration.agilesdk.ValueSet,
      *      java.lang.String)
@@ -81,14 +91,13 @@ public class OctanePortfolioIntegration extends PortfolioIntegration {
     }
 
     /**
-     * @param arg0
-     * @param arg1
-     * @param arg2
+     * @param instance valueset
+     * @param portfolio list
      * @see com.ppm.integration.agilesdk.pfm.PortfolioIntegration#updatePortfolioEntities(com.ppm.integration.agilesdk.ValueSet,
      *      java.lang.String, java.util.List)
      */
     @Override
-    public void updatePortfolioEntities(ValueSet arg0, List<AgileDataPortfolio> arg2) {
+    public void updatePortfolioEntities(ValueSet valueSet, List<AgileDataPortfolio> list) {
         // TODO Auto-generated method stub
 
     }
