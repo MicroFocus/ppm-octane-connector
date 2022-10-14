@@ -22,6 +22,10 @@ import net.sf.json.JSONObject;
 
 public class OctanePortfolioIntegration extends PortfolioIntegration {
 
+    /** TODO Comment for <code>DEFAULT_ROOT_PRODUCT_ID</code>. */
+    
+    private static final int DEFAULT_ROOT_PRODUCT_ID = 1001;
+
     /**
      * @param instance valueset
      * @param portfolio list
@@ -37,6 +41,12 @@ public class OctanePortfolioIntegration extends PortfolioIntegration {
             JSONObject entityObj = new JSONObject();
             entityObj.put("name", p.getName());
             entityObj.put("type", "product");
+            if (p.getParent() == null) {
+                JSONObject parent = new JSONObject();
+                parent.put("id", DEFAULT_ROOT_PRODUCT_ID);
+                parent.put("type", "product");
+                entityObj.put("parent", parent);
+            }
             entityList.add(entityObj);
         }
         client.saveProducts(space.getId(), HttpMethod.POST, entityList.toString());
