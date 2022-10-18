@@ -1175,6 +1175,7 @@ public class ClientPublicAPI {
 
     private boolean filterFieldTypes(FieldInfo field){
         String fieldType = field.getFieldType();
+        String fieldName = field.getName();
         switch (fieldType){
             case OctaneConstants.KEY_FIELD_STRING:
             case OctaneConstants.KEY_FIELD_USER_LIST:
@@ -1186,12 +1187,16 @@ public class ClientPublicAPI {
             //hide some reference fields(eg: sprint, team) whose real field
             //type is actually auto complete list field.
             case OctaneConstants.KEY_AUTO_COMPLETE_LIST:
-                String fieldName = field.getName();
                 switch (fieldName){
                     //open phase, release
                     case OctaneConstants.KEY_FIELD_PHASE:
                     case OctaneConstants.KEY_FIELD_RELEASE:
                         return true;
+                }
+            case OctaneConstants.KEY_FIELD_REFERENCE:
+                // product
+                if (OctaneConstants.KEY_FIELD_PRODUCT.equals(fieldName)) {
+                    return true;
                 }
             default:
                 return false;

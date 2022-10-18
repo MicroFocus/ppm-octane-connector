@@ -74,6 +74,8 @@ public class OctaneRequestIntegration extends RequestIntegration {
     
     private static final String ACTUAL_STORY_POINTS = "actual_story_points";
 
+    private static final String PRODUCT = "product";
+
     private UserProvider up = null;
     
     public static final String SHARED_SPACE_MODE_SHARED = "SHARED";      // all value:SHARED,ISOLATED
@@ -133,6 +135,13 @@ public class OctaneRequestIntegration extends RequestIntegration {
         return fieldList;
     }
 
+    private void transferProduct(AgileEntityFieldInfo fieldInfo) {
+        if (PRODUCT.equals(fieldInfo.getId())) {
+            fieldInfo.setListType(false);
+            fieldInfo.setFieldType(OctaneConstants.KEY_FIELD_STRING);
+        }
+    }
+
     private List<AgileEntityFieldInfo> transferModel(List<FieldInfo> fields) {
         List<AgileEntityFieldInfo> fieldList = new ArrayList<AgileEntityFieldInfo>();
         for (FieldInfo field : fields) {
@@ -147,6 +156,10 @@ public class OctaneRequestIntegration extends RequestIntegration {
             valueObj.put(OctaneConstants.KEY_LOGICAL_NAME, field.getLogicalName());
             info.setListIdentifier(valueObj.toString());
             info.setMultiValue(field.isMultiValue());
+
+            // Workaround here, convert product list to string
+            transferProduct(info);
+
             fieldList.add(info);
         }
         return fieldList;
