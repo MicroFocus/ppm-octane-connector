@@ -1116,6 +1116,8 @@ public class OctaneRequestIntegration extends RequestIntegration {
                 }
             }
         }
+        // change field product's type from list to string
+        transferProductField(entity);
         return entity;
     }
 
@@ -1252,7 +1254,6 @@ public class OctaneRequestIntegration extends RequestIntegration {
             Map<String, JSONObject> usersMap = collectAllUsers(client,workItemsJson,sharedspaceId,workspaceId,fieldInfoMap);
             for (JSONObject workItemJson : workItemsJson) {
                 AgileEntity entity = wrapperEntity(workItemJson, fieldInfoMap, usersMap, forceLastUpdateTime);
-                transferProductField(entity);
                 agileEntities.add(entity);
             }
         }
