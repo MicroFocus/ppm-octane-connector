@@ -142,6 +142,23 @@ public class OctaneRequestIntegration extends RequestIntegration {
         }
     }
 
+    private void transferProductField(AgileEntity agileEntity) {
+        Iterator<Entry<String, DataField>> iterator = agileEntity.getAllFields();
+        while (iterator.hasNext()) {
+            Entry<String, DataField> entry = iterator.next();
+            if (PRODUCT.equals(entry.getKey())) {
+                ListNodeField listNodeField = entry.getValue() == null ? null : (ListNodeField) entry.getValue();
+                StringField stringField = null;
+                if (listNodeField != null) {
+                    stringField = new StringField();
+                    ListNode listNode = listNodeField.get();
+                    stringField.set(listNode.getName());
+                }
+                agileEntity.addField(PRODUCT, stringField);
+            }
+        }
+    }
+
     private List<AgileEntityFieldInfo> transferModel(List<FieldInfo> fields) {
         List<AgileEntityFieldInfo> fieldList = new ArrayList<AgileEntityFieldInfo>();
         for (FieldInfo field : fields) {
@@ -558,10 +575,15 @@ public class OctaneRequestIntegration extends RequestIntegration {
     private void setEntityProductField(AgileEntity entity, String sharedSpaceId, ClientPublicAPI clientPublicAPI) {
         Iterator<Entry<String, DataField>> iterator = entity.getAllFields();
         ListNodeField listNodeField = null;
+        boolean isUpdateProduct = false;
         while (iterator.hasNext()) {
             Entry<String, DataField> entry = iterator.next();
-            if (PRODUCT.equals(entry.getKey()) && entry.getValue() != null) {
-                String productName = (String) entry.getValue().get();
+            if (PRODUCT.equals(entry.getKey())) {
+                isUpdateProduct = true;
+                String productName = (entry.getValue() == null || entry.getValue().get() == null) ? null : (String) entry.getValue().get();
+                if (productName == null || productName.isEmpty()) {
+                    break;
+                }
                 List<String> queryFields = new ArrayList<>();
                 queryFields.add("id");
                 queryFields.add("name");
@@ -579,7 +601,9 @@ public class OctaneRequestIntegration extends RequestIntegration {
                 break;
             }
         }
-        entity.addField(PRODUCT, listNodeField);
+        if (isUpdateProduct) {
+            entity.addField(PRODUCT, listNodeField);
+        }
     }
 
     private String buildEntity(final ClientPublicAPI client, final String sharedSpaceId, final String workSpaceId,
@@ -1228,6 +1252,7 @@ public class OctaneRequestIntegration extends RequestIntegration {
             Map<String, JSONObject> usersMap = collectAllUsers(client,workItemsJson,sharedspaceId,workspaceId,fieldInfoMap);
             for (JSONObject workItemJson : workItemsJson) {
                 AgileEntity entity = wrapperEntity(workItemJson, fieldInfoMap, usersMap, forceLastUpdateTime);
+                transferProductField(entity);
                 agileEntities.add(entity);
             }
         }
