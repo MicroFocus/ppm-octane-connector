@@ -135,10 +135,10 @@ public class OctaneRequestIntegration extends RequestIntegration {
         return fieldList;
     }
 
-    private void transferProduct(AgileEntityFieldInfo fieldInfo) {
+    private void transferProductField(AgileEntityFieldInfo fieldInfo) {
         if (PRODUCT.equals(fieldInfo.getId())) {
             fieldInfo.setListType(false);
-            fieldInfo.setFieldType(OctaneConstants.KEY_FIELD_STRING);
+            fieldInfo.setFieldType(getAgileFieldtype(OctaneConstants.KEY_FIELD_STRING));
         }
     }
 
@@ -157,8 +157,8 @@ public class OctaneRequestIntegration extends RequestIntegration {
             info.setListIdentifier(valueObj.toString());
             info.setMultiValue(field.isMultiValue());
 
-            // Workaround here, convert product list to string
-            transferProduct(info);
+            // transfer product's type from list to string
+            transferProductField(info);
 
             fieldList.add(info);
         }
@@ -525,7 +525,9 @@ public class OctaneRequestIntegration extends RequestIntegration {
         if (entity.getId() != null) {
             method = HttpMethod.PUT;
         }
-        
+        // Sync request portfolio value to octane entity product field if where is an existing product according to portfolio name (PPM->OCTANE).
+        // If not match, reset empty.
+        setEntityProductField(entity, sharedSpaceId, client);
 
         String finalWorkSpaceId = workSpaceId;
         if (OctaneConstants.SUB_TYPE_EPIC.equals(entityType)
@@ -551,6 +553,33 @@ public class OctaneRequestIntegration extends RequestIntegration {
         }
         client.signOut(instanceConfigurationParameters);
         return agileEntity;
+    }
+
+    private void setEntityProductField(AgileEntity entity, String sharedSpaceId, ClientPublicAPI clientPublicAPI) {
+        Iterator<Entry<String, DataField>> iterator = entity.getAllFields();
+        ListNodeField listNodeField = null;
+        while (iterator.hasNext()) {
+            Entry<String, DataField> entry = iterator.next();
+            if (PRODUCT.equals(entry.getKey()) && entry.getValue() != null) {
+                String productName = (String) entry.getValue().get();
+                List<String> queryFields = new ArrayList<>();
+                queryFields.add("id");
+                queryFields.add("name");
+                List<JSONObject> products = clientPublicAPI.getProducts(sharedSpaceId, queryFields);
+                for (JSONObject p : products) {
+                    if (productName.equals(p.getString("name"))) {
+                        ListNode listNode = new ListNode();
+                        listNode.setId(String.valueOf(p.getLong("id")));
+                        listNode.setName(productName);
+                        listNodeField = new ListNodeField();
+                        listNodeField.set(listNode);
+                        break;
+                    }
+                }
+                break;
+            }
+        }
+        entity.addField(PRODUCT, listNodeField);
     }
 
     private String buildEntity(final ClientPublicAPI client, final String sharedSpaceId, final String workSpaceId,
