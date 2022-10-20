@@ -1962,4 +1962,17 @@ public class ClientPublicAPI {
         List<JSONObject> resultJsonList = new JsonPaginatedOctaneGetter().get(url);
         return resultJsonList;
     }
+
+    public List<JSONObject> getProductsByNames(String sharedspaceId, List<String> fields, List<String> names) {
+        if (names.isEmpty()) {
+            return new JSONArray();
+        }
+        String retrieveFields = StringUtils.join(fields, ",");
+        String query = generateInQuery(names, " name ");
+        query = queryEncode(query);
+        String url = String.format("%s/api/shared_spaces/%s/workspaces/500/products?fields=%s&query=%s", baseURL, sharedspaceId,
+                retrieveFields, query);
+        List<JSONObject> resultJsonList = new JsonPaginatedOctaneGetter().get(url);
+        return resultJsonList;
+    }
 }

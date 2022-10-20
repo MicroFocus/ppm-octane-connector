@@ -74,8 +74,6 @@ public class OctaneRequestIntegration extends RequestIntegration {
     
     private static final String ACTUAL_STORY_POINTS = "actual_story_points";
 
-    private static final String PRODUCT = "product";
-
     private UserProvider up = null;
     
     public static final String SHARED_SPACE_MODE_SHARED = "SHARED";      // all value:SHARED,ISOLATED
@@ -135,30 +133,6 @@ public class OctaneRequestIntegration extends RequestIntegration {
         return fieldList;
     }
 
-    private void transferProductField(AgileEntityFieldInfo fieldInfo) {
-        if (PRODUCT.equals(fieldInfo.getId())) {
-            fieldInfo.setListType(false);
-            fieldInfo.setFieldType(getAgileFieldtype(OctaneConstants.KEY_FIELD_STRING));
-        }
-    }
-
-    private void transferProductField(AgileEntity agileEntity) {
-        Iterator<Entry<String, DataField>> iterator = agileEntity.getAllFields();
-        while (iterator.hasNext()) {
-            Entry<String, DataField> entry = iterator.next();
-            if (PRODUCT.equals(entry.getKey())) {
-                ListNodeField listNodeField = entry.getValue() == null ? null : (ListNodeField) entry.getValue();
-                StringField stringField = null;
-                if (listNodeField != null) {
-                    stringField = new StringField();
-                    ListNode listNode = listNodeField.get();
-                    stringField.set(listNode.getName());
-                }
-                agileEntity.addField(PRODUCT, stringField);
-            }
-        }
-    }
-
     private List<AgileEntityFieldInfo> transferModel(List<FieldInfo> fields) {
         List<AgileEntityFieldInfo> fieldList = new ArrayList<AgileEntityFieldInfo>();
         for (FieldInfo field : fields) {
@@ -174,8 +148,11 @@ public class OctaneRequestIntegration extends RequestIntegration {
             info.setListIdentifier(valueObj.toString());
             info.setMultiValue(field.isMultiValue());
 
-            // transfer product's type from list to string
-            transferProductField(info);
+            // transfer product's type from list to string to sync
+            if (OctaneConstants.KEY_FIELD_PRODUCT.equals(fieldName)) {
+                info.setListType(false);
+                info.setFieldType(getAgileFieldtype(OctaneConstants.KEY_FIELD_STRING));
+            }
 
             fieldList.add(info);
         }
@@ -578,7 +555,7 @@ public class OctaneRequestIntegration extends RequestIntegration {
         boolean isUpdateProduct = false;
         while (iterator.hasNext()) {
             Entry<String, DataField> entry = iterator.next();
-            if (PRODUCT.equals(entry.getKey())) {
+            if (OctaneConstants.KEY_FIELD_PRODUCT.equals(entry.getKey())) {
                 isUpdateProduct = true;
                 String productName = (entry.getValue() == null || entry.getValue().get() == null) ? null : (String) entry.getValue().get();
                 if (productName == null || productName.isEmpty()) {
@@ -587,22 +564,21 @@ public class OctaneRequestIntegration extends RequestIntegration {
                 List<String> queryFields = new ArrayList<>();
                 queryFields.add("id");
                 queryFields.add("name");
-                List<JSONObject> products = clientPublicAPI.getProducts(sharedSpaceId, queryFields);
+                List<String> productNames = new ArrayList<>();
+                productNames.add(productName);
+                List<JSONObject> products = clientPublicAPI.getProductsByNames(sharedSpaceId, queryFields, productNames);
                 for (JSONObject p : products) {
-                    if (productName.equals(p.getString("name"))) {
-                        ListNode listNode = new ListNode();
-                        listNode.setId(String.valueOf(p.getLong("id")));
-                        listNode.setName(productName);
-                        listNodeField = new ListNodeField();
-                        listNodeField.set(listNode);
-                        break;
-                    }
+                    ListNode listNode = new ListNode();
+                    listNode.setId(String.valueOf(p.getLong("id")));
+                    listNode.setName(productName);
+                    listNodeField = new ListNodeField();
+                    listNodeField.set(listNode);
                 }
                 break;
             }
         }
         if (isUpdateProduct) {
-            entity.addField(PRODUCT, listNodeField);
+            entity.addField(OctaneConstants.KEY_FIELD_PRODUCT, listNodeField);
         }
     }
 
@@ -1010,6 +986,15 @@ public class OctaneRequestIntegration extends RequestIntegration {
             } else if (key.equals("id")) {
                 String value = item.getString(key);
                 entity.setId(value);
+            } else if (key.equals(OctaneConstants.KEY_FIELD_PRODUCT)) {
+                // change field product's type from list to string
+                JSONObject value = item.getJSONObject(key);
+                StringField stringField = null;
+                if (canParseJson(value, "name") || canParseJson(value, "data")) {
+                    stringField = new StringField();
+                    stringField.set(value.getString("name"));
+                }
+                entity.addField(OctaneConstants.KEY_FIELD_PRODUCT, stringField);
             } else if (fieldInfoMap != null && fieldInfoMap.get(key) != null) {
                 FieldInfo info = fieldInfoMap.get(key);
                 if (info.getFieldType().equals(OctaneConstants.KEY_FIELD_USER_LIST)) {
@@ -1116,8 +1101,6 @@ public class OctaneRequestIntegration extends RequestIntegration {
                 }
             }
         }
-        // change field product's type from list to string
-        transferProductField(entity);
         return entity;
     }
 
