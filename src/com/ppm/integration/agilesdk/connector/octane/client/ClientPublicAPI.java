@@ -1957,4 +1957,24 @@ public class ClientPublicAPI {
         List<JSONObject> resultJsonList = new JsonPaginatedOctaneGetter().get(url);
         return resultJsonList;
     }
+
+    public void deleteProducts(final String sharedspaceId, final List<String> ids) {
+        if (ids.isEmpty()) {
+            return;
+        }
+
+        String query = generateInQuery(ids, "id");
+        query = queryEncode(query);
+
+        String url =
+                String.format("%s/api/shared_spaces/%s/workspaces/500/products?query=%s", baseURL, sharedspaceId, query);
+
+        RestResponse response = sendRequest(url, HttpMethod.DELETE, null);
+        if (HttpStatus.SC_OK != response.getStatusCode() && HttpStatus.SC_NOT_FOUND != response.getStatusCode()) {
+            this.logger.error("Error occurs when saving story in Octane: Response code = " + response.getStatusCode());
+            throw new OctaneClientException("AGM_APP", "ERROR_HTTP_CONNECTIVITY_ERROR",
+                    new String[] {getError(response.getData())});
+        }
+
+    }
 }

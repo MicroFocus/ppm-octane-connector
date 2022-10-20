@@ -5,6 +5,8 @@ package com.ppm.integration.agilesdk.connector.octane;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.apache.commons.lang.StringUtils;
+
 import javax.ws.rs.HttpMethod;
 
 import com.ppm.integration.agilesdk.ValueSet;
@@ -33,25 +35,8 @@ public class OctanePortfolioIntegration extends PortfolioIntegration {
      *      java.lang.String, java.util.List)
      */
     @Override
-    public void createPortfolioEntities(ValueSet valueSet, List<AgileDataPortfolio> portfolios) {
-        ClientPublicAPI client = ClientPublicAPI.getClient(valueSet);
-        SharedSpace space = client.getActiveSharedSpace();
-        JSONArray entityList = new JSONArray();
-        for (AgileDataPortfolio p : portfolios) {
-            JSONObject entityObj = new JSONObject();
-            entityObj.put("name", p.getName());
-            entityObj.put("type", "product");
-            JSONObject parent = new JSONObject();
-            parent.put("type", "product");
-            if (p.getParent() == null) {
-                parent.put("id", DEFAULT_ROOT_PRODUCT_ID);
-            } else {
-                parent.put("id", p.getParent().getId());
-            }
-            entityObj.put("parent", parent);
-            entityList.add(entityObj);
-        }
-        client.saveProducts(space.getId(), HttpMethod.POST, entityList.toString());
+    public void createPortfolioEntities(ValueSet valueSet, List<AgileDataPortfolio> products) {
+        this.savePortfolioEntities(valueSet, products, HttpMethod.POST);
     }
 
     /**
@@ -61,8 +46,10 @@ public class OctanePortfolioIntegration extends PortfolioIntegration {
      *      java.lang.String, java.util.List)
      */
     @Override
-    public void deletePortfolioEntities(final ValueSet instanceConfigurationParameters, List<String> portfolioIds) {
-
+    public void deletePortfolioEntities(final ValueSet valueSet, List<String> productIds) {
+        ClientPublicAPI client = ClientPublicAPI.getClient(valueSet);
+        SharedSpace space = client.getActiveSharedSpace();
+        client.deleteProducts(space.getId(), productIds);
     }
 
     /**
@@ -82,7 +69,7 @@ public class OctanePortfolioIntegration extends PortfolioIntegration {
             List<JSONObject> products = client.getProducts(space.getId(), fields);
             for (JSONObject p : products) {
                 AgileDataPortfolio aP = new AgileDataPortfolio();
-                aP.setId(p.getLong("id"));
+                aP.setId(p.getString("id"));
                 aP.setName(p.getString("name"));
                 ps.add(aP);
             }
@@ -97,8 +84,33 @@ public class OctanePortfolioIntegration extends PortfolioIntegration {
      *      java.lang.String, java.util.List)
      */
     @Override
-    public void updatePortfolioEntities(ValueSet valueSet, List<AgileDataPortfolio> list) {
-        // TODO Auto-generated method stub
+    public void updatePortfolioEntities(ValueSet valueSet, List<AgileDataPortfolio> products) {
+        this.savePortfolioEntities(valueSet, products, HttpMethod.PUT);
+    }
+
+    private void savePortfolioEntities(ValueSet valueSet, List<AgileDataPortfolio> products, String method) {
+        ClientPublicAPI client = ClientPublicAPI.getClient(valueSet);
+        SharedSpace space = client.getActiveSharedSpace();
+        JSONArray entityList = new JSONArray();
+        for (AgileDataPortfolio p : products) {
+            JSONObject entityObj = new JSONObject();
+            if (!StringUtils.isBlank(p.getId())) {
+                entityObj.put("id", p.getId());
+            }
+
+            entityObj.put("name", p.getName());
+            entityObj.put("type", "product");
+            JSONObject parent = new JSONObject();
+            if (p.getParent() == null) {
+                parent.put("id", DEFAULT_ROOT_PRODUCT_ID);
+            } else {
+                parent.put("id", p.getParent().getId());
+            }
+            parent.put("type", "product");
+            entityObj.put("parent", parent);
+            entityList.add(entityObj);
+        }
+        client.saveProducts(space.getId(), method, entityList.toString());
 
     }
 
