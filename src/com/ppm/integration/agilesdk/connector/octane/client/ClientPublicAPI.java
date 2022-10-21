@@ -1933,7 +1933,7 @@ public class ClientPublicAPI {
         return getWorkItem(sharedspaceId, workspaceId, entityType, obj.getString("id"));
     }
     
-    public void saveProducts(final String sharedspaceId, final String method, final String entity)
+    public JSONArray saveProducts(final String sharedspaceId, final String method, final String entity)
     {
         String url =
                 String.format("%s/api/shared_spaces/%s/workspaces/500/products", baseURL, sharedspaceId);
@@ -1947,7 +1947,9 @@ public class ClientPublicAPI {
             throw new OctaneClientException("AGM_APP", "ERROR_AGILE_ENTITY_SAVE_ERROR",
                     new String[] {getError(response.getData())});
         }
-        JSONObject obj = getCreateEntityFromResponse(response.getData());
+
+        JSONObject dataObj = JSONObject.fromObject(response.getData());
+        return JSONArray.fromObject(dataObj.get("data"));
     }
 
     public List<JSONObject> getProducts(String sharedspaceId, List<String> fields) {

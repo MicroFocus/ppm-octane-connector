@@ -3,6 +3,7 @@
 package com.ppm.integration.agilesdk.connector.octane;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 import org.apache.commons.lang.StringUtils;
@@ -35,8 +36,8 @@ public class OctanePortfolioIntegration extends PortfolioIntegration {
      *      java.lang.String, java.util.List)
      */
     @Override
-    public void createPortfolioEntities(ValueSet valueSet, List<AgileDataPortfolio> products) {
-        this.savePortfolioEntities(valueSet, products, HttpMethod.POST);
+    public List<AgileDataPortfolio> createPortfolioEntities(ValueSet valueSet, List<AgileDataPortfolio> products) {
+        return savePortfolioEntities(valueSet, products, HttpMethod.POST);
     }
 
     /**
@@ -84,11 +85,11 @@ public class OctanePortfolioIntegration extends PortfolioIntegration {
      *      java.lang.String, java.util.List)
      */
     @Override
-    public void updatePortfolioEntities(ValueSet valueSet, List<AgileDataPortfolio> products) {
-        this.savePortfolioEntities(valueSet, products, HttpMethod.PUT);
+    public List<AgileDataPortfolio> updatePortfolioEntities(ValueSet valueSet, List<AgileDataPortfolio> products) {
+        return savePortfolioEntities(valueSet, products, HttpMethod.PUT);
     }
 
-    private void savePortfolioEntities(ValueSet valueSet, List<AgileDataPortfolio> products, String method) {
+    private List<AgileDataPortfolio> savePortfolioEntities(ValueSet valueSet, List<AgileDataPortfolio> products, String method) {
         ClientPublicAPI client = ClientPublicAPI.getClient(valueSet);
         SharedSpace space = client.getActiveSharedSpace();
         JSONArray entityList = new JSONArray();
@@ -110,8 +111,24 @@ public class OctanePortfolioIntegration extends PortfolioIntegration {
             entityObj.put("parent", parent);
             entityList.add(entityObj);
         }
-        client.saveProducts(space.getId(), method, entityList.toString());
+        JSONArray productArray = client.saveProducts(space.getId(), method, entityList.toString());
 
+        if (productArray.size() > 0) {
+            List<AgileDataPortfolio> productList = new ArrayList<>();
+
+            for (int i = 0; i < productArray.size(); i++) {
+                AgileDataPortfolio productData = new AgileDataPortfolio();
+                JSONObject tempObj = productArray.getJSONObject(i);
+                String id = tempObj.getString("id");
+                String name = tempObj.getString("name");
+                productData.setId(id);
+                productData.setName(name);
+                productList.add(productData);
+            }
+            return productList;
+        }
+
+        return Collections.emptyList();
     }
 
 }
