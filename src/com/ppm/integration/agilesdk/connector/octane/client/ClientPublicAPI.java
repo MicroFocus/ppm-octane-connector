@@ -1938,7 +1938,7 @@ public class ClientPublicAPI {
         return getWorkItem(sharedspaceId, workspaceId, entityType, obj.getString("id"));
     }
     
-    public void saveProducts(final String sharedspaceId, final String method, final String entity)
+    public JSONArray saveProducts(final String sharedspaceId, final String method, final String entity)
     {
         String url =
                 String.format("%s/api/shared_spaces/%s/workspaces/500/products", baseURL, sharedspaceId);
@@ -1952,7 +1952,9 @@ public class ClientPublicAPI {
             throw new OctaneClientException("AGM_APP", "ERROR_AGILE_ENTITY_SAVE_ERROR",
                     new String[] {getError(response.getData())});
         }
-        JSONObject obj = getCreateEntityFromResponse(response.getData());
+
+        JSONObject dataObj = JSONObject.fromObject(response.getData());
+        return JSONArray.fromObject(dataObj.get("data"));
     }
 
     public List<JSONObject> getProducts(String sharedspaceId, List<String> fields) {
@@ -1962,6 +1964,24 @@ public class ClientPublicAPI {
         List<JSONObject> resultJsonList = new JsonPaginatedOctaneGetter().get(url);
         return resultJsonList;
     }
+
+    public void deleteProducts(final String sharedspaceId, final List<String> ids) {
+        if (ids.isEmpty()) {
+            return;
+        }
+
+        String query = generateInQuery(ids, "id");
+        query = queryEncode(query);
+
+        String url =
+                String.format("%s/api/shared_spaces/%s/workspaces/500/products?query=%s", baseURL, sharedspaceId, query);
+
+        RestResponse response = sendRequest(url, HttpMethod.DELETE, null);
+        if (HttpStatus.SC_OK != response.getStatusCode() && HttpStatus.SC_NOT_FOUND != response.getStatusCode()) {
+            this.logger.error("Error occurs when saving story in Octane: Response code = " + response.getStatusCode());
+            throw new OctaneClientException("AGM_APP", "ERROR_HTTP_CONNECTIVITY_ERROR",
+                    new String[] {getError(response.getData())});
+        }
 
     public List<JSONObject> getProductsByNames(String sharedspaceId, List<String> fields, List<String> names) {
         if (names.isEmpty()) {
@@ -1974,5 +1994,6 @@ public class ClientPublicAPI {
                 retrieveFields, query);
         List<JSONObject> resultJsonList = new JsonPaginatedOctaneGetter().get(url);
         return resultJsonList;
+
     }
 }
