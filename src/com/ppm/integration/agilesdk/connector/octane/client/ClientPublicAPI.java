@@ -1982,6 +1982,7 @@ public class ClientPublicAPI {
             throw new OctaneClientException("AGM_APP", "ERROR_HTTP_CONNECTIVITY_ERROR",
                     new String[] {getError(response.getData())});
         }
+    }
 
     public List<JSONObject> getProductsByNames(String sharedspaceId, List<String> fields, List<String> names) {
         if (names.isEmpty()) {
