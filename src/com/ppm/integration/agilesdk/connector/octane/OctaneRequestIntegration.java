@@ -147,6 +147,13 @@ public class OctaneRequestIntegration extends RequestIntegration {
             valueObj.put(OctaneConstants.KEY_LOGICAL_NAME, field.getLogicalName());
             info.setListIdentifier(valueObj.toString());
             info.setMultiValue(field.isMultiValue());
+
+            // transfer product's type from list to string to sync
+            if (OctaneConstants.KEY_FIELD_PRODUCT.equals(fieldName)) {
+                info.setListType(false);
+                info.setFieldType(getAgileFieldtype(OctaneConstants.KEY_FIELD_STRING));
+            }
+
             fieldList.add(info);
         }
         return fieldList;
@@ -512,7 +519,9 @@ public class OctaneRequestIntegration extends RequestIntegration {
         if (entity.getId() != null) {
             method = HttpMethod.PUT;
         }
-        
+        // Sync request portfolio value to octane entity product field if where is an existing product according to portfolio name (PPM->OCTANE).
+        // If not match, reset empty.
+        setEntityProductField(entity, sharedSpaceId, client);
 
         String finalWorkSpaceId = workSpaceId;
         if (OctaneConstants.SUB_TYPE_EPIC.equals(entityType)
@@ -538,6 +547,39 @@ public class OctaneRequestIntegration extends RequestIntegration {
         }
         client.signOut(instanceConfigurationParameters);
         return agileEntity;
+    }
+
+    private void setEntityProductField(AgileEntity entity, String sharedSpaceId, ClientPublicAPI clientPublicAPI) {
+        Iterator<Entry<String, DataField>> iterator = entity.getAllFields();
+        ListNodeField listNodeField = null;
+        boolean isUpdateProduct = false;
+        while (iterator.hasNext()) {
+            Entry<String, DataField> entry = iterator.next();
+            if (OctaneConstants.KEY_FIELD_PRODUCT.equals(entry.getKey())) {
+                isUpdateProduct = true;
+                String productName = (entry.getValue() == null || entry.getValue().get() == null) ? null : (String) entry.getValue().get();
+                if (productName == null || productName.isEmpty()) {
+                    break;
+                }
+                List<String> queryFields = new ArrayList<>();
+                queryFields.add("id");
+                queryFields.add("name");
+                List<String> productNames = new ArrayList<>();
+                productNames.add(productName);
+                List<JSONObject> products = clientPublicAPI.getProductsByNames(sharedSpaceId, queryFields, productNames);
+                for (JSONObject p : products) {
+                    ListNode listNode = new ListNode();
+                    listNode.setId(String.valueOf(p.getLong("id")));
+                    listNode.setName(productName);
+                    listNodeField = new ListNodeField();
+                    listNodeField.set(listNode);
+                }
+                break;
+            }
+        }
+        if (isUpdateProduct) {
+            entity.addField(OctaneConstants.KEY_FIELD_PRODUCT, listNodeField);
+        }
     }
 
     private String buildEntity(final ClientPublicAPI client, final String sharedSpaceId, final String workSpaceId,
@@ -944,6 +986,15 @@ public class OctaneRequestIntegration extends RequestIntegration {
             } else if (key.equals("id")) {
                 String value = item.getString(key);
                 entity.setId(value);
+            } else if (key.equals(OctaneConstants.KEY_FIELD_PRODUCT)) {
+                // change field product's type from list to string
+                JSONObject value = item.getJSONObject(key);
+                StringField stringField = null;
+                if (canParseJson(value, "name") || canParseJson(value, "data")) {
+                    stringField = new StringField();
+                    stringField.set(value.getString("name"));
+                }
+                entity.addField(OctaneConstants.KEY_FIELD_PRODUCT, stringField);
             } else if (fieldInfoMap != null && fieldInfoMap.get(key) != null) {
                 FieldInfo info = fieldInfoMap.get(key);
                 if (info.getFieldType().equals(OctaneConstants.KEY_FIELD_USER_LIST)) {

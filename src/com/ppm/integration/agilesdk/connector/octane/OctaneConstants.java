@@ -153,6 +153,7 @@ public class OctaneConstants {
     public static final String KEY_FIELD_PHASE = "phase";
     public static final String KEY_FIELD_PHASE_API_NAME = "phases";
     public static final String KEY_FIELD_RELEASE = "release";
+    public static final String KEY_FIELD_PRODUCT = "product";
     public static final String KEY_FIELD_RELEASE_API_NAME = "releases";
     public static final String KEY_FIELD_SPRINT = "sprint";
     public static final String KEY_FIELD_SPRINT_API_NAME = "sprints";

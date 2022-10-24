@@ -1175,6 +1175,7 @@ public class ClientPublicAPI {
 
     private boolean filterFieldTypes(FieldInfo field){
         String fieldType = field.getFieldType();
+        String fieldName = field.getName();
         switch (fieldType){
             case OctaneConstants.KEY_FIELD_STRING:
             case OctaneConstants.KEY_FIELD_USER_LIST:
@@ -1186,12 +1187,16 @@ public class ClientPublicAPI {
             //hide some reference fields(eg: sprint, team) whose real field
             //type is actually auto complete list field.
             case OctaneConstants.KEY_AUTO_COMPLETE_LIST:
-                String fieldName = field.getName();
                 switch (fieldName){
                     //open phase, release
                     case OctaneConstants.KEY_FIELD_PHASE:
                     case OctaneConstants.KEY_FIELD_RELEASE:
                         return true;
+                }
+            case OctaneConstants.KEY_FIELD_REFERENCE:
+                // product
+                if (OctaneConstants.KEY_FIELD_PRODUCT.equals(fieldName)) {
+                    return true;
                 }
             default:
                 return false;
@@ -1977,6 +1982,18 @@ public class ClientPublicAPI {
             throw new OctaneClientException("AGM_APP", "ERROR_HTTP_CONNECTIVITY_ERROR",
                     new String[] {getError(response.getData())});
         }
+
+    public List<JSONObject> getProductsByNames(String sharedspaceId, List<String> fields, List<String> names) {
+        if (names.isEmpty()) {
+            return new JSONArray();
+        }
+        String retrieveFields = StringUtils.join(fields, ",");
+        String query = generateInQuery(names, " name ");
+        query = queryEncode(query);
+        String url = String.format("%s/api/shared_spaces/%s/workspaces/500/products?fields=%s&query=%s", baseURL, sharedspaceId,
+                retrieveFields, query);
+        List<JSONObject> resultJsonList = new JsonPaginatedOctaneGetter().get(url);
+        return resultJsonList;
 
     }
 }
