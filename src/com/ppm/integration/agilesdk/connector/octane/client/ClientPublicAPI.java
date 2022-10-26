@@ -174,11 +174,11 @@ public class ClientPublicAPI {
     }
 
     private RestResponse sendRequest(String url, String method, String jsonData) {
-        return sendRequest(url, method, jsonData, true);
+        return sendRequest(url, method, jsonData, false);
     }
 
     private RestResponse sendRequestIgnoreError(String url, String method, String jsonData) {
-        return sendRequest(url, method, jsonData, false);
+        return sendRequest(url, method, jsonData, true);
     }
 
     private RestResponse sendRequest(String url, String method, String jsonData, boolean ignoreError) {
@@ -300,7 +300,7 @@ public class ClientPublicAPI {
                     return sendRequest(url, method, data, headers, ignoreError);
                 } else {
                     retryNumber = 0;
-                    if (ignoreError) throw new OctaneClientException("OCTANE_API", "ERROR_BAD_REQUEST");
+                    if (!ignoreError) throw new OctaneClientException("OCTANE_API", "ERROR_BAD_REQUEST");
                 }
             }
             retryNumber = 0;
