@@ -55,16 +55,7 @@ public class OctanePortfolioIntegration extends PortfolioIntegration {
         AgileDataPortfolioList data = new AgileDataPortfolioList();
         if (dataObj == null) return data;
         convertDataArrayToBean(dataObj, data);
-        convertErrorJsonToBean(dataObj, data);
         return data;
-    }
-
-    private void convertErrorJsonToBean(JSONObject dataObj, AgileDataPortfolioList list) {
-        if (!dataObj.containsKey("error_code")) return;
-        AgileDataError error = new AgileDataError();
-        error.setCode(dataObj.getString("error_code"));
-        error.setMessage(dataObj.getString("description"));
-        list.addError(error);
     }
 
     /**
@@ -113,7 +104,6 @@ public class OctanePortfolioIntegration extends PortfolioIntegration {
 
         convertDataArrayToBean(dataObj, data);
         convertErrorArrayToBean(dataObj, data);
-        convertErrorJsonToBean(dataObj, data);
 
         return data;
     }
@@ -130,7 +120,7 @@ public class OctanePortfolioIntegration extends PortfolioIntegration {
                     error.setIndex(tempObj.getInt("index"));
                 }
                 error.setCode(tempObj.getString("error_code"));
-                error.setMessage(tempObj.getString("description"));
+                error.setMessage(tempObj.getString("description_translated"));
                 list.addError(error);
             }
         }
