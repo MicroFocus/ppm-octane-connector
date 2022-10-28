@@ -148,7 +148,7 @@ public class ClientPublicAPI {
                         clientSecret);
         Map<String, String> headers = new HashMap<>();
         headers.put("Content-Type", MediaType.APPLICATION_JSON);
-        RestResponse response = sendRequest(url, HttpMethod.POST, data, headers, true);
+        RestResponse response = sendRequest(url, HttpMethod.POST, data, headers);
         return verifyResult(HttpStatus.SC_OK, response.getStatusCode());
     }
     
@@ -174,14 +174,6 @@ public class ClientPublicAPI {
     }
 
     private RestResponse sendRequest(String url, String method, String jsonData) {
-        return sendRequest(url, method, jsonData, false);
-    }
-
-    private RestResponse sendRequestIgnoreError(String url, String method, String jsonData) {
-        return sendRequest(url, method, jsonData, true);
-    }
-
-    private RestResponse sendRequest(String url, String method, String jsonData, boolean ignoreError) {
 
         Map<String, String> headers = new HashMap<>();
 
@@ -195,7 +187,7 @@ public class ClientPublicAPI {
             headers.put("Content-Type", MediaType.APPLICATION_JSON);
         }
 
-        return sendRequest(url, method, jsonData, headers, ignoreError);
+        return sendRequest(url, method, jsonData, headers);
     }
 
     private RestResponse sendSSORequest(String url, String method, String jsonData) {
@@ -212,7 +204,7 @@ public class ClientPublicAPI {
             headers.put("Content-Type", MediaType.APPLICATION_JSON);
         }
 
-        return sendRequest(url, method, jsonData, headers, true);
+        return sendRequest(url, method, jsonData, headers);
     }
 
 
@@ -220,7 +212,7 @@ public class ClientPublicAPI {
      * Use this method only when you need to have full control over the header sent, for example during authentication process.
      * For standard REST API usage, use {@link #sendRequest(String, String, String)}, it will take care of everything for you.
      */
-    private RestResponse sendRequest(String url, String method, String data, Map<String, String> headers, boolean ignoreError)
+    private RestResponse sendRequest(String url, String method, String data, Map<String, String> headers)
     {
         try {
             URL obj = new URL(url);
@@ -297,10 +289,10 @@ public class ClientPublicAPI {
                 if (retryNumber < 3) {
                     retryNumber += 1;
                     logger.error("OCTANE_API: HTTP 400 Error - This is the " + retryNumber + " time to retry.");
-                    return sendRequest(url, method, data, headers, ignoreError);
+                    return sendRequest(url, method, data, headers);
                 } else {
                     retryNumber = 0;
-                    if (!ignoreError) throw new OctaneClientException("OCTANE_API", "ERROR_BAD_REQUEST");
+                    throw new OctaneClientException("OCTANE_API", "ERROR_BAD_REQUEST");
                 }
             }
             retryNumber = 0;
@@ -1952,7 +1944,7 @@ public class ClientPublicAPI {
         String url =
                 String.format("%s/api/shared_spaces/%s/workspaces/500/products", baseURL, sharedspaceId);
 
-        RestResponse response = sendRequestIgnoreError(url, method, this.getJsonStrForPOSTData(entity));
+        RestResponse response = sendRequest(url, method, this.getJsonStrForPOSTData(entity));
         if (HttpStatus.SC_CREATED != response.getStatusCode() && HttpStatus.SC_OK != response.getStatusCode()) {
             this.logger
                     .error("Error occurs when saving products in Octane: Response code = "
@@ -1982,7 +1974,7 @@ public class ClientPublicAPI {
         String url =
                 String.format("%s/api/shared_spaces/%s/workspaces/500/products?query=%s", baseURL, sharedspaceId, query);
 
-        RestResponse response = sendRequestIgnoreError(url, HttpMethod.DELETE, null);
+        RestResponse response = sendRequest(url, HttpMethod.DELETE, null);
         if (HttpStatus.SC_OK != response.getStatusCode()) {
             this.logger.error("Error occurs when delete products in Octane: Response code = " + response.getStatusCode());
         }
