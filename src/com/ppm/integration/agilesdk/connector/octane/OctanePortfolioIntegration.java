@@ -3,7 +3,6 @@
 package com.ppm.integration.agilesdk.connector.octane;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 import org.apache.commons.lang.StringUtils;
@@ -11,7 +10,9 @@ import org.apache.commons.lang.StringUtils;
 import javax.ws.rs.HttpMethod;
 
 import com.ppm.integration.agilesdk.ValueSet;
+import com.ppm.integration.agilesdk.agiledata.AgileDataError;
 import com.ppm.integration.agilesdk.agiledata.AgileDataPortfolio;
+import com.ppm.integration.agilesdk.agiledata.AgileDataPortfolioList;
 import com.ppm.integration.agilesdk.connector.octane.client.ClientPublicAPI;
 import com.ppm.integration.agilesdk.connector.octane.model.SharedSpace;
 import com.ppm.integration.agilesdk.pfm.PortfolioIntegration;
@@ -36,7 +37,7 @@ public class OctanePortfolioIntegration extends PortfolioIntegration {
      *      java.lang.String, java.util.List)
      */
     @Override
-    public List<AgileDataPortfolio> createPortfolioEntities(ValueSet valueSet, List<AgileDataPortfolio> products) {
+    public AgileDataPortfolioList createPortfolioEntities(ValueSet valueSet, List<AgileDataPortfolio> products) {
         return savePortfolioEntities(valueSet, products, HttpMethod.POST);
     }
 
@@ -47,10 +48,14 @@ public class OctanePortfolioIntegration extends PortfolioIntegration {
      *      java.lang.String, java.util.List)
      */
     @Override
-    public void deletePortfolioEntities(final ValueSet valueSet, List<String> productIds) {
+    public AgileDataPortfolioList deletePortfolioEntities(final ValueSet valueSet, List<String> productIds) {
         ClientPublicAPI client = ClientPublicAPI.getClient(valueSet);
         SharedSpace space = client.getActiveSharedSpace();
-        client.deleteProducts(space.getId(), productIds);
+        JSONObject dataObj = client.deleteProducts(space.getId(), productIds);
+        AgileDataPortfolioList data = new AgileDataPortfolioList();
+        if (dataObj == null) return data;
+        convertDataArrayToBean(dataObj, data);
+        return data;
     }
 
     /**
@@ -85,20 +90,65 @@ public class OctanePortfolioIntegration extends PortfolioIntegration {
      *      java.lang.String, java.util.List)
      */
     @Override
-    public List<AgileDataPortfolio> updatePortfolioEntities(ValueSet valueSet, List<AgileDataPortfolio> products) {
+    public AgileDataPortfolioList updatePortfolioEntities(ValueSet valueSet, List<AgileDataPortfolio> products) {
         return savePortfolioEntities(valueSet, products, HttpMethod.PUT);
     }
 
-    private List<AgileDataPortfolio> savePortfolioEntities(ValueSet valueSet, List<AgileDataPortfolio> products, String method) {
+    private AgileDataPortfolioList savePortfolioEntities(ValueSet valueSet, List<AgileDataPortfolio> products, String method) {
+        AgileDataPortfolioList data = new AgileDataPortfolioList();
+        if (products.isEmpty()) return data;
         ClientPublicAPI client = ClientPublicAPI.getClient(valueSet);
         SharedSpace space = client.getActiveSharedSpace();
+        JSONArray entityList = convertToJsonArray(products);
+        JSONObject dataObj = client.saveProducts(space.getId(), method, entityList.toString());
+
+        convertDataArrayToBean(dataObj, data);
+        convertErrorArrayToBean(dataObj, data);
+
+        return data;
+    }
+
+    private void convertErrorArrayToBean(JSONObject dataObj, AgileDataPortfolioList list) {
+        if (!dataObj.containsKey("errors")) return;
+        JSONArray errorArray = JSONArray.fromObject(dataObj.get("errors"));
+        if (errorArray.size() > 0) {
+            for (int j = 0; j < errorArray.size(); j++) {
+                AgileDataError error = new AgileDataError();
+                JSONObject tempObj = errorArray.getJSONObject(j);
+                //If only has one error, it does not have 'index'
+                if (tempObj.containsKey("index")) {
+                    error.setIndex(tempObj.getInt("index"));
+                }
+                error.setCode(tempObj.getString("error_code"));
+                error.setMessage(tempObj.getString("description_translated"));
+                list.addError(error);
+            }
+        }
+    }
+
+    private void convertDataArrayToBean(JSONObject dataObj, AgileDataPortfolioList list) {
+        if (!dataObj.containsKey("data")) return;
+        JSONArray productArray = JSONArray.fromObject(dataObj.get("data"));
+        if (productArray.size() > 0) {
+            for (int i = 0; i < productArray.size(); i++) {
+                AgileDataPortfolio productData = new AgileDataPortfolio();
+                JSONObject tempObj = productArray.getJSONObject(i);
+                productData.setId(tempObj.getString("id"));
+                if (tempObj.containsKey("name")) {
+                    productData.setName(tempObj.getString("name"));
+                }
+                list.addAgilePortfolio(productData);
+            }
+        }
+    }
+
+    private JSONArray convertToJsonArray(List<AgileDataPortfolio> products) {
         JSONArray entityList = new JSONArray();
         for (AgileDataPortfolio p : products) {
             JSONObject entityObj = new JSONObject();
             if (!StringUtils.isBlank(p.getId())) {
                 entityObj.put("id", p.getId());
             }
-
             entityObj.put("name", p.getName());
             entityObj.put("type", "product");
             JSONObject parent = new JSONObject();
@@ -111,24 +161,7 @@ public class OctanePortfolioIntegration extends PortfolioIntegration {
             entityObj.put("parent", parent);
             entityList.add(entityObj);
         }
-        JSONArray productArray = client.saveProducts(space.getId(), method, entityList.toString());
-
-        if (productArray.size() > 0) {
-            List<AgileDataPortfolio> productList = new ArrayList<>();
-
-            for (int i = 0; i < productArray.size(); i++) {
-                AgileDataPortfolio productData = new AgileDataPortfolio();
-                JSONObject tempObj = productArray.getJSONObject(i);
-                String id = tempObj.getString("id");
-                String name = tempObj.getString("name");
-                productData.setId(id);
-                productData.setName(name);
-                productList.add(productData);
-            }
-            return productList;
-        }
-
-        return Collections.emptyList();
+        return entityList;
     }
 
 }
