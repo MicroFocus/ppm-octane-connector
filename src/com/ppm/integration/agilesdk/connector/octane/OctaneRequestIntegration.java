@@ -15,6 +15,7 @@ import java.util.StringTokenizer;
 
 import javax.ws.rs.HttpMethod;
 
+import com.hp.ppm.common.model.AgileEntityIdName;
 import org.joda.time.DateTime;
 import org.joda.time.format.DateTimeFormatter;
 import org.joda.time.format.ISODateTimeFormat;
@@ -1311,6 +1312,74 @@ public class OctaneRequestIntegration extends RequestIntegration {
         return ids;
     }
 
+    /** @since 10.0.3 */
+    public boolean supportsPPMRequestToExistingAgileEntitySync() {
+        return true;
+    }
+
+
+    /**
+     * Returns the IDs & Names of the Agile Entities of the given entity type in the given agile project that can be mapped to a PPM Request.
+     *<p>
+     * PPM will first verify that these entities don't already have a PPM Request synched to it before being returned to the PPM Users.
+     *<p>
+     * You should only override this method if {@link #supportsPPMRequestToExistingAgileEntitySync()} returns true. This method will never be called if it returns false.
+     *
+     * @param entityType Entity Type of the Agile Entities to return.
+     * @return The list of ID + Name of agile entities that can be mapped to an existing PPM Request.
+     * @since 10.0.3
+     */
+    public List<AgileEntityIdName> getCandidateEntitiesToSyncWithRequests(final String agileProjectValue, final String entityType,
+                                                                          final ValueSet instanceConfigurationParameters) {
+        List<AgileEntityIdName> ids = new ArrayList<AgileEntityIdName>();
+        ClientPublicAPI client = ClientPublicAPI.getClient(instanceConfigurationParameters);
+        Map spaceAndWorkspace = getSpaceAndWorkspace(client, agileProjectValue, entityType);
+        String spaceId = (String)spaceAndWorkspace.get(SPACE_PLACEHOLDER);
+        List<String> workspaceIds = (List)spaceAndWorkspace.get(WORKSPACE_PLACEHOLDER);
+
+        for (String id : workspaceIds) {
+            List<AgileEntityIdName> entitiesCollection =
+                    getExistingEntities(client, spaceId, id, entityType);
+            ids.addAll(entitiesCollection);
+        }
+        return ids;
+    }
+
+    private List<AgileEntityIdName> getExistingEntities(ClientPublicAPI client, String spaceId, String workSpaceId, String entityType) {
+
+
+        // if it is shared epic,its real workspace id is 500.But it could
+        // navigation to using the mask workspace id
+        String realWorkspaceId = workSpaceId;
+        if (OctaneConstants.SUB_SHARED_EPIC.equals(entityType)) {
+            realWorkspaceId = OctaneConstants.SHARED_EPIC_DEFAULT_WORKSPACE;
+            entityType = OctaneConstants.SUB_TYPE_EPIC;
+        }
+
+        Map<String, Object> queryParams = new HashMap<String, Object>();
+
+        if (OctaneConstants.SUB_TYPE_EPIC.equals(entityType)) {
+            Map<String, FieldInfo> fieldMap = getFieldInfoMap(client, spaceId, workSpaceId, entityType);
+            if (fieldMap.containsKey("epic_level")) {
+                queryParams.put(OctaneConstants.FULL_QUERY,
+                        "!epic_level={logical_name EQ ^list_node.epic_level.local^}");
+            }
+        }
+
+        queryParams.put("subtype", entityType);
+        List<String> fields = new ArrayList<>();
+        fields.add("id");
+        fields.add("creation_time");
+        fields.add("workspace_id");
+        fields.add("name");
+        List<JSONObject> itemJson =
+                client.getWorkItems(spaceId, realWorkspaceId, ClientPublicAPI.EntityType.fromName(entityType),
+                        queryParams,
+                        fields);
+
+        return constructIdName(itemJson, realWorkspaceId);
+    }
+
     private List<AgileEntityIdProjectDate> getNewCreatedEntities(ClientPublicAPI client, String spaceId, String workSpaceId,
             String entityType, Date creationDate)
     {
@@ -1361,6 +1430,22 @@ public class OctaneRequestIntegration extends RequestIntegration {
             if (realWorkspaceId.equals(entityWorkspace)) {
                 entities.add(new AgileEntityIdProjectDate(obj.getString("id"), workspaceJson.toString(),
                         parserDate(obj.getString("creation_time"))));
+            }
+
+        }
+        return entities;
+    }
+
+    private List<AgileEntityIdName> constructIdName(List<JSONObject> items,
+                                                                  String realWorkspaceId)
+    {
+        List<AgileEntityIdName> entities = new ArrayList<>();
+        for (JSONObject obj : items) {
+            // if the entity is epic, items contains shared epic. Exclude them
+            String entityWorkspace = obj.getString("workspace_id");
+            if (realWorkspaceId.equals(entityWorkspace)) {
+                entities.add(new AgileEntityIdName(obj.getString("id"),
+                        obj.getString("name")));
             }
 
         }
