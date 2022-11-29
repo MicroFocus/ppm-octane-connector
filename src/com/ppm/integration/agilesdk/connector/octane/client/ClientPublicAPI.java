@@ -1963,18 +1963,10 @@ public class ClientPublicAPI {
         return resultJsonList;
     }
 
-    public JSONObject deleteProducts(final String sharedspaceId, final List<String> ids) {
-        if (ids.isEmpty()) {
-            return null;
-        }
-
-        String query = generateInQuery(ids, "id");
-        query = queryEncode(query);
-
+    public JSONObject deleteProducts(final String sharedspaceId, final String entity) {
         String url =
-                String.format("%s/api/shared_spaces/%s/workspaces/500/products?query=%s", baseURL, sharedspaceId, query);
-
-        RestResponse response = sendRequest(url, HttpMethod.DELETE, null);
+                String.format("%s/api/shared_spaces/%s/workspaces/500/products", baseURL, sharedspaceId);
+        RestResponse response = sendRequest(url, HttpMethod.PUT, this.getJsonStrForPOSTData(entity));
         if (HttpStatus.SC_OK != response.getStatusCode()) {
             this.logger.error("Error occurs when delete products in Octane: Response code = " + response.getStatusCode());
         }

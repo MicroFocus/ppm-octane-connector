@@ -51,10 +51,11 @@ public class OctanePortfolioIntegration extends PortfolioIntegration {
     public AgileDataPortfolioList deletePortfolioEntities(final ValueSet valueSet, List<String> productIds) {
         ClientPublicAPI client = ClientPublicAPI.getClient(valueSet);
         SharedSpace space = client.getActiveSharedSpace();
-        JSONObject dataObj = client.deleteProducts(space.getId(), productIds);
+        JSONObject dataObj = client.deleteProducts(space.getId(), convertToDeleteJsonArray(productIds).toString());
         AgileDataPortfolioList data = new AgileDataPortfolioList();
         if (dataObj == null) return data;
         convertDataArrayToBean(dataObj, data);
+        convertErrorArrayToBean(dataObj, data);
         return data;
     }
 
@@ -77,6 +78,7 @@ public class OctanePortfolioIntegration extends PortfolioIntegration {
                 AgileDataPortfolio aP = new AgileDataPortfolio();
                 aP.setId(p.getString("id"));
                 aP.setName(p.getString("name"));
+                aP.setOriginalId(p.getLong("original_id"));
                 ps.add(aP);
             }
         }
@@ -115,10 +117,7 @@ public class OctanePortfolioIntegration extends PortfolioIntegration {
             for (int j = 0; j < errorArray.size(); j++) {
                 AgileDataError error = new AgileDataError();
                 JSONObject tempObj = errorArray.getJSONObject(j);
-                //If only has one error, it does not have 'index'
-                if (tempObj.containsKey("index")) {
-                    error.setIndex(tempObj.getInt("index"));
-                }
+                error.setIndex(tempObj.getInt("index"));
                 error.setCode(tempObj.getString("error_code"));
                 error.setMessage(tempObj.getString("description_translated"));
                 list.addError(error);
@@ -134,6 +133,7 @@ public class OctanePortfolioIntegration extends PortfolioIntegration {
                 AgileDataPortfolio productData = new AgileDataPortfolio();
                 JSONObject tempObj = productArray.getJSONObject(i);
                 productData.setId(tempObj.getString("id"));
+                productData.setOriginalId(tempObj.getLong("original_id"));
                 if (tempObj.containsKey("name")) {
                     productData.setName(tempObj.getString("name"));
                 }
@@ -149,6 +149,7 @@ public class OctanePortfolioIntegration extends PortfolioIntegration {
             if (!StringUtils.isBlank(p.getId())) {
                 entityObj.put("id", p.getId());
             }
+            entityObj.put("original_id", p.getOriginalId());
             entityObj.put("name", p.getName());
             entityObj.put("type", "product");
             JSONObject parent = new JSONObject();
@@ -156,9 +157,23 @@ public class OctanePortfolioIntegration extends PortfolioIntegration {
                 parent.put("id", DEFAULT_ROOT_PRODUCT_ID);
             } else {
                 parent.put("id", p.getParent().getId());
+                parent.put("original_id", p.getParent().getOriginalId());
             }
             parent.put("type", "product");
             entityObj.put("parent", parent);
+            entityList.add(entityObj);
+        }
+        return entityList;
+    }
+
+    private JSONArray convertToDeleteJsonArray(List<String> entityIds) {
+        JSONArray entityList = new JSONArray();
+        for (String entityId : entityIds) {
+            JSONObject entityObj = new JSONObject();
+            entityObj.put("id", entityId);
+            entityObj.put("type", "product");
+            // long
+            entityObj.put("activity_level", 1);
             entityList.add(entityObj);
         }
         return entityList;
