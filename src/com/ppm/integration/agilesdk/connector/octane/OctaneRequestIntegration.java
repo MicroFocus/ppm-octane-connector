@@ -565,10 +565,14 @@ public class OctaneRequestIntegration extends RequestIntegration {
                 List<String> queryFields = new ArrayList<>();
                 queryFields.add("id");
                 queryFields.add("name");
+                queryFields.add("activity_level");
                 List<String> productNames = new ArrayList<>();
                 productNames.add(productName);
                 List<JSONObject> products = clientPublicAPI.getProductsByNames(sharedSpaceId, queryFields, productNames);
                 for (JSONObject p : products) {
+                    if (p.getLong("activity_level") != 0) {
+                        continue;
+                    }
                     ListNode listNode = new ListNode();
                     listNode.setId(String.valueOf(p.getLong("id")));
                     listNode.setName(productName);
