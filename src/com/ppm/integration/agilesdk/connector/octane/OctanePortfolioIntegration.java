@@ -110,7 +110,7 @@ public class OctanePortfolioIntegration extends PortfolioIntegration {
 
         convertDataArrayToBean(dataObj, data);
         convertErrorArrayToBean(dataObj, data);
-
+        convertExistErrorToDataBean(dataObj, products, data, client, space);
         return data;
     }
 
@@ -121,11 +121,41 @@ public class OctanePortfolioIntegration extends PortfolioIntegration {
             for (int j = 0; j < errorArray.size(); j++) {
                 AgileDataError error = new AgileDataError();
                 JSONObject tempObj = errorArray.getJSONObject(j);
+                if ("platform.duplicate_entity_error".equals(tempObj.getString("error_code"))) {
+                    continue;
+                }
                 error.setIndex(tempObj.getInt("index"));
                 error.setCode(tempObj.getString("error_code"));
                 error.setMessage(tempObj.getString("description_translated"));
                 list.addError(error);
             }
+        }
+    }
+
+    private void convertExistErrorToDataBean(JSONObject dataObj, List<AgileDataPortfolio> products, AgileDataPortfolioList list, ClientPublicAPI client, SharedSpace space) {
+        if (!dataObj.containsKey("errors")) return;
+        JSONArray errorArray = JSONArray.fromObject(dataObj.get("errors"));
+        if (errorArray.size() == 0) {
+            return;
+        }
+        for (int j = 0; j < errorArray.size(); j++) {
+            AgileDataError error = new AgileDataError();
+            JSONObject tempObj = errorArray.getJSONObject(j);
+            if (!"platform.duplicate_entity_error".equals(tempObj.getString("error_code"))) {
+                continue;
+            }
+            AgileDataPortfolio productData = new AgileDataPortfolio();
+            AgileDataPortfolio existProd = products.get(tempObj.getInt("index"));
+            productData.setName(existProd.getName());
+            productData.setOriginalId(existProd.getOriginalId());
+            List<String> queryFields = new ArrayList<>();
+            queryFields.add("id");
+            queryFields.add("name");
+            List<String> productNames = new ArrayList<>();
+            productNames.add(existProd.getName());
+            List<JSONObject> existProdJson = client.getProductsByNames(space.getId(), queryFields, productNames);
+            productData.setId(existProdJson.get(0).getString("id"));
+            list.addAgilePortfolio(productData);
         }
     }
 
