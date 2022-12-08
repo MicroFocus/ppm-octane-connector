@@ -26,15 +26,17 @@ import net.sf.json.JSONObject;
 
 public class OctanePortfolioIntegration extends PortfolioIntegration {
 
-    /** TODO Comment for <code>DEFAULT_ROOT_PRODUCT_ID</code>. */
-    
+    /**
+     * TODO Comment for <code>DEFAULT_ROOT_PRODUCT_ID</code>.
+     */
+
     private static final int DEFAULT_ROOT_PRODUCT_ID = 1001;
 
     /**
-     * @param instance valueset
+     * @param instance  valueset
      * @param portfolio list
      * @see com.ppm.integration.agilesdk.pfm.PortfolioIntegration#createPortfolioEntities(com.ppm.integration.agilesdk.ValueSet,
-     *      java.lang.String, java.util.List)
+     * java.lang.String, java.util.List)
      */
     @Override
     public AgileDataPortfolioList createPortfolioEntities(ValueSet valueSet, List<AgileDataPortfolio> products) {
@@ -43,9 +45,9 @@ public class OctanePortfolioIntegration extends PortfolioIntegration {
 
     /**
      * @param instance valueset
-     * @param product it that want to delete
+     * @param product  it that want to delete
      * @see com.ppm.integration.agilesdk.pfm.PortfolioIntegration#deletePortfolioEntities(java.lang.String,
-     *      java.lang.String, java.util.List)
+     * java.lang.String, java.util.List)
      */
     @Override
     public AgileDataPortfolioList deletePortfolioEntities(final ValueSet valueSet, List<String> productIds) {
@@ -55,7 +57,7 @@ public class OctanePortfolioIntegration extends PortfolioIntegration {
         AgileDataPortfolioList data = new AgileDataPortfolioList();
         if (dataObj == null) return data;
         convertDataArrayToBean(dataObj, data);
-        convertErrorArrayToBean(dataObj, data);
+        convertDeleteErrorArrayToBean(dataObj, data, productIds);
         return data;
     }
 
@@ -63,7 +65,7 @@ public class OctanePortfolioIntegration extends PortfolioIntegration {
      * @param instance valueset
      * @return
      * @see com.ppm.integration.agilesdk.pfm.PortfolioIntegration#getAgilePortfolioEntities(com.ppm.integration.agilesdk.ValueSet,
-     *      java.lang.String)
+     * java.lang.String)
      */
     @Override
     public List<AgileDataPortfolio> getAgilePortfolioEntities(ValueSet valueSet) {
@@ -78,7 +80,9 @@ public class OctanePortfolioIntegration extends PortfolioIntegration {
                 AgileDataPortfolio aP = new AgileDataPortfolio();
                 aP.setId(p.getString("id"));
                 aP.setName(p.getString("name"));
-                aP.setOriginalId(p.getLong("original_id"));
+                if (p.containsKey("original_id")) {
+                    aP.setOriginalId(p.getLong("original_id"));
+                }
                 ps.add(aP);
             }
         }
@@ -86,10 +90,10 @@ public class OctanePortfolioIntegration extends PortfolioIntegration {
     }
 
     /**
-     * @param instance valueset
+     * @param instance  valueset
      * @param portfolio list
      * @see com.ppm.integration.agilesdk.pfm.PortfolioIntegration#updatePortfolioEntities(com.ppm.integration.agilesdk.ValueSet,
-     *      java.lang.String, java.util.List)
+     * java.lang.String, java.util.List)
      */
     @Override
     public AgileDataPortfolioList updatePortfolioEntities(ValueSet valueSet, List<AgileDataPortfolio> products) {
@@ -106,7 +110,7 @@ public class OctanePortfolioIntegration extends PortfolioIntegration {
 
         convertDataArrayToBean(dataObj, data);
         convertErrorArrayToBean(dataObj, data);
-
+        convertExistErrorToDataBean(dataObj, products, data, client, space);
         return data;
     }
 
@@ -117,7 +121,64 @@ public class OctanePortfolioIntegration extends PortfolioIntegration {
             for (int j = 0; j < errorArray.size(); j++) {
                 AgileDataError error = new AgileDataError();
                 JSONObject tempObj = errorArray.getJSONObject(j);
+                if ("platform.duplicate_entity_error".equals(tempObj.getString("error_code"))) {
+                    continue;
+                }
                 error.setIndex(tempObj.getInt("index"));
+                error.setCode(tempObj.getString("error_code"));
+                error.setMessage(tempObj.getString("description_translated"));
+                list.addError(error);
+            }
+        }
+    }
+
+    private void convertExistErrorToDataBean(JSONObject dataObj, List<AgileDataPortfolio> products, AgileDataPortfolioList list, ClientPublicAPI client, SharedSpace space) {
+        if (!dataObj.containsKey("errors")) return;
+        JSONArray errorArray = JSONArray.fromObject(dataObj.get("errors"));
+        if (errorArray.size() == 0) {
+            return;
+        }
+        for (int j = 0; j < errorArray.size(); j++) {
+            AgileDataError error = new AgileDataError();
+            JSONObject tempObj = errorArray.getJSONObject(j);
+            if (!"platform.duplicate_entity_error".equals(tempObj.getString("error_code"))) {
+                continue;
+            }
+            AgileDataPortfolio productData = new AgileDataPortfolio();
+            AgileDataPortfolio existProd = products.get(tempObj.getInt("index"));
+            productData.setName(existProd.getName());
+            productData.setOriginalId(existProd.getOriginalId());
+            List<String> queryFields = new ArrayList<>();
+            queryFields.add("id");
+            queryFields.add("name");
+            List<String> productNames = new ArrayList<>();
+            productNames.add(existProd.getName());
+            List<JSONObject> existProdJson = client.getProductsByNames(space.getId(), queryFields, productNames);
+            productData.setId(existProdJson.get(0).getString("id"));
+            list.addAgilePortfolio(productData);
+        }
+    }
+
+    private void convertDeleteErrorArrayToBean(JSONObject dataObj, AgileDataPortfolioList list, List<String> productIds) {
+        if (!dataObj.containsKey("errors")) return;
+        JSONArray errorArray = JSONArray.fromObject(dataObj.get("errors"));
+        if (errorArray.size() > 0) {
+            for (int j = 0; j < errorArray.size(); j++) {
+                AgileDataError error = new AgileDataError();
+                JSONObject tempObj = errorArray.getJSONObject(j);
+                if (tempObj.containsKey("index")) {
+                    error.setIndex(tempObj.getInt("index"));
+                } else if (tempObj.containsKey("properties")) {
+                    JSONObject proObject = tempObj.getJSONObject("properties");
+                    if (proObject.containsKey("entity_id")) {
+                        for (int k = 0; k < productIds.size(); k++) {
+                            if (productIds.get(k).equals(String.valueOf(proObject.get("entity_id")))) {
+                                error.setIndex(k);
+                                break;
+                            }
+                        }
+                    }
+                }
                 error.setCode(tempObj.getString("error_code"));
                 error.setMessage(tempObj.getString("description_translated"));
                 list.addError(error);
