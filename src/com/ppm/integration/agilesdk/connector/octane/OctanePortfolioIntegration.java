@@ -109,12 +109,12 @@ public class OctanePortfolioIntegration extends PortfolioIntegration {
         JSONObject dataObj = client.saveProducts(space.getId(), method, entityList.toString());
 
         convertDataArrayToBean(dataObj, data);
-        convertErrorArrayToBean(dataObj, data);
+        convertErrorArrayToBean(dataObj, data, products);
         convertExistErrorToDataBean(dataObj, products, data, client, space);
         return data;
     }
 
-    private void convertErrorArrayToBean(JSONObject dataObj, AgileDataPortfolioList list) {
+    private void convertErrorArrayToBean(JSONObject dataObj, AgileDataPortfolioList list, List<AgileDataPortfolio> products) {
         if (!dataObj.containsKey("errors")) return;
         JSONArray errorArray = JSONArray.fromObject(dataObj.get("errors"));
         if (errorArray.size() > 0) {
@@ -124,7 +124,21 @@ public class OctanePortfolioIntegration extends PortfolioIntegration {
                 if ("platform.duplicate_entity_error".equals(tempObj.getString("error_code"))) {
                     continue;
                 }
-                error.setIndex(tempObj.getInt("index"));
+                // default index
+                error.setIndex(j);
+                if (tempObj.containsKey("index")) {
+                    error.setIndex(tempObj.getInt("index"));
+                } else if (tempObj.containsKey("properties")) {
+                    JSONObject proObject = tempObj.getJSONObject("properties");
+                    if (proObject.containsKey("entity_id")) {
+                        for (int k = 0; k < products.size(); k++) {
+                            if (String.valueOf(proObject.get("entity_id")).equals(products.get(k).getId())) {
+                                error.setIndex(k);
+                                break;
+                            }
+                        }
+                    }
+                }
                 error.setCode(tempObj.getString("error_code"));
                 error.setMessage(tempObj.getString("description_translated"));
                 list.addError(error);
@@ -166,6 +180,8 @@ public class OctanePortfolioIntegration extends PortfolioIntegration {
             for (int j = 0; j < errorArray.size(); j++) {
                 AgileDataError error = new AgileDataError();
                 JSONObject tempObj = errorArray.getJSONObject(j);
+                // default index
+                error.setIndex(j);
                 if (tempObj.containsKey("index")) {
                     error.setIndex(tempObj.getInt("index"));
                 } else if (tempObj.containsKey("properties")) {
