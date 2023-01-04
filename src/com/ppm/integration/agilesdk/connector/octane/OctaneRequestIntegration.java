@@ -1,17 +1,8 @@
 
 package com.ppm.integration.agilesdk.connector.octane;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.Map.Entry;
-import java.util.Set;
-import java.util.StringTokenizer;
 
 import javax.ws.rs.HttpMethod;
 
@@ -78,6 +69,8 @@ public class OctaneRequestIntegration extends RequestIntegration {
     private UserProvider up = null;
     
     public static final String SHARED_SPACE_MODE_SHARED = "SHARED";      // all value:SHARED,ISOLATED
+
+    private static final String SPLIT_CHAR = ";";
 
     @Override
     public List<AgileEntityInfo> getAgileEntitiesInfo(final String agileProjectValue,
@@ -566,18 +559,27 @@ public class OctaneRequestIntegration extends RequestIntegration {
                 queryFields.add("id");
                 queryFields.add("name");
                 queryFields.add("activity_level");
-                List<String> productNames = new ArrayList<>();
-                productNames.add(productName);
+                String[] productNameArray = productName.split(SPLIT_CHAR);
+                List<String> productNames = Arrays.asList(productNameArray);
+                Map<String, JSONObject> productJSONMap = new HashMap<>();
                 List<JSONObject> products = clientPublicAPI.getProductsByNames(sharedSpaceId, queryFields, productNames);
                 for (JSONObject p : products) {
                     if (p.getLong("activity_level") != 0) {
                         continue;
                     }
-                    ListNode listNode = new ListNode();
-                    listNode.setId(String.valueOf(p.getLong("id")));
-                    listNode.setName(productName);
-                    listNodeField = new ListNodeField();
-                    listNodeField.set(listNode);
+                    productJSONMap.put(p.getString("name"), p);
+                }
+                Collections.sort(productNames);
+                for (String pName : productNames) {
+                    JSONObject p = productJSONMap.get(pName);
+                    if (p != null) {
+                        ListNode listNode = new ListNode();
+                        listNode.setId(String.valueOf(p.getLong("id")));
+                        listNode.setName(pName);
+                        listNodeField = new ListNodeField();
+                        listNodeField.set(listNode);
+                        break;
+                    }
                 }
                 break;
             }
