@@ -1984,4 +1984,10 @@ public class ClientPublicAPI {
                 retrieveFields, query);
         return new JsonPaginatedOctaneGetter().get(url);
     }
+
+    public List<JSONObject> getTenantLicenses(String sharedSpaceId) {
+        String url = String.format("%s/api/shared_spaces/%s/tenant_licenses", baseURL, sharedSpaceId);
+        List<JSONObject> resultJsonList = new JsonPaginatedOctaneGetter().get(url);
+        return resultJsonList;
+    }
 }

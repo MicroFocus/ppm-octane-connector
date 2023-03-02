@@ -4,6 +4,8 @@ import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
@@ -16,12 +18,14 @@ import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.ppm.integration.agilesdk.ValueSet;
+import com.ppm.integration.agilesdk.agiledata.AgileDataLicense;
 import com.ppm.integration.agilesdk.agiledata.AgileDataUser;
 import com.ppm.integration.agilesdk.connector.octane.client.ClientPublicAPI;
 import com.ppm.integration.agilesdk.connector.octane.model.OctaneSyncUserConfiguration;
 import com.ppm.integration.agilesdk.connector.octane.model.Permission;
 import com.ppm.integration.agilesdk.connector.octane.model.PermissionData;
 import com.ppm.integration.agilesdk.connector.octane.model.RoleData;
+import com.ppm.integration.agilesdk.connector.octane.model.SharedSpace;
 import com.ppm.integration.agilesdk.connector.octane.model.SharedSpaceUser;
 import com.ppm.integration.agilesdk.connector.octane.model.UserSecurityConfiguration;
 import com.ppm.integration.agilesdk.connector.octane.model.WorkspaceRole;
@@ -121,6 +125,35 @@ public class OctaneUserIntegration extends UserIntegration {
         }
 
         return users;
+    }
+
+    private Date parseDateTimeString(String dateString) {
+        DateTimeFormatter formatter = DateTimeFormatter.ISO_ZONED_DATE_TIME;
+        ZonedDateTime date = ZonedDateTime.parse(dateString, formatter);
+        return Date.from(date.toInstant());
+    }
+
+    @Override
+    public List<AgileDataLicense> getTenantLicenses(final ValueSet instanceConfigurationParameters) {
+        List<AgileDataLicense> datas = new ArrayList<>();
+        ClientPublicAPI client = ClientPublicAPI.getClient(instanceConfigurationParameters);
+        SharedSpace space = client.getActiveSharedSpace();
+        List<JSONObject> licenseJSONObjs = client.getTenantLicenses(space.getId());
+        for (JSONObject obj : licenseJSONObjs) {
+            AgileDataLicense data = new AgileDataLicense();
+            data.setType(obj.getString("type"));
+            data.setId(obj.getString("id"));
+            data.setLicenseId(obj.getString("license_id"));
+            data.setExpirationDate(parseDateTimeString(obj.getString("expiration_date")));
+            data.setStartDate(parseDateTimeString(obj.getString("start_date")));
+            data.setEditions(obj.getString("editions"));
+            data.setConsumed(obj.getLong("consumed"));
+            data.setLicenseModel(obj.getString("license_model"));
+            data.setLicenseType(obj.getString("license_type"));
+            data.setCapacity(obj.getLong("capacity"));
+            datas.add(data);
+        }
+        return datas;
     }
 
     private List<String> parsePermissions(Permission permission) {
