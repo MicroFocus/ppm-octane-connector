@@ -159,7 +159,12 @@ public class OctanePortfolioIntegration extends PortfolioIntegration {
                 continue;
             }
             AgileDataPortfolio productData = new AgileDataPortfolio();
-            AgileDataPortfolio existProd = products.get(tempObj.getInt("index"));
+            AgileDataPortfolio existProd;
+            if (products.size() == 1) {
+                existProd = products.get(0);
+            } else {
+                existProd = products.get(tempObj.getInt("index"));
+            }
             productData.setName(existProd.getName());
             productData.setOriginalId(existProd.getOriginalId());
             List<String> queryFields = new ArrayList<>();
