@@ -579,6 +579,8 @@ public class OctaneRequestIntegration extends RequestIntegration {
                         listNodeField = new ListNodeField();
                         listNodeField.set(listNode);
                         break;
+                    } else {
+                        throw new OctaneClientException("OCTANE_CONNECTOR", "PRODUCTS_NOT_FOUND", new String[] {pName});
                     }
                 }
                 break;
