@@ -30,6 +30,8 @@ import javax.net.ssl.HttpsURLConnection;
 import javax.ws.rs.HttpMethod;
 import javax.ws.rs.core.MediaType;
 
+import com.google.gson.*;
+import jdk.nashorn.internal.ir.debug.ObjectSizeCalculator;
 import org.apache.commons.lang.StringUtils;
 import org.apache.http.HttpStatus;
 import org.apache.log4j.Logger;
@@ -38,9 +40,6 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.gson.JsonArray;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
 import com.hp.ppm.integration.model.AgileEntityFieldValue;
 import com.ppm.integration.agilesdk.ValueSet;
 import com.ppm.integration.agilesdk.connector.octane.OctaneConstants;
@@ -70,6 +69,7 @@ import com.ppm.integration.agilesdk.tm.AuthenticationInfo;
 import net.sf.json.JSONArray;
 import net.sf.json.JSONException;
 import net.sf.json.JSONObject;
+import org.apache.lucene.util.RamUsageEstimator;
 
 
 /**
@@ -1556,11 +1556,47 @@ public class ClientPublicAPI {
         RestResponse response = sendGet(url);
 
         JsonObject dataObj = new JsonParser().parse(response.getData()).getAsJsonObject();
+
+        System.out.println("size1: " + ObjectSizeCalculator.getObjectSize(dataObj));
+
+//        System.out.println("size2: " + RamUsageEstimator.sizeOfObject(dataObj));
+//
+//        System.out.println("size3: " + RamUsageEstimator.humanReadableUnits(RamUsageEstimator.sizeOfObject(dataObj)));
+
+        response = sendGet(url);
+
+        Gson gson = new Gson();
+
+        JsonObject dataObj2 = gson.fromJson(response.getData(), JsonObject.class);
+
+        System.out.println("size2: " + ObjectSizeCalculator.getObjectSize(dataObj2));
+
+
+        response = sendGet(url);
+
+        Gson gson2 = new Gson();
+
+        UserResponse dataObj3 = gson2.fromJson(response.getData(), UserResponse.class);
+
+        System.out.println("size3: " + ObjectSizeCalculator.getObjectSize(dataObj3));
+
+        System.out.println("date length: " + dataObj3.getData().size());
+
+        Gson gson3 = new GsonBuilder()
+                .registerTypeAdapter(PermissionLogicName.class, new LogicNameDeserializer())
+                .create();
+
+        response = sendGet(url);
+
+        UserResponse2 dataObj4 = gson3.fromJson(response.getData(), UserResponse2.class);
+        System.out.println("size4: " + ObjectSizeCalculator.getObjectSize(dataObj4));
+
+
         if (dataObj.has("error_code")) {
             throw new OctaneClientException("OCTANE_API", dataObj.getAsJsonPrimitive("stack_trace").toString());
         }
         JsonArray userList = dataObj.getAsJsonArray("data");
-        return userList;
+        return new JsonArray();
     }
 
     public JSONArray getUsersByEmails(String sharedspaceId, String workSpaceId, String[] emails) {
