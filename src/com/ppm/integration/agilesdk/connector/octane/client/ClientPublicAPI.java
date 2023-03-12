@@ -49,11 +49,13 @@ import com.ppm.integration.agilesdk.connector.octane.model.EpicEntity;
 import com.ppm.integration.agilesdk.connector.octane.model.FieldInfo;
 import com.ppm.integration.agilesdk.connector.octane.model.GenericWorkItem;
 import com.ppm.integration.agilesdk.connector.octane.model.OctaneUtils;
+import com.ppm.integration.agilesdk.connector.octane.model.Permission;
 import com.ppm.integration.agilesdk.connector.octane.model.Release;
 import com.ppm.integration.agilesdk.connector.octane.model.ReleaseTeam;
 import com.ppm.integration.agilesdk.connector.octane.model.ReleaseTeams;
 import com.ppm.integration.agilesdk.connector.octane.model.Releases;
 import com.ppm.integration.agilesdk.connector.octane.model.SharedSpace;
+import com.ppm.integration.agilesdk.connector.octane.model.SharedSpaceUser;
 import com.ppm.integration.agilesdk.connector.octane.model.SharedSpaces;
 import com.ppm.integration.agilesdk.connector.octane.model.SimpleEntity;
 import com.ppm.integration.agilesdk.connector.octane.model.Sprint;
@@ -69,7 +71,7 @@ import com.ppm.integration.agilesdk.tm.AuthenticationInfo;
 import net.sf.json.JSONArray;
 import net.sf.json.JSONException;
 import net.sf.json.JSONObject;
-import org.apache.lucene.util.RamUsageEstimator;
+
 
 
 /**
@@ -1538,7 +1540,7 @@ public class ClientPublicAPI {
      * @param filter
      * @return
      */
-    public JsonArray getUsersWithSearchFilter(String sharedspaceId, Long limit, Long offset,
+    public List<SharedSpaceUser> getUsersWithSearchFilter(String sharedspaceId, Long limit, Long offset,
             String filter)
     {
 
@@ -1553,50 +1555,23 @@ public class ClientPublicAPI {
                 "%s/api/shared_spaces/%s/users?fields=email,id,name,first_name,last_modified,last_name,activity_level,workspace_roles,permissions&order_by=last_modified&show_hidden_entities=true%s&query=%s",
                 baseURL, sharedspaceId, limitedField, filter);
 
+
         RestResponse response = sendGet(url);
+        UserResponse userResponse = null;
+        if (response.getStatusCode() == 200) {
+            Gson gson =
+                    new GsonBuilder().registerTypeAdapter(Permission.class, new RemoveNullListDeserializer()).create();
 
-        JsonObject dataObj = new JsonParser().parse(response.getData()).getAsJsonObject();
+            userResponse = gson.fromJson(response.getData(), UserResponse.class);
 
-        System.out.println("size1: " + ObjectSizeCalculator.getObjectSize(dataObj));
-
-//        System.out.println("size2: " + RamUsageEstimator.sizeOfObject(dataObj));
-//
-//        System.out.println("size3: " + RamUsageEstimator.humanReadableUnits(RamUsageEstimator.sizeOfObject(dataObj)));
-
-        response = sendGet(url);
-
-        Gson gson = new Gson();
-
-        JsonObject dataObj2 = gson.fromJson(response.getData(), JsonObject.class);
-
-        System.out.println("size2: " + ObjectSizeCalculator.getObjectSize(dataObj2));
-
-
-        response = sendGet(url);
-
-        Gson gson2 = new Gson();
-
-        UserResponse dataObj3 = gson2.fromJson(response.getData(), UserResponse.class);
-
-        System.out.println("size3: " + ObjectSizeCalculator.getObjectSize(dataObj3));
-
-        System.out.println("date length: " + dataObj3.getData().size());
-
-        Gson gson3 = new GsonBuilder()
-                .registerTypeAdapter(PermissionLogicName.class, new LogicNameDeserializer())
-                .create();
-
-        response = sendGet(url);
-
-        UserResponse2 dataObj4 = gson3.fromJson(response.getData(), UserResponse2.class);
-        System.out.println("size4: " + ObjectSizeCalculator.getObjectSize(dataObj4));
-
-
-        if (dataObj.has("error_code")) {
-            throw new OctaneClientException("OCTANE_API", dataObj.getAsJsonPrimitive("stack_trace").toString());
+        } else {
+            JsonObject dataObj = new JsonParser().parse(response.getData()).getAsJsonObject();
+            if (dataObj.has("error_code")) {
+                throw new OctaneClientException("OCTANE_API", dataObj.getAsJsonPrimitive("stack_trace").toString());
+            }
         }
-        JsonArray userList = dataObj.getAsJsonArray("data");
-        return new JsonArray();
+
+        return userResponse.getData();
     }
 
     public JSONArray getUsersByEmails(String sharedspaceId, String workSpaceId, String[] emails) {

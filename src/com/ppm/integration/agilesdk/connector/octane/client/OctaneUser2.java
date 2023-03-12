@@ -1,5 +1,7 @@
 package com.ppm.integration.agilesdk.connector.octane.client;
 
+import com.google.gson.annotations.SerializedName;
+
 /**
  * @Author YanFeng
  * @Date 2/25/2023
@@ -8,13 +10,25 @@ package com.ppm.integration.agilesdk.connector.octane.client;
 
 public class OctaneUser2 {
     private String type;
-    private String last_modified;
+
+    @SerializedName("last_modified")
+    private String lastModified;
+
     private String email;
-    private String last_name;
-    private int activity_level;
+
+    @SerializedName("last_name")
+    private String lastName;
+
+    @SerializedName("activity_level")
+    private int activityLevel;
+
     private String id;
-    private String first_name;
+
+    @SerializedName("first_name")
+    private String firstName;
+
     private String name;
+
     private Permissions2 permissions;
 
     public String getType() {
@@ -25,13 +39,6 @@ public class OctaneUser2 {
         this.type = type;
     }
 
-    public String getLast_modified() {
-        return last_modified;
-    }
-
-    public void setLast_modified(String last_modified) {
-        this.last_modified = last_modified;
-    }
 
     public String getEmail() {
         return email;
@@ -41,20 +48,36 @@ public class OctaneUser2 {
         this.email = email;
     }
 
-    public String getLast_name() {
-        return last_name;
+    public String getLastModified() {
+        return lastModified;
     }
 
-    public void setLast_name(String last_name) {
-        this.last_name = last_name;
+    public void setLastModified(String lastModified) {
+        this.lastModified = lastModified;
     }
 
-    public int getActivity_level() {
-        return activity_level;
+    public String getLastName() {
+        return lastName;
     }
 
-    public void setActivity_level(int activity_level) {
-        this.activity_level = activity_level;
+    public void setLastName(String lastName) {
+        this.lastName = lastName;
+    }
+
+    public int getActivityLevel() {
+        return activityLevel;
+    }
+
+    public void setActivityLevel(int activityLevel) {
+        this.activityLevel = activityLevel;
+    }
+
+    public String getFirstName() {
+        return firstName;
+    }
+
+    public void setFirstName(String firstName) {
+        this.firstName = firstName;
     }
 
     public String getId() {
@@ -65,13 +88,7 @@ public class OctaneUser2 {
         this.id = id;
     }
 
-    public String getFirst_name() {
-        return first_name;
-    }
 
-    public void setFirst_name(String first_name) {
-        this.first_name = first_name;
-    }
 
     public String getName() {
         return name;

@@ -1,5 +1,7 @@
 package com.ppm.integration.agilesdk.connector.octane.client;
 
+import com.google.gson.annotations.SerializedName;
+
 /**
  * @Author YanFeng
  * @Date 2/25/2023
@@ -7,15 +9,18 @@ package com.ppm.integration.agilesdk.connector.octane.client;
  */
 
 public class Permission2 {
-    private PermissionLogicName logical_name;
 
-    public PermissionLogicName getLogical_name() {
-        return logical_name;
+    @SerializedName("logical_name")
+    private String logicalName;
+
+    public String getLogicalName() {
+        return logicalName;
     }
 
-    public void setLogical_name(PermissionLogicName logical_name) {
-        this.logical_name = logical_name;
+    public void setLogicalName(String logicalName) {
+        this.logicalName = logicalName;
     }
+
 }
 
 

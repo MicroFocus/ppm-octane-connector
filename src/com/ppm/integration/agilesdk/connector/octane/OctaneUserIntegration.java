@@ -21,6 +21,7 @@ import com.ppm.integration.agilesdk.ValueSet;
 import com.ppm.integration.agilesdk.agiledata.AgileDataLicense;
 import com.ppm.integration.agilesdk.agiledata.AgileDataUser;
 import com.ppm.integration.agilesdk.connector.octane.client.ClientPublicAPI;
+import com.ppm.integration.agilesdk.connector.octane.client.OctaneUser2;
 import com.ppm.integration.agilesdk.connector.octane.model.OctaneSyncUserConfiguration;
 import com.ppm.integration.agilesdk.connector.octane.model.Permission;
 import com.ppm.integration.agilesdk.connector.octane.model.PermissionData;
@@ -79,13 +80,12 @@ public class OctaneUserIntegration extends UserIntegration {
         }
 
 
-        JsonArray userArray = client.getUsersWithSearchFilter(sharedSpaceId, limit, offset, filter);
+        List<SharedSpaceUser> usersList = client.getUsersWithSearchFilter(sharedSpaceId, limit, offset, filter);
 
 
         List<AgileDataUser> users = new ArrayList<>();
-        Gson gson = new Gson();
-        for (JsonElement userObj : userArray) {
-            SharedSpaceUser spaceUser = gson.fromJson(userObj, SharedSpaceUser.class);
+
+        for (SharedSpaceUser spaceUser : usersList) {
 
             AgileDataUser user = new AgileDataUser();
             user.setUserId(spaceUser.getId());

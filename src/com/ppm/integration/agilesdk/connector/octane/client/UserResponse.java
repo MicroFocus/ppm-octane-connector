@@ -2,6 +2,9 @@ package com.ppm.integration.agilesdk.connector.octane.client;
 
 import java.util.List;
 
+import com.google.gson.annotations.SerializedName;
+import com.ppm.integration.agilesdk.connector.octane.model.SharedSpaceUser;
+
 /**
  * @Author YanFeng
  * @Date 2/25/2023
@@ -9,40 +12,25 @@ import java.util.List;
  */
 
 public class UserResponse {
-    private int total_count;
-    private boolean exceeds_total_count;
-    private int total_error_count;
-    private List<OctaneUser> data;
+    @SerializedName("total_count")
+    private int totalCount;
 
-    public int getTotal_count() {
-        return total_count;
+    private List<SharedSpaceUser> data;
+
+    public int getTotalCount() {
+        return totalCount;
     }
 
-    public void setTotal_count(int total_count) {
-        this.total_count = total_count;
+    public void setTotalCount(int totalCount) {
+        this.totalCount = totalCount;
     }
 
-    public boolean isExceeds_total_count() {
-        return exceeds_total_count;
-    }
-
-    public void setExceeds_total_count(boolean exceeds_total_count) {
-        this.exceeds_total_count = exceeds_total_count;
-    }
-
-    public int getTotal_error_count() {
-        return total_error_count;
-    }
-
-    public void setTotal_error_count(int total_error_count) {
-        this.total_error_count = total_error_count;
-    }
-
-    public List<OctaneUser> getData() {
+    public List<SharedSpaceUser> getData() {
         return data;
     }
 
-    public void setData(List<OctaneUser> data) {
+    public void setData(List<SharedSpaceUser> data) {
         this.data = data;
     }
+
 }
