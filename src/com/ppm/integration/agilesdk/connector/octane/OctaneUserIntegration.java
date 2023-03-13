@@ -14,9 +14,7 @@ import java.util.Map;
 
 import org.apache.log4j.Logger;
 
-import com.google.gson.Gson;
-import com.google.gson.JsonArray;
-import com.google.gson.JsonElement;
+
 import com.ppm.integration.agilesdk.ValueSet;
 import com.ppm.integration.agilesdk.agiledata.AgileDataLicense;
 import com.ppm.integration.agilesdk.agiledata.AgileDataUser;
@@ -79,13 +77,12 @@ public class OctaneUserIntegration extends UserIntegration {
         }
 
 
-        JsonArray userArray = client.getUsersWithSearchFilter(sharedSpaceId, limit, offset, filter);
+        List<SharedSpaceUser> usersList = client.getUsersWithSearchFilter(sharedSpaceId, limit, offset, filter);
 
 
         List<AgileDataUser> users = new ArrayList<>();
-        Gson gson = new Gson();
-        for (JsonElement userObj : userArray) {
-            SharedSpaceUser spaceUser = gson.fromJson(userObj, SharedSpaceUser.class);
+
+        for (SharedSpaceUser spaceUser : usersList) {
 
             AgileDataUser user = new AgileDataUser();
             user.setUserId(spaceUser.getId());
