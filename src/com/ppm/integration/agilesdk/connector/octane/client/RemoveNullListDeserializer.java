@@ -10,6 +10,14 @@ import com.google.gson.JsonDeserializer;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonParseException;
 
+/**
+ * Deserialize permissions list in ShareSpaceUser in octane. If permissions list
+ * contain logical_name = "perm.view.spm", retain this element in list. Because
+ * this logical_name("perm.view.spm") is mapping specific security group in
+ * PPM.(Reference table "ppm_int_agile_user_sync"). Otherwise, remove extra
+ * logical_names in permissions to optimize json of ShareSpaceUser in Octane.
+ */
+
 public class RemoveNullListDeserializer<Permission> implements JsonDeserializer<Permission> {
 
     @Override

@@ -14,14 +14,11 @@ import java.util.Map;
 
 import org.apache.log4j.Logger;
 
-import com.google.gson.Gson;
-import com.google.gson.JsonArray;
-import com.google.gson.JsonElement;
+
 import com.ppm.integration.agilesdk.ValueSet;
 import com.ppm.integration.agilesdk.agiledata.AgileDataLicense;
 import com.ppm.integration.agilesdk.agiledata.AgileDataUser;
 import com.ppm.integration.agilesdk.connector.octane.client.ClientPublicAPI;
-import com.ppm.integration.agilesdk.connector.octane.client.OctaneUser2;
 import com.ppm.integration.agilesdk.connector.octane.model.OctaneSyncUserConfiguration;
 import com.ppm.integration.agilesdk.connector.octane.model.Permission;
 import com.ppm.integration.agilesdk.connector.octane.model.PermissionData;

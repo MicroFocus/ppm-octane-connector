@@ -31,7 +31,6 @@ import javax.ws.rs.HttpMethod;
 import javax.ws.rs.core.MediaType;
 
 import com.google.gson.*;
-import jdk.nashorn.internal.ir.debug.ObjectSizeCalculator;
 import org.apache.commons.lang.StringUtils;
 import org.apache.http.HttpStatus;
 import org.apache.log4j.Logger;
