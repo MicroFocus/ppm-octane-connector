@@ -135,6 +135,9 @@ public class OctaneUserIntegration extends UserIntegration {
         List<AgileDataLicense> datas = new ArrayList<>();
         ClientPublicAPI client = ClientPublicAPI.getClient(instanceConfigurationParameters);
         SharedSpace space = client.getActiveSharedSpace();
+        if (space == null) {
+            return datas;
+        }
         List<JSONObject> licenseJSONObjs = client.getTenantLicenses(space.getId());
         for (JSONObject obj : licenseJSONObjs) {
             AgileDataLicense data = new AgileDataLicense();
