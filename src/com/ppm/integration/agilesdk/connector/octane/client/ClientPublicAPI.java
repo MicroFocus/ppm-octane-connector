@@ -1995,6 +1995,18 @@ public class ClientPublicAPI {
         return new JsonPaginatedOctaneGetter().get(url);
     }
 
+    public List<JSONObject> getProductsByOriginalIds(String sharedspaceId, List<String> fields, List<String> originalIds) {
+        if (originalIds.isEmpty()) {
+            return new JSONArray();
+        }
+        String retrieveFields = StringUtils.join(fields, ",");
+        String query = generateInQuery(originalIds, " original_id ");
+        query = queryEncode(query);
+        String url = String.format("%s/api/shared_spaces/%s/workspaces/500/products?fields=%s&query=%s", baseURL, sharedspaceId,
+                retrieveFields, query);
+        return new JsonPaginatedOctaneGetter().get(url);
+    }
+
     public List<JSONObject> getTenantLicenses(String sharedSpaceId) {
         String url = String.format("%s/api/shared_spaces/%s/tenant_licenses", baseURL, sharedSpaceId);
         List<JSONObject> resultJsonList = new JsonPaginatedOctaneGetter().get(url);

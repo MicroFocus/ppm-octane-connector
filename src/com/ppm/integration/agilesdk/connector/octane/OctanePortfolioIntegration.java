@@ -170,11 +170,13 @@ public class OctanePortfolioIntegration extends PortfolioIntegration {
             List<String> queryFields = new ArrayList<>();
             queryFields.add("id");
             queryFields.add("name");
-            List<String> productNames = new ArrayList<>();
-            productNames.add(existProd.getName());
-            List<JSONObject> existProdJson = client.getProductsByNames(space.getId(), queryFields, productNames);
-            productData.setId(existProdJson.get(0).getString("id"));
-            list.addAgilePortfolio(productData);
+            List<String> originalIds = new ArrayList<>();
+            originalIds.add(String.valueOf(existProd.getOriginalId()));
+            List<JSONObject> existProdJson = client.getProductsByOriginalIds(space.getId(), queryFields, originalIds);
+            if (!existProdJson.isEmpty()) {
+                productData.setId(existProdJson.get(0).getString("id"));
+                list.addAgilePortfolio(productData);
+            }
         }
     }
 
