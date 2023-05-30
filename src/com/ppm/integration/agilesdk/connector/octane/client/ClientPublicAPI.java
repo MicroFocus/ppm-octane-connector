@@ -2012,4 +2012,39 @@ public class ClientPublicAPI {
         List<JSONObject> resultJsonList = new JsonPaginatedOctaneGetter().get(url);
         return resultJsonList;
     }
+
+
+    public JSONObject saveStrategicThemes(final String sharedspaceId, final String method, final String entity)
+    {
+        String url =
+                String.format("%s/api/shared_spaces/%s/workspaces/500/strategic_themes", baseURL, sharedspaceId);
+
+        RestResponse response = sendRequest(url, method, this.getJsonStrForPOSTData(entity));
+        if (HttpStatus.SC_CREATED != response.getStatusCode() && HttpStatus.SC_OK != response.getStatusCode()) {
+            this.logger
+                    .error("Error occurs when saving strategic themes in Octane: Response code = "
+                            + response.getStatusCode());
+            this.logger.error(response.getData());
+        }
+
+        return JSONObject.fromObject(response.getData());
+    }
+
+    public List<JSONObject> getStrategicThemes(String sharedspaceId, List<String> fields) {
+        String retrieveFields = StringUtils.join(fields, ",");
+        String url = String.format("%s/api/shared_spaces/%s/workspaces/500/strategic_themes?fields=%s", baseURL, sharedspaceId,
+                retrieveFields);
+        List<JSONObject> resultJsonList = new JsonPaginatedOctaneGetter().get(url);
+        return resultJsonList;
+    }
+
+    public JSONObject deleteStrategicThemes(final String sharedspaceId, final String entity) {
+        String url =
+                String.format("%s/api/shared_spaces/%s/workspaces/500/strategic_themes", baseURL, sharedspaceId);
+        RestResponse response = sendRequest(url, HttpMethod.PUT, this.getJsonStrForPOSTData(entity));
+        if (HttpStatus.SC_OK != response.getStatusCode()) {
+            this.logger.error("Error occurs when delete products in Octane: Response code = " + response.getStatusCode());
+        }
+        return JSONObject.fromObject(response.getData());
+    }
 }
