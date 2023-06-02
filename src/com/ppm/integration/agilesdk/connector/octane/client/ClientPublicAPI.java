@@ -1199,6 +1199,8 @@ public class ClientPublicAPI {
                 // product
                 if (OctaneConstants.KEY_FIELD_PRODUCT.equals(fieldName)) {
                     return true;
+                } else if (OctaneConstants.KEY_FIELD_STRATEGIC_THEME.equals(fieldName)) {
+                    return true;
                 }
             default:
                 return false;
