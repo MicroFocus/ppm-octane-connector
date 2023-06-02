@@ -25,10 +25,21 @@ import com.ppm.integration.agilesdk.pfm.StrategicThemeIntegration;
 
 public class OctaneStrategicThemeIntegration extends StrategicThemeIntegration {
 
+    // Set default root product id and strategic theme id
+    private static final int DEFAULT_ROOT_PRODUCT_ID = 1001;
+    private static final int DEFAULT_ROOT_STRATEGIC_THEME_ID = 1001;
+
+
     @Override
-    public List<AgileDataStrategicTheme> getAgileStrategicThemeEntities(final ValueSet valueSet) {
-        return new ArrayList<>();
+    public AgileDataStrategicThemeList getAgileStrategicThemeEntities(final ValueSet valueSet, List<String> strategicThemeIds) {
+        return new AgileDataStrategicThemeList();
     }
+
+    @Override
+    public AgileDataStrategicThemeList updateStrategicThemeEntities(final ValueSet valueSet, List<AgileDataStrategicTheme> strategicThemes) {
+       return saveStrategicThemeEntities(valueSet, strategicThemes, HttpMethod.PUT);
+    }
+
     /**
      * @param instance  valueset
      * @param StrategicTheme list
@@ -42,7 +53,7 @@ public class OctaneStrategicThemeIntegration extends StrategicThemeIntegration {
 
 
     private AgileDataStrategicThemeList saveStrategicThemeEntities(ValueSet valueSet, List<AgileDataStrategicTheme> strategicThemes, String method) {
-         AgileDataStrategicThemeList data = new AgileDataStrategicThemeList();
+        AgileDataStrategicThemeList data = new AgileDataStrategicThemeList();
         if (strategicThemes.isEmpty()) return data;
         ClientPublicAPI client = ClientPublicAPI.getClient(valueSet);
         SharedSpace space = client.getActiveSharedSpace();
@@ -146,20 +157,23 @@ public class OctaneStrategicThemeIntegration extends StrategicThemeIntegration {
             JSONObject parent = new JSONObject();
             if (st.getParent() != null) {
                 parent.put("id", st.getParent().getId());
-                parent.put("type", "strategic_theme");
-                entityObj.put("parent", parent);
+            } else {
+                parent.put("id", DEFAULT_ROOT_STRATEGIC_THEME_ID);
             }
+            parent.put("type", "strategic_theme");
+            entityObj.put("parent", parent);
             JSONObject product = new JSONObject();
             if (st.getProduct() != null) {
                 product.put("id", st.getProduct().getId());
-                product.put("type", "product");
-                entityObj.put("product", product);
+            } else {
+                product.put("id", DEFAULT_ROOT_PRODUCT_ID);
             }
+            product.put("type", "product");
+            entityObj.put("product", product);
             entityList.add(entityObj);
         }
         return entityList;
     }
-
 
 
 }
