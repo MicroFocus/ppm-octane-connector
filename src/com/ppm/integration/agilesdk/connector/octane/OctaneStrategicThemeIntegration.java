@@ -51,6 +51,23 @@ public class OctaneStrategicThemeIntegration extends StrategicThemeIntegration {
         return saveStrategicThemeEntities(valueSet, strategicThemes, HttpMethod.POST);
     }
 
+    @Override
+    public AgileDataStrategicThemeList deleteStrategicThemeEntities(ValueSet valueSet, List<AgileDataStrategicTheme> strategicThemes) {
+        AgileDataStrategicThemeList data = new AgileDataStrategicThemeList();
+        if (strategicThemes.isEmpty()) {
+            return data;
+        }
+
+        ClientPublicAPI client = ClientPublicAPI.getClient(valueSet);
+        SharedSpace space = client.getActiveSharedSpace();
+        JSONArray entityList = convertToJsonArray(strategicThemes);
+        JSONObject dataObj = client.deleteStrategicThemes(space.getId(), entityList);
+
+        convertDataArrayToBean(dataObj, data);
+        convertErrorArrayToBean(dataObj, data, strategicThemes);
+
+        return data;
+    }
 
     private AgileDataStrategicThemeList saveStrategicThemeEntities(ValueSet valueSet, List<AgileDataStrategicTheme> strategicThemes, String method) {
         AgileDataStrategicThemeList data = new AgileDataStrategicThemeList();
