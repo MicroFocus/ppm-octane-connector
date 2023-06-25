@@ -1199,8 +1199,6 @@ public class ClientPublicAPI {
                 // product
                 if (OctaneConstants.KEY_FIELD_PRODUCT.equals(fieldName)) {
                     return true;
-                } else if (OctaneConstants.KEY_FIELD_STRATEGIC_THEME.equals(fieldName)) {
-                    return true;
                 }
             default:
                 return false;
@@ -2015,52 +2013,4 @@ public class ClientPublicAPI {
         return resultJsonList;
     }
 
-
-    public JSONObject saveStrategicThemes(final String sharedspaceId, final String method, final String entity)
-    {
-        String url =
-                String.format("%s/api/shared_spaces/%s/workspaces/500/strategic_themes", baseURL, sharedspaceId);
-
-        RestResponse response = sendRequest(url, method, this.getJsonStrForPOSTData(entity));
-        if (HttpStatus.SC_CREATED != response.getStatusCode() && HttpStatus.SC_OK != response.getStatusCode()) {
-            this.logger
-                    .error("Error occurs when saving strategic themes in Octane: Response code = "
-                            + response.getStatusCode());
-            this.logger.error(response.getData());
-        }
-
-        return JSONObject.fromObject(response.getData());
-    }
-
-    public List<JSONObject> getStrategicThemes(String sharedspaceId, List<String> fields) {
-        String retrieveFields = StringUtils.join(fields, ",");
-        String url = String.format("%s/api/shared_spaces/%s/workspaces/500/strategic_themes?fields=%s", baseURL, sharedspaceId,
-                retrieveFields);
-        List<JSONObject> resultJsonList = new JsonPaginatedOctaneGetter().get(url);
-        return resultJsonList;
-    }
-
-    public JSONObject deleteStrategicThemes(String sharedSpaceId, JSONArray entities) {
-        String query = queryEncode("\"(id IN "+concatenateEntities(entities)+")\"");
-        String url = String.format("%s/api/shared_spaces/%s/workspaces/500/strategic_themes?deleteDescendant=false&query=%s&fields=name,parent",
-                baseURL, sharedSpaceId, query);
-        RestResponse response = sendRequest(url, HttpMethod.DELETE, null);
-        if (HttpStatus.SC_OK != response.getStatusCode()) {
-            this.logger.error("Error occurs when delete products in Octane: Response code = " + response.getStatusCode());
-        }
-        return JSONObject.fromObject(response.getData());
-    }
-
-    private String concatenateEntities(JSONArray entities) {
-        StringBuilder builder = new StringBuilder();
-        for (int i = 0; i < entities.size(); i++) {
-            builder.append("'");
-            builder.append(((JSONObject) entities.get(i)).getLong("id"));
-            builder.append("'");
-            if (i != entities.size()-1) {
-                builder.append(",");
-            }
-        }
-        return builder.toString();
-    }
 }
