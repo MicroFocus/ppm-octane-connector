@@ -2040,27 +2040,13 @@ public class ClientPublicAPI {
         return resultJsonList;
     }
 
-    public JSONObject deleteStrategicThemes(String sharedSpaceId, JSONArray entities) {
-        String query = queryEncode("\"(id IN "+concatenateEntities(entities)+")\"");
-        String url = String.format("%s/api/shared_spaces/%s/workspaces/500/strategic_themes?deleteDescendant=false&query=%s&fields=name,parent",
-                baseURL, sharedSpaceId, query);
-        RestResponse response = sendRequest(url, HttpMethod.DELETE, null);
+    public JSONObject deleteStrategicThemes(final String sharedspaceId, final String entity) {
+        String url =
+                String.format("%s/api/shared_spaces/%s/workspaces/500/strategic_themes", baseURL, sharedspaceId);
+        RestResponse response = sendRequest(url, HttpMethod.PUT, this.getJsonStrForPOSTData(entity));
         if (HttpStatus.SC_OK != response.getStatusCode()) {
             this.logger.error("Error occurs when delete products in Octane: Response code = " + response.getStatusCode());
         }
         return JSONObject.fromObject(response.getData());
-    }
-
-    private String concatenateEntities(JSONArray entities) {
-        StringBuilder builder = new StringBuilder();
-        for (int i = 0; i < entities.size(); i++) {
-            builder.append("'");
-            builder.append(((JSONObject) entities.get(i)).getLong("id"));
-            builder.append("'");
-            if (i != entities.size()-1) {
-                builder.append(",");
-            }
-        }
-        return builder.toString();
     }
 }
