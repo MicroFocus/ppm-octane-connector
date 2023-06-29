@@ -63,8 +63,7 @@ public class OctaneIntegrationConnector extends IntegrationConnector {
                         , "com.ppm.integration.agilesdk.connector.octane.OctanePortfolioEpicIntegration",
                         "com.ppm.integration.agilesdk.connector.octane.OctaneRequestIntegration",
                         "com.ppm.integration.agilesdk.connector.octane.OctaneUserIntegration",
-                        "com.ppm.integration.agilesdk.connector.octane.OctanePortfolioIntegration",
-                        "com.ppm.integration.agilesdk.connector.octane.OctaneStrategicThemeIntegration"});
+                        "com.ppm.integration.agilesdk.connector.octane.OctanePortfolioIntegration"});
     }
 
     @Override public String getConnectorVersion() {
