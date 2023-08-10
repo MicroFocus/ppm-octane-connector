@@ -1196,9 +1196,11 @@ public class ClientPublicAPI {
                         return true;
                 }
             case OctaneConstants.KEY_FIELD_REFERENCE:
-                // product
-                if (OctaneConstants.KEY_FIELD_PRODUCT.equals(fieldName)) {
-                    return true;
+                switch (fieldName){
+                    // product
+                    case OctaneConstants.KEY_FIELD_PRODUCT:
+                    case OctaneConstants.KEY_FIELD_PARENT:
+                        return true;
                 }
             default:
                 return false;
