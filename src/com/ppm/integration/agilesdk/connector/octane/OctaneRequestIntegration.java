@@ -742,11 +742,13 @@ public class OctaneRequestIntegration extends RequestIntegration {
                     break;                
                 case ListNode:
                     ListNodeField listNodeField = (ListNodeField) field;
-                    JSONObject complexObj = new JSONObject();          
-                    
+                    JSONObject complexObj = new JSONObject();
+
                     String type = "";
-                    if(OctaneConstants.KEY_FIELD_SUB_TYPE_LIST_NODE.equals(fieldInfo.getFieldType())) {
+                    if (OctaneConstants.KEY_FIELD_SUB_TYPE_LIST_NODE.equals(fieldInfo.getFieldType())) {
                         type = OctaneConstants.SUB_TYPE_LIST_NODE;
+                    } else if (OctaneConstants.KEY_FIELD_PARENT.equals(fieldInfo.getName())) {
+                        type = OctaneConstants.REFERENCED_WORK_ITEM;
                     } else {
                         type = fieldInfo.getName();
                     }
@@ -792,6 +794,12 @@ public class OctaneRequestIntegration extends RequestIntegration {
                                     }
                                     entityObj.put(key, complexObj);
                                     break;
+                                case OctaneConstants.KEY_FIELD_PARENT:
+                                    if (root != null) {
+                                        complexObj.put("id", root.id);
+                                        complexObj.put("type", root.type);
+                                    }
+                                    break;
                                 default:
 
                                     List<AgileEntityFieldValue> fieldValues = client.getEntityFieldListNode(
@@ -836,7 +844,8 @@ public class OctaneRequestIntegration extends RequestIntegration {
                 JSONObject parent = new JSONObject();
                 parent.put("id", root.id);
                 parent.put("type", root.type);
-                entityObj.put("parent", parent);
+                // if parent is set before, do not override.
+                entityObj.putIfAbsent("parent", parent);
             }
         }
 
