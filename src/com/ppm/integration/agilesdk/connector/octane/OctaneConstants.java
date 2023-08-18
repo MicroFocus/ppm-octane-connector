@@ -53,6 +53,8 @@ public class OctaneConstants {
 
     public static final String KEY_EPIC_ENTITY_TYPE = "epic";
 
+    public static final String REFERENCED_WORK_ITEM = "work_item";
+
     public static final String KEY_RELEASEID = "releaseId";
 
     public static final String SUB_TYPE_WORK_ITEM_ROOT = "work_item_root";
