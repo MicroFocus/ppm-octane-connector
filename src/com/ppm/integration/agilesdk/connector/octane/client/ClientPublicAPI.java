@@ -1348,10 +1348,15 @@ public class ClientPublicAPI {
         String description = "";
         obj = JSONObject.fromObject(jsonData);
         JSONArray errors = (JSONArray)(obj.get("errors"));
-        if (errors.size() > 0) {
+        if (errors != null && errors.size() > 0) {
             JSONObject error = errors.getJSONObject(0);
             if (error.containsKey("description")) {
                 description = error.getString("description");
+            }
+        }else{
+            String errorCode = obj.getString("error_code");
+            if(errorCode != null){
+                description = obj.getString("description");
             }
         }
         return description;
