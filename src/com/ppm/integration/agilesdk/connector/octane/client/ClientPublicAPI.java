@@ -1139,6 +1139,17 @@ public class ClientPublicAPI {
         return (List<EpicAttr>)getDataContent(response.getData(), new TypeReference<List<EpicAttr>>(){});
     }
 
+    public List<EpicAttr> getEpicsByIds(String sharedSpaceId, String workSpaceId, List<String> epicIds) {
+        String query = generateInQuery(epicIds, " id ");
+        query = queryEncode(query);
+        String url = String.format("%s/api/shared_spaces/%s/workspaces/%s/epics?fields=id,name&query=%s",
+                baseURL, sharedSpaceId, workSpaceId, query);
+        RestResponse response = sendGet(url);
+
+        return (List<EpicAttr>) getDataContent(response.getData(), new TypeReference<List<EpicAttr>>() {
+        });
+    }
+
     public List<EpicAttr> getEpicParent(final String sharedspaceId, final String workspaceId, final String workitemSubtype) {
         String url = String.format("%s/api/shared_spaces/%s/workspaces/%s/work_items?fields=id&query=%s%s%s",
             baseURL, sharedspaceId, workspaceId, "%22subtype%3D'", workitemSubtype, "'%22");
