@@ -517,6 +517,13 @@ public class OctaneRequestIntegration extends RequestIntegration {
         // If not match, reset empty.
         setEntityProductField(entity, sharedSpaceId, client);
 
+        switch (entityType) {
+            case OctaneConstants.SUB_TYPE_FEATURE:
+                // feature's parent must be epic and its value should be validated here
+                validateEntityEpicField(entity, workSpaceId, sharedSpaceId, client);
+                break;
+            default:
+        }
         String finalWorkSpaceId = workSpaceId;
         if (OctaneConstants.SUB_TYPE_EPIC.equals(entityType)
                 || OctaneConstants.SUB_SHARED_EPIC.equals(entityType)) {
@@ -541,6 +548,35 @@ public class OctaneRequestIntegration extends RequestIntegration {
         }
         client.signOut(instanceConfigurationParameters);
         return agileEntity;
+    }
+
+    private void validateEntityEpicField(AgileEntity entity, String workSpaceId,
+                                         String sharedSpaceId, ClientPublicAPI clientPublicAPI) {
+        Iterator<Entry<String, DataField>> iterator = entity.getAllFields();
+        while (iterator.hasNext()) {
+            Entry<String, DataField> entry = iterator.next();
+            if (!OctaneConstants.KEY_FIELD_PARENT.equals(entry.getKey())) {
+                continue;
+            }
+            DataField entityValue = entry.getValue();
+            if (entityValue == null) {
+                // empty value will be transfer to root later.
+                break;
+            }
+            switch (entityValue.getType()) {
+                case ListNode:
+                    ListNodeField listNodeField = (ListNodeField) entityValue;
+                    String epicId = listNodeField.get().getId();
+                    List<String> epicIds = new ArrayList<>();
+                    epicIds.add(epicId);
+                    List epics = clientPublicAPI.getEpicsByIds(sharedSpaceId, workSpaceId, epicIds);
+                    if (epics == null || epics.isEmpty()) {
+                        throw new OctaneClientException("OCTANE_CONNECTOR", "EPIC_NOT_FOUND", new String[]{epicId});
+                    }
+                default:
+                    // parent should be listNode, do nothing in this case.
+            }
+        }
     }
 
     private void setEntityProductField(AgileEntity entity, String sharedSpaceId, ClientPublicAPI clientPublicAPI) {
