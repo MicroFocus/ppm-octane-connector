@@ -42,6 +42,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.hp.ppm.integration.model.AgileEntityFieldValue;
 import com.ppm.integration.agilesdk.ValueSet;
 import com.ppm.integration.agilesdk.connector.octane.OctaneConstants;
+import com.ppm.integration.agilesdk.connector.octane.client.RestResponse;
 import com.ppm.integration.agilesdk.connector.octane.model.EpicAttr;
 import com.ppm.integration.agilesdk.connector.octane.model.EpicCreateEntity;
 import com.ppm.integration.agilesdk.connector.octane.model.EpicEntity;
@@ -1569,17 +1570,15 @@ public class ClientPublicAPI {
 
         // get sharedSpace users
         String url = String.format(
-                "%s/api/shared_spaces/%s/users?fields=email,id,name,first_name,last_modified,last_name,activity_level,workspace_roles,permissions&order_by=last_modified&show_hidden_entities=true%s&query=%s",
+                "%s/api/shared_spaces/%s/users?fields=email,id,name,first_name,last_modified,last_name,activity_level,workspace_roles,license_type&order_by=last_modified&show_hidden_entities=true%s&query=%s",
                 baseURL, sharedspaceId, limitedField, filter);
 
 
         RestResponse response = sendGet(url);
         UserResponse userResponse = null;
         if (response.getStatusCode() == 200) {
-            Gson gson =
-                    new GsonBuilder().registerTypeAdapter(Permission.class, new RemoveNullListDeserializer()).create();
 
-            userResponse = gson.fromJson(response.getData(), UserResponse.class);
+            userResponse = new Gson().fromJson(response.getData(), UserResponse.class);
 
         } else {
             JsonObject dataObj = new JsonParser().parse(response.getData()).getAsJsonObject();

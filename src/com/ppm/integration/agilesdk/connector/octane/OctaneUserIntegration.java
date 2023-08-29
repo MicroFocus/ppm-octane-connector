@@ -19,6 +19,7 @@ import com.ppm.integration.agilesdk.ValueSet;
 import com.ppm.integration.agilesdk.agiledata.AgileDataLicense;
 import com.ppm.integration.agilesdk.agiledata.AgileDataUser;
 import com.ppm.integration.agilesdk.connector.octane.client.ClientPublicAPI;
+import com.ppm.integration.agilesdk.connector.octane.model.LicenseType;
 import com.ppm.integration.agilesdk.connector.octane.model.OctaneSyncUserConfiguration;
 import com.ppm.integration.agilesdk.connector.octane.model.Permission;
 import com.ppm.integration.agilesdk.connector.octane.model.PermissionData;
@@ -98,12 +99,14 @@ public class OctaneUserIntegration extends UserIntegration {
             user.setLastName(spaceUser.getLastName());
             user.setEmail(spaceUser.getEmail());
             WorkspaceRole role = spaceUser.getWorkspaceRoles();
-            Permission permission = spaceUser.getPermissions();
+            // US#673013 improve user sync performance - use license type
+            // instead of permissions
+            LicenseType licenseType = spaceUser.getLicenseType();
 
             List<String> roleList = getRoleListOfUser(role);
-            List<String> permissionLogicalNames = parsePermissions(permission);
+
             if (activityLevel == OctaneConstants.USER_ACTIVITY_STATUS_CODE) {
-                addSecurityGroupAndLicenseToUsers(user, roleList, permissionLogicalNames,
+                addSecurityGroupAndLicenseToUsers(user, roleList, licenseType,
                         userConfiguration.getSecurity());
                 user.setEnabledFlag(true);
             } else {
@@ -190,13 +193,15 @@ public class OctaneUserIntegration extends UserIntegration {
      *            {"security":[{"role":"role_logical_Name","securityGroups":["securityGroupReferenceCode1"],"productLicenses":[productId1]},{"permission":"permission_logical_name","securityGroups":["securityGroupReferenceCode2"],"productLicenses":[productId2]}],"agileProjectValue":{"workspaceId":1003,"sharedSpaceId":1003}}
      */
     private void addSecurityGroupAndLicenseToUsers(AgileDataUser user, List<String> roleList,
-            List<String> permissionLogicalNames,
+            LicenseType userLicenseType,
             List<UserSecurityConfiguration> security)
     {
 
         for (UserSecurityConfiguration securityConf : security) {
+            // configure in table ppm_int_agile_user_sync
             String role = securityConf.getRole();
-            String permission = securityConf.getPermission();
+            List<String> licenseTypes = securityConf.getLicenseTypes();
+
             if (role != null) {
                 if (roleList.contains(role)) {
                     user.addAllSecurityGroupCodes(securityConf.getSecurityGroups());
@@ -205,8 +210,8 @@ public class OctaneUserIntegration extends UserIntegration {
                 }
             }
 
-            if (permission != null) {
-                if (permissionLogicalNames.contains(permission)) {
+            if (userLicenseType != null) {
+                if (licenseTypes.contains(userLicenseType.getId())) {
                     user.addAllSecurityGroupCodes(securityConf.getSecurityGroups());
                     user.addAllProductIds(securityConf.getProductLicenses());
                 }
