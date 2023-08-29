@@ -49,7 +49,6 @@ import com.ppm.integration.agilesdk.connector.octane.model.EpicEntity;
 import com.ppm.integration.agilesdk.connector.octane.model.FieldInfo;
 import com.ppm.integration.agilesdk.connector.octane.model.GenericWorkItem;
 import com.ppm.integration.agilesdk.connector.octane.model.OctaneUtils;
-import com.ppm.integration.agilesdk.connector.octane.model.Permission;
 import com.ppm.integration.agilesdk.connector.octane.model.Release;
 import com.ppm.integration.agilesdk.connector.octane.model.ReleaseTeam;
 import com.ppm.integration.agilesdk.connector.octane.model.ReleaseTeams;

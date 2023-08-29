@@ -21,8 +21,6 @@ import com.ppm.integration.agilesdk.agiledata.AgileDataUser;
 import com.ppm.integration.agilesdk.connector.octane.client.ClientPublicAPI;
 import com.ppm.integration.agilesdk.connector.octane.model.LicenseType;
 import com.ppm.integration.agilesdk.connector.octane.model.OctaneSyncUserConfiguration;
-import com.ppm.integration.agilesdk.connector.octane.model.Permission;
-import com.ppm.integration.agilesdk.connector.octane.model.PermissionData;
 import com.ppm.integration.agilesdk.connector.octane.model.RoleData;
 import com.ppm.integration.agilesdk.connector.octane.model.SharedSpace;
 import com.ppm.integration.agilesdk.connector.octane.model.SharedSpaceUser;
@@ -159,19 +157,6 @@ public class OctaneUserIntegration extends UserIntegration {
         return datas;
     }
 
-    private List<String> parsePermissions(Permission permission) {
-        List<String> permissionLogicalNames = new ArrayList<>();
-        if (permission != null) {
-            for (PermissionData data : permission.getData()) {
-                permissionLogicalNames.add(data.getLogicalName());
-            }
-        }
-
-        return permissionLogicalNames;
-    }
-
-
-
     private List<String> getRoleListOfUser(WorkspaceRole role) {
         List<String> roleList = new ArrayList<>();
         if (role != null) {
@@ -210,7 +195,7 @@ public class OctaneUserIntegration extends UserIntegration {
                 }
             }
 
-            if (userLicenseType != null) {
+            if (licenseTypes != null && userLicenseType != null) {
                 if (licenseTypes.contains(userLicenseType.getId())) {
                     user.addAllSecurityGroupCodes(securityConf.getSecurityGroups());
                     user.addAllProductIds(securityConf.getProductLicenses());

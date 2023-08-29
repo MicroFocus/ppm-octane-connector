@@ -34,16 +34,6 @@ public class SharedSpaceUser {
     @SerializedName("license_type")
     private LicenseType licenseType;
 
-    public Permission getPermissions() {
-        return permissions;
-    }
-
-    public void setPermissions(Permission permissions) {
-        this.permissions = permissions;
-    }
-
-    private Permission permissions;
-
     public String getName() {
         return name;
     }
