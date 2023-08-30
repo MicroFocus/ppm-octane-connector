@@ -1,6 +1,7 @@
 package com.ppm.integration.agilesdk.connector.octane.model;
 
 import com.google.gson.annotations.SerializedName;
+import com.ppm.integration.agilesdk.connector.octane.model.LicenseType;
 
 /**
  * {@code SharedSpaceUser} Main class of "SharedSpaceUser", used to convert
@@ -30,15 +31,8 @@ public class SharedSpaceUser {
     @SerializedName("workspace_roles")
     private WorkspaceRole workspaceRoles;
 
-    public Permission getPermissions() {
-        return permissions;
-    }
-
-    public void setPermissions(Permission permissions) {
-        this.permissions = permissions;
-    }
-
-    private Permission permissions;
+    @SerializedName("license_type")
+    private LicenseType licenseType;
 
     public String getName() {
         return name;
@@ -104,6 +98,13 @@ public class SharedSpaceUser {
         this.workspaceRoles = workspaceRoles;
     }
 
+    public LicenseType getLicenseType() {
+        return licenseType;
+    }
+
+    public void setLicenseType(LicenseType licenseType) {
+        this.licenseType = licenseType;
+    }
 
 
 }
