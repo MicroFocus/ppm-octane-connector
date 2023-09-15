@@ -1,10 +1,12 @@
 package com.ppm.integration.agilesdk.connector.octane.model.workplan;
 
 import com.hp.itg.pm.dao.impl.WorkplanDAOImpl;
+import com.hp.ppm.integration.service.impl.ProjectUtilService;
 import com.kintana.core.arch.Home;
 import com.kintana.core.region.bean.Region;
 import com.mercury.itg.core.calendar.dao.ITGCalendarDAO;
 import com.mercury.itg.core.calendar.model.CalendarWorkingDayCache;
+import com.mercury.itg.core.impl.SpringContainerFactory;
 import com.mercury.itg.pm.service.WorkPlanService;
 import com.mercury.itg.pm.service.impl.PMServiceFactory;
 import com.mercury.itg.pm.service.util.PMServiceHelper;
@@ -25,6 +27,8 @@ import java.util.*;
  */
 public class WorkplanContext {
 
+    private Long projectId;
+
     private final Logger logger = Logger.getLogger(this.getClass());
 
     private CalendarWorkingDayCache workingDayCache = null;
@@ -44,6 +48,8 @@ public class WorkplanContext {
     private UserProvider up = null;
 
     public String percentComplete;
+
+    public String effortMode;
 
     public Map<String, String> usersEmails = new HashMap<>();
 
@@ -140,5 +146,25 @@ public class WorkplanContext {
         } while (!workingDayCache.isWorkDay(date));
 
         return date;
+    }
+
+    public Long getProjectId() {
+        if (projectId == null) {
+            // Load Project Id
+            // There seems to be a bug to retrieve project ID when synching project from work plan, so we get project ID from task ID.
+            if (wpiContext.currentTask() != null) {
+                    projectId = ((ProjectUtilService) SpringContainerFactory.getBean("projectUtilService")).getWorkPlan(wpiContext.currentTask().getWorkplanId()).getProject().getId();
+            }
+
+            if (projectId == null) {
+                projectId = -1L;
+            }
+        }
+
+        if (projectId < 0) {
+            return null;
+        }
+
+        return projectId;
     }
 }

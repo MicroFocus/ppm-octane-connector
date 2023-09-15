@@ -85,6 +85,8 @@ public class OctaneConstants {
     public static final String KEY_IMPORT_SELECTION = "import_selection";
     public static final String IMPORT_SELECTION_RELEASE = "import_selection_release";
     public static final String IMPORT_SELECTION_EPIC = "import_selection_epic";
+
+    public static final String IMPORT_SELECTION_FEATURE = "import_selection_feature";
     public static final String KEY_IMPORT_SELECTION_DETAILS = "import_selection_details";
 
     public static final String KEY_IMPORT_GROUPS = "import_groups";
@@ -95,6 +97,13 @@ public class OctaneConstants {
     public static final String PERCENT_COMPLETE_WORK = "percent_complete_work";
     public static final String PERCENT_COMPLETE_STORY_POINTS = "percent_complete_story_points";
     public static final String PERCENT_COMPLETE_ITEMS_COUNT = "percent_complete_items_count";
+
+
+    public static final String KEY_EFFORT_IMPORT = "effort_import";
+    public static final String EFFORT_GROUP_IN_WORKITEM_OWNER = "effort_group_in_work_item_owner";
+    public static final String EFFORT_GROUP_IN_WORKITEM_TASKS_OWNERS = "effort_group_in_work_item_tasks_owners";
+    public static final String EFFORT_NO_IMPORT = "effort_no_import";
+
 
     public static final String KEY_IS_CREATE_RELEASE = "is_create_release";
     public static final String KEY_NEW_RELEASE_NAME = "new_release_name";
