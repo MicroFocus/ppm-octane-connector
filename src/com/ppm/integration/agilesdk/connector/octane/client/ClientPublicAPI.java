@@ -383,8 +383,11 @@ public class ClientPublicAPI {
 
                 int investedHours = 0;
                 try {
-                    investedHours = Integer.parseInt(rawItem.getString("invested_hours"));
+                    if(!rawItem.isNull("invested_hours")){
+                        investedHours = rawItem.getInt("invested_hours");
+                    }
                 } catch (Exception ignore) {
+                    logger.error("error in invested_hours retrieve:", ignore);
                 }
                 item.setInvested(investedHours);
 
