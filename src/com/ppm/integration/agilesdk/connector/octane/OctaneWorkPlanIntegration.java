@@ -12,7 +12,14 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
+import com.google.common.collect.Lists;
+import com.ppm.integration.agilesdk.connector.jira.JIRAServiceProvider;
+import com.ppm.integration.agilesdk.connector.jira.model.JIRAAgileEntity;
+import com.ppm.integration.agilesdk.connector.octane.model.*;
+import com.ppm.integration.agilesdk.connector.octane.model.workplan.*;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.log4j.Logger;
 
@@ -28,18 +35,6 @@ import com.ppm.integration.agilesdk.ValueSet;
 import com.ppm.integration.agilesdk.connector.octane.client.ClientPublicAPI;
 import com.ppm.integration.agilesdk.connector.octane.client.OctaneClientHelper;
 import com.ppm.integration.agilesdk.connector.octane.client.OctaneEntityDropdown;
-import com.ppm.integration.agilesdk.connector.octane.model.EpicAttr;
-import com.ppm.integration.agilesdk.connector.octane.model.GenericWorkItem;
-import com.ppm.integration.agilesdk.connector.octane.model.OctaneUtils;
-import com.ppm.integration.agilesdk.connector.octane.model.Release;
-import com.ppm.integration.agilesdk.connector.octane.model.SharedSpace;
-import com.ppm.integration.agilesdk.connector.octane.model.Sprint;
-import com.ppm.integration.agilesdk.connector.octane.model.WorkSpace;
-import com.ppm.integration.agilesdk.connector.octane.model.workplan.OctaneEpicExternalTask;
-import com.ppm.integration.agilesdk.connector.octane.model.workplan.OctaneReleaseExternalTask;
-import com.ppm.integration.agilesdk.connector.octane.model.workplan.OctaneRootBacklogExternalTask;
-import com.ppm.integration.agilesdk.connector.octane.model.workplan.WorkDrivenPercentCompleteExternalTask;
-import com.ppm.integration.agilesdk.connector.octane.model.workplan.WorkplanContext;
 import com.ppm.integration.agilesdk.pm.ExternalTask;
 import com.ppm.integration.agilesdk.pm.ExternalWorkPlan;
 import com.ppm.integration.agilesdk.pm.LinkedTaskAgileEntityInfo;
@@ -63,6 +58,7 @@ import net.sf.json.JSONObject;
 import net.sf.json.JSONSerializer;
 
 public class OctaneWorkPlanIntegration extends WorkPlanIntegration implements FunctionIntegration {
+
 
     private final Logger logger = Logger.getLogger(this.getClass());
 
@@ -175,9 +171,11 @@ public class OctaneWorkPlanIntegration extends WorkPlanIntegration implements Fu
 
                         List<Option> optionList = new ArrayList<>();
 
+                        Option option0 = new Option(OctaneConstants.IMPORT_SELECTION_FEATURE, l10n.getConnectorText("IMPORT_SELECTION_FEATURE"));
                         Option option1 = new Option(OctaneConstants.IMPORT_SELECTION_EPIC, l10n.getConnectorText("IMPORT_SELECTION_EPIC"));
                         Option option2 = new Option(OctaneConstants.IMPORT_SELECTION_RELEASE, l10n.getConnectorText("IMPORT_SELECTION_RELEASE"));
 
+                        optionList.add(option0);
                         optionList.add(option1);
                         optionList.add(option2);
 
@@ -218,12 +216,20 @@ public class OctaneWorkPlanIntegration extends WorkPlanIntegration implements Fu
 
                         List<Option> options = new ArrayList<>();
                         switch (importSelection) {
+                            case OctaneConstants.IMPORT_SELECTION_FEATURE:
+                                List<SimpleEntity> features =
+                                        client.getAllFeatures();
+                                options = new ArrayList<Option>(features.size());
+                                for (SimpleEntity feature : features) {
+                                    options.add(new Option(feature.getId(), feature.getName() + " (" + feature.getId() + ")"));
+                                }
+                                return options;
                             case OctaneConstants.IMPORT_SELECTION_EPIC:
                                 List<EpicAttr> epics =
                                         client.getAllEpics();
                                 options = new ArrayList<Option>(epics.size());
                                 for (EpicAttr epic : epics) {
-                                    options.add(new Option(epic.getId(), epic.getName()));
+                                    options.add(new Option(epic.getId(), epic.getName() + " (" + epic.getId() + ")"));
                                 }
                                 return options;
                             case OctaneConstants.IMPORT_SELECTION_RELEASE:
@@ -408,13 +414,40 @@ public class OctaneWorkPlanIntegration extends WorkPlanIntegration implements Fu
 
                 },
 
+                new DynamicDropdown(OctaneConstants.KEY_EFFORT_IMPORT, "EFFORT_IMPORT_CHOICE",
+                        OctaneConstants.EFFORT_GROUP_IN_WORKITEM_OWNER, "", true) {
+
+                    @Override
+                    public List<String> getDependencies() {
+                        return new ArrayList<String>();
+                    }
+
+                    @Override
+                    public List<Option> getDynamicalOptions(ValueSet values) {
+
+                        List<Option> optionList = new ArrayList<>();
+
+                        Option option1 = new Option(OctaneConstants.EFFORT_GROUP_IN_WORKITEM_OWNER, l10n.getConnectorText("EFFORT_GROUP_IN_WORKITEM_OWNER"));
+                        Option option2 = new Option(OctaneConstants.EFFORT_GROUP_IN_WORKITEM_TASKS_OWNERS, l10n.getConnectorText("EFFORT_GROUP_IN_WORKITEM_TASKS_OWNERS"));
+                        Option option3 = new Option(OctaneConstants.EFFORT_NO_IMPORT, l10n.getConnectorText("EFFORT_NO_IMPORT"));
+
+
+                        optionList.add(option1);
+                        optionList.add(option2);
+                        optionList.add(option3);
+
+                        return optionList;
+                    }
+
+                },
+
 
                 new LineBreaker(),
                 new CheckBox(OctaneConstants.KEY_IMPORT_ITEM_STORIES,"IMPORT_ITEM_STORIES","block",true),
                 new CheckBox(OctaneConstants.KEY_IMPORT_ITEM_DEFECTS,"IMPORT_ITEM_DEFECTS","block",true),
                 new CheckBox(OctaneConstants.KEY_IMPORT_ITEM_QUALITY_STORIES,"IMPORT_ITEM_QUALITY_STORIES","block",false),
                 new LineBreaker(),
-                new CheckBox(OctaneConstants.KEY_SHOW_ITEMS_AS_TASKS,"SHOW_ITEMS_AS_TASKS","block",false),
+                new CheckBox(OctaneConstants.KEY_SHOW_ITEMS_AS_TASKS,"SHOW_ITEMS_AS_TASKS","block",true),
                 new LineBreaker()
         });
     }
@@ -651,6 +684,8 @@ public class OctaneWorkPlanIntegration extends WorkPlanIntegration implements Fu
 
         wpContext.showItemsAsTasks = values.getBoolean(OctaneConstants.KEY_SHOW_ITEMS_AS_TASKS, false);
 
+        wpContext.effortMode = values.get(OctaneConstants.KEY_EFFORT_IMPORT);
+
 
         // Get the backlog data. It's either one Epic or one Release
 
@@ -682,6 +717,27 @@ public class OctaneWorkPlanIntegration extends WorkPlanIntegration implements Fu
 
             case OctaneConstants.IMPORT_SELECTION_EPIC:
                 workItems.addAll(client.getEpicWorkItems(Integer.parseInt(values.get(OctaneConstants.KEY_IMPORT_SELECTION_DETAILS)), itemTypes));
+                break;
+
+            case OctaneConstants.IMPORT_SELECTION_FEATURE:
+                workItems.addAll(client.getFeatureWorkItems(Integer.parseInt(values.get(OctaneConstants.KEY_IMPORT_SELECTION_DETAILS)), itemTypes));
+                break;
+        }
+
+        switch (values.get(OctaneConstants.KEY_EFFORT_IMPORT)) {
+            case OctaneConstants.EFFORT_NO_IMPORT:
+                // We should not include any effort information.
+                workItems.stream().filter(wi -> wi.isDefectOrStory()).forEach(wi -> wi.removeEffort());
+                break;
+            case OctaneConstants.EFFORT_GROUP_IN_WORKITEM_TASKS_OWNERS:
+                // We should first remove all effort from work items, as we'll get the effort through the Tasks.
+                workItems.stream().filter(wi -> wi.isDefectOrStory()).forEach(wi -> wi.removeEffort());
+                // We now load tasks for all the defect/stories work items -
+                // how exactly they will be represented in the work plan will be handled in logic of External tasks, based on context.
+                loadWorkItemsTasks(workItems.stream().filter(wi -> wi.isDefectOrStory()).collect(Collectors.toList()), client, wpContext);
+                break;
+            default: // case OctaneConstants.EFFORT_GROUP_IN_WORKITEM_OWNER:
+                // There is nothing special to do, hours are already in the work items and will be reported as the work item owner.
                 break;
         }
 
@@ -810,21 +866,39 @@ public class OctaneWorkPlanIntegration extends WorkPlanIntegration implements Fu
                     }
                 }
 
-                // We always start with Backlog tasks
-                if (!featuresInBacklog.isEmpty() || !itemsInBacklog.isEmpty()) {
-                	String parentId = null;
-                	if (!itemsInBacklog.isEmpty()) {
-                		parentId = itemsInBacklog.get(0).getId();
-                	}
-                    rootTasks.add(WorkDrivenPercentCompleteExternalTask.forSummaryTask(new OctaneRootBacklogExternalTask(featuresInBacklog, itemsInBacklog, featuresItems, wpContext, parentId)));
-                }
+                if (OctaneConstants.IMPORT_SELECTION_FEATURE.equals(values.get(OctaneConstants.KEY_IMPORT_SELECTION))) {
+                    // Import a single Feature, so we don't care about the parent Epic or Backlog.
+                    GenericWorkItem feature = null;
+                    if (!featuresInBacklog.isEmpty()) {
+                        feature = featuresInBacklog.get(0);
 
-                // Then the Epics / Features / Backlog Items hierarchy.
+                    } else {
+                        // One Feature in One Epic
+                        String epicId = epics.isEmpty() ? null : epics.get(0).getId();
+                        feature = (epicId != null && epicsFeatures.get(epicId) == null) ? null : epicsFeatures.get(epicId).get(0);
+                    }
 
-                OctaneUtils.sortWorkItemsByName(epics);
+                    if (feature != null ) {
+                        rootTasks.add(WorkDrivenPercentCompleteExternalTask.forSummaryTask(new OctaneFeatureExternalTask(feature, featuresItems.get(feature.getId()), wpContext)));
+                    }
+                } else {
+                    // Standard import with Epics/Backlog included.
 
-                for (GenericWorkItem epic : epics) {
-                    rootTasks.add(WorkDrivenPercentCompleteExternalTask.forSummaryTask(new OctaneEpicExternalTask(epic, epicsFeatures.get(epic.getId()), featuresItems, wpContext)));
+                    // We always start with Backlog tasks
+                    if (!featuresInBacklog.isEmpty() || !itemsInBacklog.isEmpty()) {
+                        String parentId = null;
+                        if (!itemsInBacklog.isEmpty()) {
+                            parentId = itemsInBacklog.get(0).getId();
+                        }
+                        rootTasks.add(WorkDrivenPercentCompleteExternalTask.forSummaryTask(new OctaneRootBacklogExternalTask(featuresInBacklog, itemsInBacklog, featuresItems, wpContext, parentId)));
+                    }
+
+                    // Then the Epics / Features / Backlog Items hierarchy.
+                    OctaneUtils.sortWorkItemsByName(epics);
+
+                    for (GenericWorkItem epic : epics) {
+                        rootTasks.add(WorkDrivenPercentCompleteExternalTask.forSummaryTask(new OctaneEpicExternalTask(epic, epicsFeatures.get(epic.getId()), featuresItems, wpContext)));
+                    }
                 }
 
                 break;
@@ -840,6 +914,19 @@ public class OctaneWorkPlanIntegration extends WorkPlanIntegration implements Fu
             }
         };
 
+    }
+
+    private void loadWorkItemsTasks(List<GenericWorkItem> workItems, ClientPublicAPI client, WorkplanContext wpContext) {
+        Map<String, GenericWorkItem> workItemsById = workItems.stream().collect(Collectors.toMap(GenericWorkItem::getId, Function.identity()));
+
+        List<OctaneTask> tasks = client.getTasksByWorkItemIds(workItemsById.keySet());
+
+        for (OctaneTask task: tasks) {
+            GenericWorkItem wi = workItemsById.get(task.getStoryId());
+            if (wi != null) {
+                wi.addTask(task);
+            }
+        }
     }
 
 
@@ -871,6 +958,11 @@ public class OctaneWorkPlanIntegration extends WorkPlanIntegration implements Fu
         if (StringUtils.isBlank(values.get(OctaneConstants.KEY_SHOW_ITEMS_AS_TASKS))) {
             // If this parameter was not set (in old plugin), default value was to insert stories as tasks in the work plan.
             values.put(OctaneConstants.KEY_SHOW_ITEMS_AS_TASKS, "true");
+        }
+
+        if (StringUtils.isBlank(values.get(OctaneConstants.KEY_EFFORT_IMPORT))) {
+            // If this parameter was not set (in old plugin), default value was to import effort from task and record it under the story/defect owner.
+            values.put(OctaneConstants.KEY_EFFORT_IMPORT, OctaneConstants.EFFORT_GROUP_IN_WORKITEM_OWNER);
         }
     }
 
@@ -916,6 +1008,9 @@ public class OctaneWorkPlanIntegration extends WorkPlanIntegration implements Fu
                     break;
                 case OctaneConstants.IMPORT_SELECTION_RELEASE:
                     info.setReleaseId(importSelectionDetails);
+                    break;
+                case OctaneConstants.IMPORT_SELECTION_FEATURE:
+                    info.setFeatureId(importSelectionDetails);
                     break;
             }
         }

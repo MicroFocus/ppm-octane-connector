@@ -6,76 +6,25 @@ import com.ppm.integration.agilesdk.provider.UserProvider;
 import net.sf.json.JSONException;
 import net.sf.json.JSONObject;
 
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 
 /**
  * Object used to store the results from the /work_items Octane REST API. We keep the JSon object as underlying data storage.
  */
-public class GenericWorkItem {
+public class GenericWorkItem extends BaseOctaneObject {
 
-    private JSONObject obj = null;
+    private List<OctaneTask> tasks = new ArrayList<>();
 
     public GenericWorkItem(JSONObject obj) {
-        this.obj = obj;
+        super(obj);
     }
 
 
-    private String getString(String key, JSONObject obj) {
-
-        if (obj == null) {
-            return null;
-        }
-
-        try {
-            return obj.getString(key);
-        } catch (JSONException e) {
-            return null;
-        }
-    }
-
-    private String getString(String key) {
-        return getString(key, obj);
-    }
-
-
-    private JSONObject getObj(String key) {
-        return getObj(key, obj);
-    }
-
-    private JSONObject getObj(String key, JSONObject obj) {
-        if (obj == null) {
-            return null;
-        }
-
-        try {
-            return obj.getJSONObject(key);
-        } catch (JSONException e) {
-            return null;
-        }
-    }
-
-    private int getInt(String key, int defaultValue) {
-        try {
-            return obj.getInt(key);
-        } catch (Exception e) {
-            return defaultValue;
-        }
-    }
-
-    private Integer getInteger(String key) {
-        try {
-            return obj.getInt(key);
-        } catch (Exception e) {
-            return null;
-        }
-    }
-
-    public String getId() {
-        return getString("id");
-    }
-
+    @Override
     public String getName() {
-        return getPrefix() + getString("name");
+        return getPrefix() + super.getName();
     }
 
     private String getPrefix() {
@@ -92,17 +41,7 @@ public class GenericWorkItem {
         return getString("id", getObj("phase"));
     }
 
-    public int getEstimatedHours() {
-        return getInt("estimated_hours", 0);
-    }
 
-    public int getInvestedHours() {
-        return getInt("invested_hours", 0);
-    }
-
-    public int getRemainingHours() {
-        return getInt("remaining_hours", 0);
-    }
 
     public String getSubType() {
         return getString("subtype");
@@ -130,27 +69,6 @@ public class GenericWorkItem {
         return lastModifiedTime == null ? new Date() : DateUtils.convertDateTime(lastModifiedTime);
     }
 
-    public String getOwnerId() {
-        return getString("id", getObj("owner"));
-    }
-
-    public String getOwnerName() {
-        return getString("name", getObj("owner"));
-    }
-
-    public String getOwnerEmail() {
-
-        String id = getOwnerId();
-        if (id != null && id.contains("@")) {
-            return id;
-        }
-        String name = getString("name", getObj("owner"));
-        if (name != null && name.contains("@")) {
-            return name;
-        }
-
-        return null;
-    }
 
     public boolean isEpic() {
         return "epic".equals(getSubType());
@@ -194,11 +112,19 @@ public class GenericWorkItem {
 
     }
 
-    public long getPPMUserId(UserProvider userProvider) {
-        User user =  userProvider.getByEmail(getOwnerEmail());
-        if (user == null) {
-            user = userProvider.getByUsername(getOwnerName());
-        }
-        return (user == null ? -1 : user.getUserId());
+
+    public void removeEffort() {
+        updateNumericProperty("estimated_hours", 0);
+        updateNumericProperty("invested_hours", 0);
+        updateNumericProperty("remaining_hours", 0);
+    }
+
+
+    public void addTask(OctaneTask task) {
+        tasks.add(task);
+    }
+
+    public List<OctaneTask> getTasks() {
+        return new ArrayList<>(tasks);
     }
 }

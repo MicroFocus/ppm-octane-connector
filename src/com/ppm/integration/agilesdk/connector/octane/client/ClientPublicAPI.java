@@ -14,23 +14,14 @@ import java.net.Proxy;
 import java.net.URL;
 import java.net.URLEncoder;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.TimeZone;
+import java.util.*;
 
 import javax.net.ssl.HttpsURLConnection;
 import javax.ws.rs.HttpMethod;
 import javax.ws.rs.core.MediaType;
 
 import com.google.gson.*;
+import com.ppm.integration.agilesdk.connector.octane.model.*;
 import org.apache.commons.lang.StringUtils;
 import org.apache.http.HttpStatus;
 import org.apache.log4j.Logger;
@@ -43,28 +34,6 @@ import com.hp.ppm.integration.model.AgileEntityFieldValue;
 import com.ppm.integration.agilesdk.ValueSet;
 import com.ppm.integration.agilesdk.connector.octane.OctaneConstants;
 import com.ppm.integration.agilesdk.connector.octane.client.RestResponse;
-import com.ppm.integration.agilesdk.connector.octane.model.EpicAttr;
-import com.ppm.integration.agilesdk.connector.octane.model.EpicCreateEntity;
-import com.ppm.integration.agilesdk.connector.octane.model.EpicEntity;
-import com.ppm.integration.agilesdk.connector.octane.model.FieldInfo;
-import com.ppm.integration.agilesdk.connector.octane.model.GenericWorkItem;
-import com.ppm.integration.agilesdk.connector.octane.model.OctaneUtils;
-import com.ppm.integration.agilesdk.connector.octane.model.Release;
-import com.ppm.integration.agilesdk.connector.octane.model.ReleaseTeam;
-import com.ppm.integration.agilesdk.connector.octane.model.ReleaseTeams;
-import com.ppm.integration.agilesdk.connector.octane.model.Releases;
-import com.ppm.integration.agilesdk.connector.octane.model.SharedSpace;
-import com.ppm.integration.agilesdk.connector.octane.model.SharedSpaceUser;
-import com.ppm.integration.agilesdk.connector.octane.model.SharedSpaces;
-import com.ppm.integration.agilesdk.connector.octane.model.SimpleEntity;
-import com.ppm.integration.agilesdk.connector.octane.model.Sprint;
-import com.ppm.integration.agilesdk.connector.octane.model.Team;
-import com.ppm.integration.agilesdk.connector.octane.model.Teams;
-import com.ppm.integration.agilesdk.connector.octane.model.TimesheetItem;
-import com.ppm.integration.agilesdk.connector.octane.model.WorkItemEpic;
-import com.ppm.integration.agilesdk.connector.octane.model.WorkItemRoot;
-import com.ppm.integration.agilesdk.connector.octane.model.WorkSpace;
-import com.ppm.integration.agilesdk.connector.octane.model.WorkSpaces;
 import com.ppm.integration.agilesdk.tm.AuthenticationInfo;
 
 import net.sf.json.JSONArray;
@@ -80,6 +49,8 @@ import net.sf.json.JSONObject;
  * workspace ID & Shared space ID will be read from the passed parameters and used whenever needed when doing REST calls ; you can also set them manually with the setters.
  */
 public class ClientPublicAPI {
+
+    private static final int BATCH_SIZE = 20;
 
     private static final String JSON_TIME_SUFFIX = "T12:00:00Z";
     
@@ -1142,6 +1113,13 @@ public class ClientPublicAPI {
         return (List<EpicAttr>)getDataContent(response.getData(), new TypeReference<List<EpicAttr>>(){});
     }
 
+    public List<SimpleEntity> getAllFeatures() {
+        String url = String.format("%s/api/shared_spaces/%d/workspaces/%d/features?fields=id,name",
+                baseURL, sharedSpaceId, workSpaceId);
+        RestResponse response = sendGet(url);
+
+        return (List<SimpleEntity>)getDataContent(response.getData(), new TypeReference<List<SimpleEntity>>(){});
+    }
     public List<EpicAttr> getEpicsByIds(String sharedSpaceId, String workSpaceId, List<String> epicIds) {
         String query = generateInQuery(epicIds, " id ");
         query = queryEncode(query);
@@ -1425,6 +1403,21 @@ public class ClientPublicAPI {
         return results;
     }
 
+    public List<GenericWorkItem> getFeatureWorkItems(int featureId, Set<String> itemTypes) {
+
+        // Should we remove the parent={parent={id=%d}} since it seems to be defined for Epics only?
+        List<JSONObject> workItemsJson = getWorkItems(String.format("id=%d||parent={id=%d}||parent={parent={id=%d}};subtype%%20IN%%20%s", featureId, featureId, featureId, StringUtils.join(itemTypes, ",")));
+
+        List<GenericWorkItem> results = new ArrayList<>(workItemsJson.size());
+
+        for (JSONObject workItemJson : workItemsJson) {
+            GenericWorkItem wi = new GenericWorkItem(workItemJson);
+            results.add(wi);
+        }
+
+        return results;
+    }
+
     public List<GenericWorkItem> getReleaseWorkItems(int releaseId, Set<String> itemTypes) {
         List<JSONObject> workItemsJson = getWorkItems(String.format("release={id=%d};subtype%%20IN%%20%s", releaseId, StringUtils.join(itemTypes, ",")));
 
@@ -1443,6 +1436,18 @@ public class ClientPublicAPI {
         String url = String.format("%s/api/shared_spaces/%d/workspaces/%d/work_items?" +
                 "fields=id,name,phase,estimated_hours,invested_hours,remaining_hours,subtype,release,sprint,creation_time,last_modified,owner,parent,story_points,actual_story_points"
                         , baseURL, sharedSpaceId, workSpaceId);
+        if (!StringUtils.isBlank(queryFilter)) {
+            url += "&query=\""+queryFilter+"\"";
+        }
+
+        return new JsonPaginatedOctaneGetter().get(url);
+    }
+
+    private List<JSONObject> getTasks(String queryFilter) {
+
+        String url = String.format("%s/api/shared_spaces/%d/workspaces/%d/tasks?" +
+                        "fields=id,name,story,estimated_hours,remaining_hours,invested_hours,owner"
+                , baseURL, sharedSpaceId, workSpaceId);
         if (!StringUtils.isBlank(queryFilter)) {
             url += "&query=\""+queryFilter+"\"";
         }
@@ -1664,6 +1669,31 @@ public class ClientPublicAPI {
         root.name = obj.getString("name");
         root.type = obj.getString("type");
         return root;
+    }
+
+    public List<OctaneTask> getTasksByWorkItemIds(Collection<String> ids) {
+
+        if (ids == null || ids.isEmpty()) {
+            return new ArrayList<>();
+        }
+
+        List<List<String>> batchedIds = com.google.common.collect.Lists.partition(new ArrayList<>(ids), BATCH_SIZE);
+
+        List<OctaneTask> tasks = new ArrayList<>(ids.size());
+
+        for (List<String> idsBatch : batchedIds) {
+
+            List<JSONObject> tasksJson = getTasks("story={id%20IN%20"+StringUtils.join(idsBatch, ",")+"}");
+
+            List<OctaneTask> results = new ArrayList<>(tasksJson.size());
+
+            for (JSONObject taskJson : tasksJson) {
+                OctaneTask task = new OctaneTask(taskJson);
+                tasks.add(task);
+            }
+        }
+
+        return tasks;
     }
 
     /**
