@@ -6,6 +6,7 @@ import java.util.Map.Entry;
 
 import javax.ws.rs.HttpMethod;
 
+import com.google.gwt.thirdparty.guava.common.collect.Iterables;
 import com.hp.ppm.common.model.AgileEntityIdName;
 import org.joda.time.DateTime;
 import org.joda.time.format.DateTimeFormatter;
@@ -435,14 +436,27 @@ public class OctaneRequestIntegration extends RequestIntegration {
         }
 
         Map<String, Object> queryParams = new HashMap<String, Object>();
-        queryParams.put("id", entityIds);
-        if (null != lastUpdateTime) {
-            queryParams.put("last_modified", lastUpdateTime);
+        List<Set<String>> splitSets = new ArrayList<>();
+        if (entityIds.size() > 500) {
+        	Iterable<List<String>> splits = Iterables.partition(entityIds, 500);
+        	for (List<String> splitEntityIds : splits) {
+        		splitSets.add(new HashSet<>(splitEntityIds));
+        		
+    		}
+        } else {
+        	splitSets.add(entityIds);
         }
+        for (Set<String> splitEntityIds : splitSets) {
+        	queryParams.put("id", new HashSet<>(splitEntityIds));
+            if (null != lastUpdateTime) {
+                queryParams.put("last_modified", lastUpdateTime);
+            }
 
-        List<JSONObject> itemJson = client.getWorkItems(sharedSpaceId, workSpaceId,
-                ClientPublicAPI.EntityType.fromName(entityType), queryParams);
-        entities = getAgileEntities(client, itemJson, sharedSpaceId, workSpaceId, entityType);
+            List<JSONObject> itemJson = client.getWorkItems(sharedSpaceId, workSpaceId,
+                    ClientPublicAPI.EntityType.fromName(entityType), queryParams);
+            entities.addAll(getAgileEntities(client, itemJson, sharedSpaceId, workSpaceId, entityType));
+        }
+        
         return entities;
 
     }

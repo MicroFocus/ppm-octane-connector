@@ -29,8 +29,8 @@ REM ####################################################
 set ANT_OPTS=-Xmx1024m -Dfile.encoding=UTF-8
 set ANT_ARGS=-lib %PPM_SERVER_ROOT%\deploy\itg.war\WEB-INF\lib
 set JDK_LIB=%JDK_LIB_DIR%\rt.jar;%JDK_LIB_DIR%\tools.jar
-set SOURCE=1.7
-set TARGET=1.7
+set SOURCE=1.8
+set TARGET=1.8
 
 echo   JAVA_HOME %JAVA_HOME%
 echo   ANT_HOME %ANT_HOME%
