@@ -6,7 +6,7 @@ import java.util.Map.Entry;
 
 import javax.ws.rs.HttpMethod;
 
-import com.google.gwt.thirdparty.guava.common.collect.Iterables;
+import com.google.common.collect.Iterables;
 import com.hp.ppm.common.model.AgileEntityIdName;
 import org.joda.time.DateTime;
 import org.joda.time.format.DateTimeFormatter;
