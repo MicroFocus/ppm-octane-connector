@@ -1337,10 +1337,23 @@ public class OctaneRequestIntegration extends RequestIntegration {
     	                }
     	            }
     	        }
-    	JSONArray userArray = client.getUsersByIds(sharedspaceId, workspaceId, userIdList.toArray(new String[userIdList.size()]));
-    	for (int i = 0; i < userArray.size(); i++) {
-            JSONObject userObj = userArray.getJSONObject(i);
-            usersMap.put(userObj.getString("id"), userObj);
+    	List<List<String>> splitList = new ArrayList<List<String>>();
+    	if (userIdList.size() > 500) {
+        	Iterable<List<String>> splits = Iterables.partition(userIdList, 500);
+        	for (List<String> splitUserIds : splits) {
+        		splitList.add(splitUserIds);
+        		
+    		}
+        } else {
+        	splitList.add(userIdList);
+        }
+    	for (List<String> splitUserIds : splitList) {
+    		JSONArray userArray = client.getUsersByIds(sharedspaceId, workspaceId, splitUserIds.toArray(new String[splitUserIds.size()]));
+
+    		for (int i = 0; i < userArray.size(); i++) {
+                JSONObject userObj = userArray.getJSONObject(i);
+                usersMap.put(userObj.getString("id"), userObj);
+            }
         }
 
     	return usersMap;
