@@ -1,6 +1,7 @@
 
 package com.ppm.integration.agilesdk.connector.octane;
 
+import java.io.InputStream;
 import java.util.*;
 import java.util.Map.Entry;
 
@@ -31,6 +32,7 @@ import com.ppm.integration.agilesdk.dm.RequestIntegration;
 import com.ppm.integration.agilesdk.dm.StringField;
 import com.ppm.integration.agilesdk.dm.User;
 import com.ppm.integration.agilesdk.dm.UserField;
+import com.ppm.integration.agilesdk.model.AgileAttachment;
 import com.ppm.integration.agilesdk.model.AgileEntity;
 import com.ppm.integration.agilesdk.model.AgileEntityFieldInfo;
 import com.ppm.integration.agilesdk.model.AgileEntityInfo;
@@ -1530,6 +1532,180 @@ public class OctaneRequestIntegration extends RequestIntegration {
         return entities;
     }
 
+    public List<AgileAttachment> getAttachments(final String agileProjectValue, final ValueSet instanceConfigurationParameters, String entityId, Date lastUpdateTime)
+    {
+        List<AgileAttachment> entities = new ArrayList<>();
+
+        ClientPublicAPI client = ClientPublicAPI.getClient(instanceConfigurationParameters);
+        Map<String, Object> spaceAndWorkspace = getSpaceAndWorkspace(client, agileProjectValue, null);
+        JSONObject workspaceJson = parseAgileProject(agileProjectValue);
+        String workSpaceId = workspaceJson.getString(OctaneConstants.WORKSPACE_ID);
+        String sharedSpaceId = workspaceJson.getString(OctaneConstants.SHARED_SPACE_ID);
+
+        List<AgileAttachment> entitiesCollection =
+                getSpecificWorkspaceAttachments(client, sharedSpaceId, workSpaceId, entityId, lastUpdateTime);
+        entities.addAll(entitiesCollection);
+        client.signOut(instanceConfigurationParameters);
+        return entities;
+    }
+
+    private List<AgileAttachment> getSpecificWorkspaceAttachments(ClientPublicAPI client, String sharedSpaceId,
+                                                           String workSpaceId, String entityId, Date lastUpdateTime)
+    {
+        List<AgileAttachment> entities = new ArrayList<>();
+        String queryParam = "\"(owner_work_item={id=" + entityId + "})\"";
+        List<JSONObject> itemsJson = client.getAttachments(sharedSpaceId, workSpaceId, queryParam);
+        System.out.println(itemsJson.size());
+        entities = transferAttachmentList(itemsJson);
+        return entities;
+    }
+
+    public AgileAttachment addAttachment(final String agileProjectValue, final ValueSet instanceConfigurationParameters, String entityId, AgileAttachment attachment) {
+        ClientPublicAPI client = ClientPublicAPI.getClient(instanceConfigurationParameters);
+        JSONObject workspaceJson = parseAgileProject(agileProjectValue);
+        String workSpaceId = workspaceJson.getString(OctaneConstants.WORKSPACE_ID);
+        String sharedSpaceId = workspaceJson.getString(OctaneConstants.SHARED_SPACE_ID);
+
+        AgileAttachment entity =
+                uploadAttachment(client, sharedSpaceId, workSpaceId, entityId, attachment);
+
+        client.signOut(instanceConfigurationParameters);
+        return entity;
+    }
+
+
+    private AgileAttachment uploadAttachment(ClientPublicAPI client, String sharedSpaceId,
+                                                    String workSpaceId, String entityId, AgileAttachment attachment)
+    {
+        JSONObject attachJson = getAttachJson(entityId, attachment);
+        JSONArray attachmentEntities = client.addAttachment(sharedSpaceId, workSpaceId, attachJson.toString(), attachment.getName(), attachment.getContent());
+
+        List<AgileAttachment> entities = transferAttachment(attachmentEntities);
+        if (!entities.isEmpty()) {
+            return entities.get(0);
+        }
+        return attachment;
+
+    }
+
+    private static JSONObject getAttachJson(String entityId, AgileAttachment tempAttach) {
+        JSONObject attachJson = new JSONObject();
+        attachJson.put("name", tempAttach.getName());
+        attachJson.put("description", tempAttach.getDescription());
+        JSONObject workItem = new JSONObject();
+        workItem.put("type", "work_item");
+        workItem.put("id", entityId);
+        attachJson.put("owner_work_item", workItem);
+        return attachJson;
+    }
+
+    private static JSONObject getUpdateAttachJson(AgileAttachment tempAttach) {
+        JSONObject attachJson = new JSONObject();
+        attachJson.put("client_lock_stamp", tempAttach.getClientLockStamp());
+        attachJson.put("description", tempAttach.getDescription());
+        attachJson.put("name", tempAttach.getName());
+        attachJson.put("id", tempAttach.getId());
+        return attachJson;
+    }
+
+
+    public List<AgileAttachment> deleteAttachments(final String agileProjectValue, final ValueSet instanceConfigurationParameters, List<AgileAttachment> attachments) {
+        ClientPublicAPI client = ClientPublicAPI.getClient(instanceConfigurationParameters);
+        JSONObject workspaceJson = parseAgileProject(agileProjectValue);
+        String workSpaceId = workspaceJson.getString(OctaneConstants.WORKSPACE_ID);
+        String sharedSpaceId = workspaceJson.getString(OctaneConstants.SHARED_SPACE_ID);
+
+        String queryParams = "";
+        StringBuilder idStr = new StringBuilder("\"(");
+
+        for (AgileAttachment attachObj: attachments) {
+            if (attachObj.getId() != null) {
+                idStr.append("id='").append(attachObj.getId()).append("' || ");
+            }
+        }
+        if (idStr.length() > 4) {
+            queryParams = idStr.substring(0, idStr.length()-4) + ")\"";
+        }
+
+        JSONArray itemJson = client.deleteAttachment(sharedSpaceId, workSpaceId, queryParams);
+        List<AgileAttachment> respAttachments = transferAttachment(itemJson);
+
+        client.signOut(instanceConfigurationParameters);
+        return respAttachments;
+    }
+
+    private List<AgileAttachment> transferAttachmentList(List<JSONObject> items)
+    {
+        List<AgileAttachment> entities = new ArrayList<>();
+        if (!items.isEmpty()) {
+            for (JSONObject attObj : items) {
+                extractedAttachment(attObj, entities);
+            }
+        }
+
+        return entities;
+    }
+
+    private List<AgileAttachment> transferAttachment(JSONArray items)
+    {
+        List<AgileAttachment> entities = new ArrayList<>();
+        if (!items.isEmpty()) {
+            for (int i = 0; i < items.size(); i++) {
+                JSONObject attObj = items.getJSONObject(i);
+                extractedAttachment(attObj, entities);
+            }
+        }
+        return entities;
+    }
+
+    private void extractedAttachment(JSONObject attObj, List<AgileAttachment> entities) {
+        AgileAttachment agileAttachment = new AgileAttachment();
+        Iterator<String> sIterator = attObj.keys();
+        while (sIterator.hasNext()) {
+            String key = sIterator.next();
+            if (key.equals("id")) {
+                agileAttachment.setId(attObj.getString("id"));
+            } else if (key.equals("client_lock_stamp")) {
+                agileAttachment.setClientLockStamp(attObj.getInt("client_lock_stamp"));
+            } else if (key.equals("size")) {
+                agileAttachment.setSize(attObj.getInt("size"));
+            } else if (key.equals("name")) {
+                agileAttachment.setName(attObj.getString("name"));
+            } else if (key.equals("description")) {
+                agileAttachment.setDescription(attObj.getString("description"));
+            } else if (key.equals("last_modified")) {
+                agileAttachment.setLastUpdateTime(parserDate(attObj.getString("last_modified")));
+            }
+        }
+        entities.add(agileAttachment);
+    }
+
+
+    public AgileAttachment updateAttachment(final String agileProjectValue, final ValueSet instanceConfigurationParameters, AgileAttachment attachment) {
+        ClientPublicAPI client = ClientPublicAPI.getClient(instanceConfigurationParameters);
+        JSONObject workspaceJson = parseAgileProject(agileProjectValue);
+        String workSpaceId = workspaceJson.getString(OctaneConstants.WORKSPACE_ID);
+        String sharedSpaceId = workspaceJson.getString(OctaneConstants.SHARED_SPACE_ID);
+
+        String queryParam = "\"(owner_work_item={id=" + attachment.getId() + "})\"";
+        JSONObject itemJson = client.updateAttachment(sharedSpaceId, workSpaceId, getUpdateAttachJson(attachment).toString(), queryParam, attachment.getId());
+        attachment.setClientLockStamp(itemJson.getInt("client_lock_stamp"));
+        attachment.setLastUpdateTime(parserDate(itemJson.getString("last_modified")));
+        client.signOut(instanceConfigurationParameters);
+        return attachment;
+    }
+
+    public AgileAttachment downloadAttachment(final String agileProjectValue, final ValueSet instanceConfigurationParameters, AgileAttachment attachment) {
+        ClientPublicAPI client = ClientPublicAPI.getClient(instanceConfigurationParameters);
+        JSONObject workspaceJson = parseAgileProject(agileProjectValue);
+        String workSpaceId = workspaceJson.getString(OctaneConstants.WORKSPACE_ID);
+        String sharedSpaceId = workspaceJson.getString(OctaneConstants.SHARED_SPACE_ID);
+
+        InputStream item = client.downloadAttachment(sharedSpaceId, workSpaceId, attachment.getId(), attachment.getName());
+        attachment.setContent(item);
+        client.signOut(instanceConfigurationParameters);
+        return attachment;
+    }
 }
 
 class AgileFieldComparator implements Comparator<AgileEntityFieldInfo> {
