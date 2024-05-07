@@ -177,6 +177,7 @@ public class OctaneConstants {
     public static final String KEY_FIELD_APPLICATION_API_NAME = "product_areas";
     public static final String KEY_FIELD_REQUIREMENT = "requirements";
     public static final String KEY_FIELD_USER_TAG = "user_tags";
+    public static final String KEY_FIELD_ATTACHMENTS = "attachments";
     
     public static final String KEY_FIELD_NAME_DEFAULT_VALUE = "default name value";
 

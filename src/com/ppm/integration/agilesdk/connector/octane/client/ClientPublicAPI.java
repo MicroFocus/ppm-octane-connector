@@ -5,6 +5,7 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.DataOutputStream;
 import java.io.OutputStreamWriter;
 import java.io.UnsupportedEncodingException;
 import java.net.HttpCookie;
@@ -13,6 +14,7 @@ import java.net.InetSocketAddress;
 import java.net.Proxy;
 import java.net.URL;
 import java.net.URLEncoder;
+import java.security.SecureRandom;
 import java.text.SimpleDateFormat;
 import java.util.*;
 
@@ -39,8 +41,6 @@ import com.ppm.integration.agilesdk.tm.AuthenticationInfo;
 import net.sf.json.JSONArray;
 import net.sf.json.JSONException;
 import net.sf.json.JSONObject;
-
-
 
 /**
  * This Octane client is using the ClientID/ClientSecret authentication, and should be used wherever possible,
@@ -164,12 +164,7 @@ public class ClientPublicAPI {
 
     private RestResponse sendSSORequest(String url, String method, String jsonData) {
 
-        Map<String, String> headers = new HashMap<>();
-
-        if (this.cookies != null) {
-            headers.put("Cookie", this.cookies);
-        }
-        headers.put("HPECLIENTTYPE", "HPE_MQM_UI");
+        Map<String, String> headers = prepareHeader();
         headers.put("ALM_OCTANE_TECH_PREVIEW", "true");
 
         if (jsonData != null) {
@@ -179,6 +174,14 @@ public class ClientPublicAPI {
         return sendRequest(url, method, jsonData, headers);
     }
 
+    private Map<String, String> prepareHeader() {
+        Map<String, String> headers = new HashMap<>();
+        if (this.cookies != null) {
+            headers.put("Cookie", this.cookies);
+        }
+        headers.put("HPECLIENTTYPE", "HPE_MQM_UI");
+        return headers;
+    }
 
     /**
      * Use this method only when you need to have full control over the header sent, for example during authentication process.
@@ -273,6 +276,131 @@ public class ClientPublicAPI {
             retryNumber = 0;
             logger.error("error in http connectivity:", e);
             throw new OctaneClientException("AGM_APP", "ERROR_IN_HTTP_CONNECTIVITY", new String[] {e.getMessage()});
+        }
+    }
+
+
+    private RestResponse uploadRequest(String url, String data, String fileName, InputStream fileContent)
+    {
+        try {
+            URL obj = new URL(url);
+            HttpURLConnection con = null;
+            if (this.proxy != null) {
+                con = (HttpURLConnection)obj.openConnection(this.proxy);
+            } else {
+                con = (HttpURLConnection)obj.openConnection();
+            }
+
+            // Some HTTPS servers (like Octane on AWS) do not negotiate if you start with TLS1. So let's only use TLS1.2
+            if (con instanceof HttpsURLConnection) {
+                // Only allowing secure protocols to connect
+                System.setProperty("https.protocols", "TLSv1.2,SSLv3");
+            }
+
+            con.setRequestMethod(HttpMethod.POST);
+            SecureRandom secureRandom = new SecureRandom();
+            byte[] bytes = new byte[16];
+            secureRandom.nextBytes(bytes);
+            StringBuilder hexString = new StringBuilder();
+            for (byte b : bytes) {
+                hexString.append((char) ('a' + Math.abs(b % 26)));
+            }
+            String Boundary = "WebKitFormBoundary" + hexString.toString();
+            String SixHyphens = "------";
+
+            String LineEnd = "\r\n";
+
+            //set headers
+            con.setDoOutput(true);
+            con.setDoInput(true);
+            Map<String, String> headers = prepareHeader();
+            if (headers != null) {
+                for (Map.Entry<String, String> entry : headers.entrySet()) {
+                    con.setRequestProperty(entry.getKey(), entry.getValue());
+                }
+            }
+
+            con.setRequestProperty("Connection", "Keep-Alive");
+            con.setRequestProperty("Content-Type", "multipart/form-data;  boundary=----"  + Boundary );
+            DataOutputStream dos = new DataOutputStream(con.getOutputStream());
+            dos.writeBytes(SixHyphens + Boundary + LineEnd);
+            dos.writeBytes("Content-Disposition: form-data; name=\"entity\"; filename=\"blob\"" + LineEnd);
+            dos.writeBytes("Content-Type: application/json" + LineEnd);
+            dos.writeBytes(LineEnd);
+            byte[] input = data.getBytes("utf-8");
+            dos.write(input, 0, input.length);
+            dos.writeBytes(LineEnd);
+            dos.writeBytes(SixHyphens + Boundary + LineEnd);
+            dos.writeBytes("Content-Disposition: form-data; name=\"content\"; filename=\"" + fileName + "\"" + LineEnd);
+            dos.writeBytes("Content-Type: text/plain" + LineEnd);
+            byte[] buffer = new byte[4096];
+            int count = 0;
+            while ((count = fileContent.read(buffer)) != -1) {
+                dos.write(buffer, 0, count);
+            }
+            dos.writeBytes(LineEnd);
+            fileContent.close();
+
+            dos.writeBytes(LineEnd);
+            dos.writeBytes(SixHyphens + Boundary + "--" + LineEnd);
+
+            dos.flush();
+            dos.close();
+
+            int responseCode = con.getResponseCode();
+            BufferedReader in;
+
+            if (responseCode == 200 ) {
+                in = new BufferedReader(new InputStreamReader(con.getInputStream(), "UTF-8"));
+
+                if (cookies == null) {
+                    this.cookies = getCookie(con);
+                }
+            } else {
+                InputStream inputStream = con.getErrorStream();
+                if (inputStream == null) {
+                    inputStream = con.getInputStream();
+                }
+                in = new BufferedReader(new InputStreamReader(inputStream, "UTF-8"));
+            }
+
+            String inputLine;
+            StringBuffer response = new StringBuffer();
+
+            while ((inputLine = in.readLine()) != null) {
+                response.append(inputLine);
+            }
+            in.close();
+
+            String output = response.toString();
+
+            if (responseCode == 401) {
+                retryNumber = 0;
+                logger.error("OCTANE_API: HTTP 401 Error - URL:" + url + " Result: " + output);
+                throw new OctaneClientException("OCTANE_API", "ERROR_AUTHENTICATION_FAILED");
+            } else if (responseCode == 403) {
+                retryNumber = 0;
+                logger.error("OCTANE_API: HTTP 403 Error - URL:" + url + " Result: " + output);
+                throw new OctaneClientException("OCTANE_API", "ERROR_ACCESS_FAILED");
+            } else if (responseCode == 400) {
+                //sometimes there is a network issue, so we retry it again. If the retry number is great than 3,
+                //We will throw exception
+                logger.error("OCTANE_API: HTTP 400 Error - URL:" + url + " Result: " + output);
+                if (retryNumber < 3) {
+                    retryNumber += 1;
+                    logger.error("OCTANE_API: HTTP 400 Error - This is the " + retryNumber + " time to retry.");
+                    return uploadRequest(url, data, fileName, fileContent);
+                } else {
+                    retryNumber = 0;
+                    throw new OctaneClientException("OCTANE_API", "ERROR_BAD_REQUEST");
+                }
+            }
+            retryNumber = 0;
+            return new RestResponse(responseCode, output);
+        } catch (IOException e) {
+            retryNumber = 0;
+            logger.error("error in http connectivity:", e);
+            throw new OctaneClientException("AGM_APP", "ERROR_IN_HTTP_CONNECTIVITY", new String[] {fileName, e.getMessage()});
         }
     }
 
@@ -1192,6 +1320,7 @@ public class ClientPublicAPI {
                     // product
                     case OctaneConstants.KEY_FIELD_PRODUCT:
                     case OctaneConstants.KEY_FIELD_PARENT:
+                    case OctaneConstants.KEY_FIELD_ATTACHMENTS:
                         return true;
                 }
             default:
@@ -2060,6 +2189,200 @@ public class ClientPublicAPI {
         String url = String.format("%s/api/shared_spaces/%s/tenant_licenses", baseURL, sharedSpaceId);
         List<JSONObject> resultJsonList = new JsonPaginatedOctaneGetter().get(url);
         return resultJsonList;
+    }
+
+    public List<JSONObject> getAttachments(String sharedspaceId, String workspaceId, String queryParam)
+    {
+        String retrieveFields = null;
+
+        retrieveFields = "id,name,description,last_modified,size,exists,client_lock_stamp,author";
+
+        String url = String.format("%s/api/shared_spaces/%s/workspaces/%s/attachments?fields=%s", baseURL, sharedspaceId,
+                workspaceId, retrieveFields);
+
+        // if it is shared entity,add those parameter to distinguish those.now
+        // its for progress calculate
+        if (OctaneConstants.SHARED_EPIC_DEFAULT_WORKSPACE.equalsIgnoreCase(workspaceId)) {
+            url = url + "&cross_workspace=true&shared=true";
+        }
+        queryParam = queryEncode(queryParam);
+        url = url + "&order_by=id&query=" + queryParam;
+        List<JSONObject> resultJsonList = new JsonPaginatedOctaneGetter().get(url);
+        return resultJsonList;
+    }
+
+
+    public JSONArray addAttachment(String sharedspaceId, String workspaceId, String postData, String fileName, InputStream fileContent)
+    {
+        String retrieveFields = null;
+
+        retrieveFields = "id,name,description,last_modified,size,exists,client_lock_stamp,author";
+
+        String url = String.format("%s/api/shared_spaces/%s/workspaces/%s/attachments?fields=%s", baseURL, sharedspaceId,
+                workspaceId, retrieveFields);
+
+        // if it is shared entity,add those parameter to distinguish those.now
+        // its for progress calculate
+        if (OctaneConstants.SHARED_EPIC_DEFAULT_WORKSPACE.equalsIgnoreCase(workspaceId)) {
+            url = url + "&cross_workspace=true&shared=true";
+        }
+
+        RestResponse response = uploadRequest(url, postData, fileName, fileContent);
+        if (HttpStatus.SC_CREATED != response.getStatusCode()) {
+            this.logger.error("Error occured when creating attachment in Octane. Response code = " + response.getStatusCode());
+            throw new OctaneClientException("AGM_APP", "An error occurred when creating the attachment and the attachment name is " + fileName + ".", new String[] {response.getData() });
+        }
+
+        JSONObject obj = JSONObject.fromObject(response.getData());
+        JSONArray attachments = JSONArray.fromObject(obj.get("data"));
+        return attachments;
+    }
+
+    public JSONObject updateAttachment(String sharedspaceId, String workspaceId, String postData, String queryParam, String attachmentId)
+    {
+        String retrieveFields = null;
+
+        retrieveFields = "id,name,description,last_modified,author,client_lock_stamp,size,exists,creation_time,version_stamp,workspace_id,activity_level,global_text_search_result,referenced_count";
+
+        String url = String.format("%s/api/shared_spaces/%s/workspaces/%s/attachments/%s?fetch_single_entity=true&fields=%s", baseURL, sharedspaceId,
+                workspaceId, attachmentId, retrieveFields);
+
+        // if it is shared entity,add those parameter to distinguish those.now
+        // its for progress calculate
+        if (OctaneConstants.SHARED_EPIC_DEFAULT_WORKSPACE.equalsIgnoreCase(workspaceId)) {
+            url = url + "&cross_workspace=true&shared=true";
+        }
+
+        queryParam = queryEncode(queryParam);
+        url = url + "&query=" + queryParam;
+
+        RestResponse response = sendRequest(url, HttpMethod.PUT, postData);
+        return JSONObject.fromObject(response.getData());
+    }
+
+
+    public JSONArray deleteAttachment(String sharedspaceId, String workspaceId, String queryParam)
+    {
+
+        String url = String.format("%s/api/shared_spaces/%s/workspaces/%s/attachments?deleteDescendant=false", baseURL, sharedspaceId,
+                workspaceId);
+
+        // if it is shared entity,add those parameter to distinguish those.now
+        // its for progress calculate
+        if (OctaneConstants.SHARED_EPIC_DEFAULT_WORKSPACE.equalsIgnoreCase(workspaceId)) {
+            url = url + "&cross_workspace=true&shared=true";
+        }
+
+        queryParam = queryEncode(queryParam);
+        url = url + "&query=" + queryParam;
+
+        RestResponse response = sendRequest(url, HttpMethod.DELETE, null);
+
+        JSONObject obj = JSONObject.fromObject(response.getData());
+        JSONArray attachments = JSONArray.fromObject(obj.get("data"));
+
+        return attachments;
+    }
+
+    public InputStream downloadAttachment(String sharedspaceId, String workspaceId, String attachmentId, String fileName)
+    {
+
+        String url = String.format("%s/api/shared_spaces/%s/workspaces/%s/attachments/%s/%s", baseURL, sharedspaceId,
+                workspaceId, attachmentId, fileName);
+
+        // if it is shared entity,add those parameter to distinguish those.now
+        // its for progress calculate
+        if (OctaneConstants.SHARED_EPIC_DEFAULT_WORKSPACE.equalsIgnoreCase(workspaceId)) {
+            url = url + "&cross_workspace=true&shared=true";
+        }
+
+        InputStream content = downloadRequest(url);
+        return content;
+    }
+
+
+    private InputStream downloadRequest(String url)
+    {
+        try {
+            URL obj = new URL(url);
+            HttpURLConnection con = null;
+            if (this.proxy != null) {
+                con = (HttpURLConnection)obj.openConnection(this.proxy);
+            } else {
+                con = (HttpURLConnection)obj.openConnection();
+            }
+
+            // Some HTTPS servers (like Octane on AWS) do not negotiate if you start with TLS1. So let's only use TLS1.2
+            if (con instanceof HttpsURLConnection) {
+                // Only allowing secure protocols to connect
+                System.setProperty("https.protocols", "TLSv1.2,SSLv3");
+            }
+
+            con.setRequestMethod(HttpMethod.GET);
+
+            //set headers
+            Map<String, String> headers = prepareHeader();
+            if (headers != null) {
+                for (Map.Entry<String, String> entry : headers.entrySet()) {
+                    con.setRequestProperty(entry.getKey(), entry.getValue());
+                }
+            }
+
+            int responseCode = con.getResponseCode();
+            BufferedReader in;
+            InputStream respIn;
+            if (responseCode == 200 ) {
+                respIn = con.getInputStream();
+                if (cookies == null) {
+                    this.cookies = getCookie(con);
+                }
+                return respIn;
+            } else {
+                InputStream inputStream = con.getErrorStream();
+                if (inputStream == null) {
+                    inputStream = con.getInputStream();
+                }
+                in = new BufferedReader(new InputStreamReader(inputStream, "UTF-8"));
+            }
+
+            String inputLine;
+            StringBuffer response = new StringBuffer();
+
+            while ((inputLine = in.readLine()) != null) {
+                response.append(inputLine);
+            }
+            in.close();
+
+            String output = response.toString();
+
+            if (responseCode == 401) {
+                retryNumber = 0;
+                logger.error("OCTANE_API: HTTP 401 Error - URL:" + url + " Result: " + output);
+                throw new OctaneClientException("OCTANE_API", "ERROR_AUTHENTICATION_FAILED");
+            } else if (responseCode == 403) {
+                retryNumber = 0;
+                logger.error("OCTANE_API: HTTP 403 Error - URL:" + url + " Result: " + output);
+                throw new OctaneClientException("OCTANE_API", "ERROR_ACCESS_FAILED");
+            } else if (responseCode == 400) {
+                //sometimes there is a network issue, so we retry it again. If the retry number is great than 3,
+                //We will throw exception
+                logger.error("OCTANE_API: HTTP 400 Error - URL:" + url + " Result: " + output);
+                if (retryNumber < 3) {
+                    retryNumber += 1;
+                    logger.error("OCTANE_API: HTTP 400 Error - This is the " + retryNumber + " time to retry.");
+                    return downloadRequest(url);
+                } else {
+                    retryNumber = 0;
+                    throw new OctaneClientException("OCTANE_API", "ERROR_BAD_REQUEST");
+                }
+            }
+            retryNumber = 0;
+            return null;
+        } catch (IOException e) {
+            retryNumber = 0;
+            logger.error("error in http connectivity:", e);
+            throw new OctaneClientException("AGM_APP", "ERROR_IN_HTTP_CONNECTIVITY", new String[] {e.getMessage()});
+        }
     }
 
 }
