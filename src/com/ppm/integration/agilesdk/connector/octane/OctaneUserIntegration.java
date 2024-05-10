@@ -96,6 +96,7 @@ public class OctaneUserIntegration extends UserIntegration {
             user.setFirstName(spaceUser.getFirstName());
             user.setLastName(spaceUser.getLastName());
             user.setEmail(spaceUser.getEmail());
+            user.setLanguage(spaceUser.getLanguage());
             WorkspaceRole role = spaceUser.getWorkspaceRoles();
             // US#673013 improve user sync performance - use license type
             // instead of permissions

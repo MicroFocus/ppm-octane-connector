@@ -1706,7 +1706,7 @@ public class ClientPublicAPI {
 
         // get sharedSpace users
         String url = String.format(
-                "%s/api/shared_spaces/%s/users?fields=email,id,name,first_name,last_modified,last_name,activity_level,workspace_roles,license_type&order_by=last_modified&show_hidden_entities=true%s&query=%s",
+                "%s/api/shared_spaces/%s/users?fields=language,email,id,name,first_name,last_modified,last_name,activity_level,workspace_roles,license_type&order_by=last_modified&show_hidden_entities=true%s&query=%s",
                 baseURL, sharedspaceId, limitedField, filter);
 
 
