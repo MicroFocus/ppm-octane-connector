@@ -16,6 +16,7 @@ public class SharedSpaceUser {
 
     private String id;
 
+    private String  language;
     @SerializedName("last_modified")
     private String lastModified;
 
@@ -56,6 +57,13 @@ public class SharedSpaceUser {
 
     public void setId(String id) {
         this.id = id;
+    }
+
+    public String getLanguage() {
+        return language;
+    }
+    public void setLanguage(String language) {
+        this.language = language;
     }
 
     public String getLastModified() {
