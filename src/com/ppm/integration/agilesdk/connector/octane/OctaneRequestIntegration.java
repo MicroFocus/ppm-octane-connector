@@ -1577,16 +1577,41 @@ public class OctaneRequestIntegration extends RequestIntegration {
     private AgileAttachment uploadAttachment(ClientPublicAPI client, String sharedSpaceId,
                                                     String workSpaceId, String entityId, AgileAttachment attachment)
     {
+        String fileName = attachment.getName() + ".ngalink";
+        attachment.setName(fileName);
         JSONObject attachJson = getAttachJson(entityId, attachment);
-        JSONArray attachmentEntities = client.addAttachment(sharedSpaceId, workSpaceId, attachJson.toString(), attachment.getName(), attachment.getContent());
+        try {
+            JSONArray attachmentEntities = client.addAttachment(sharedSpaceId, workSpaceId, attachJson.toString(), attachment.getName(), attachment.getAttachmentUrl());
 
-        List<AgileAttachment> entities = transferAttachment(attachmentEntities);
-        if (!entities.isEmpty()) {
-            return entities.get(0);
+            List<AgileAttachment> entities = transferAttachment(attachmentEntities);
+            if (!entities.isEmpty()) {
+                return entities.get(0);
+            }
+        } catch (Exception e) {
+            attachment.setErrorMessage(e.getMessage());
         }
         return attachment;
 
     }
+
+
+    public List<AgileAttachment> addAttachments(final String agileProjectValue, final ValueSet instanceConfigurationParameters, String entityId, List<AgileAttachment> attachments) {
+        ClientPublicAPI client = ClientPublicAPI.getClient(instanceConfigurationParameters);
+        JSONObject workspaceJson = parseAgileProject(agileProjectValue);
+        String workSpaceId = workspaceJson.getString(OctaneConstants.WORKSPACE_ID);
+        String sharedSpaceId = workspaceJson.getString(OctaneConstants.SHARED_SPACE_ID);
+        List<AgileAttachment> returnAgileAttachment = new ArrayList<>();
+        for (AgileAttachment attachment : attachments) {
+            AgileAttachment entity =
+                    uploadAttachment(client, sharedSpaceId, workSpaceId, entityId, attachment);
+            entity.setDocumentId(attachment.getDocumentId());
+            returnAgileAttachment.add(entity);
+        }
+
+        client.signOut(instanceConfigurationParameters);
+        return returnAgileAttachment;
+    }
+
 
     private static JSONObject getAttachJson(String entityId, AgileAttachment tempAttach) {
         JSONObject attachJson = new JSONObject();
