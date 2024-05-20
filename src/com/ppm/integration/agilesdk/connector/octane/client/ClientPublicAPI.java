@@ -404,6 +404,125 @@ public class ClientPublicAPI {
         }
     }
 
+    private RestResponse attachLinkRequest(String url, String data, String fileName, String attachmentUrl)
+    {
+        try {
+            URL obj = new URL(url);
+            HttpURLConnection con = null;
+            if (this.proxy != null) {
+                con = (HttpURLConnection)obj.openConnection(this.proxy);
+            } else {
+                con = (HttpURLConnection)obj.openConnection();
+            }
+
+            // Some HTTPS servers (like Octane on AWS) do not negotiate if you start with TLS1. So let's only use TLS1.2
+            if (con instanceof HttpsURLConnection) {
+                // Only allowing secure protocols to connect
+                System.setProperty("https.protocols", "TLSv1.2,SSLv3");
+            }
+
+            con.setRequestMethod(HttpMethod.POST);
+            SecureRandom secureRandom = new SecureRandom();
+            byte[] bytes = new byte[16];
+            secureRandom.nextBytes(bytes);
+            StringBuilder hexString = new StringBuilder();
+            for (byte b : bytes) {
+                hexString.append((char) ('a' + Math.abs(b % 26)));
+            }
+            String Boundary = "WebKitFormBoundary" + hexString.toString();
+            String SixHyphens = "------";
+
+            String LineEnd = "\r\n";
+
+            //set headers
+            con.setDoOutput(true);
+            Map<String, String> headers = prepareHeader();
+            if (headers != null) {
+                for (Map.Entry<String, String> entry : headers.entrySet()) {
+                    con.setRequestProperty(entry.getKey(), entry.getValue());
+                }
+            }
+
+            con.setRequestProperty("Connection", "Keep-Alive");
+            con.setRequestProperty("Content-Type", "multipart/form-data;  boundary=----"  + Boundary );
+            DataOutputStream dos = new DataOutputStream(con.getOutputStream());
+            dos.writeBytes(SixHyphens + Boundary + LineEnd);
+            dos.writeBytes("Content-Disposition: form-data; name=\"entity\"; filename=\"blob\"" + LineEnd);
+            dos.writeBytes("Content-Type: application/json" + LineEnd);
+            dos.writeBytes(LineEnd);
+            byte[] input = data.getBytes("utf-8");
+            dos.write(input, 0, input.length);
+            dos.writeBytes(LineEnd);
+            dos.writeBytes(SixHyphens + Boundary + LineEnd);
+            dos.writeBytes("Content-Disposition: form-data; name=\"content\"; filename=\"" + fileName + "\"" + LineEnd);
+            dos.writeBytes("Content-Type: application/octet-stream" + LineEnd);
+            dos.writeBytes(LineEnd);
+            String content = "[InternetShortcut]" + LineEnd + "URL=" + attachmentUrl;
+            byte[] inputUrl = content.getBytes("utf-8");
+            dos.write(inputUrl, 0, inputUrl.length);
+            dos.writeBytes(LineEnd);
+            dos.writeBytes(SixHyphens + Boundary + "--" + LineEnd);
+
+            dos.flush();
+            dos.close();
+
+            int responseCode = con.getResponseCode();
+            BufferedReader in;
+
+            if (responseCode == 200 ) {
+                in = new BufferedReader(new InputStreamReader(con.getInputStream(), "UTF-8"));
+
+                if (cookies == null) {
+                    this.cookies = getCookie(con);
+                }
+            } else {
+                InputStream inputStream = con.getErrorStream();
+                if (inputStream == null) {
+                    inputStream = con.getInputStream();
+                }
+                in = new BufferedReader(new InputStreamReader(inputStream, "UTF-8"));
+            }
+
+            String inputLine;
+            StringBuffer response = new StringBuffer();
+
+            while ((inputLine = in.readLine()) != null) {
+                response.append(inputLine);
+            }
+            in.close();
+
+            String output = response.toString();
+
+            if (responseCode == 401) {
+                retryNumber = 0;
+                logger.error("OCTANE_API: HTTP 401 Error - URL:" + url + " Result: " + output);
+                throw new OctaneClientException("OCTANE_API", "ERROR_AUTHENTICATION_FAILED");
+            } else if (responseCode == 403) {
+                retryNumber = 0;
+                logger.error("OCTANE_API: HTTP 403 Error - URL:" + url + " Result: " + output);
+                throw new OctaneClientException("OCTANE_API", "ERROR_ACCESS_FAILED");
+            } else if (responseCode == 400) {
+                //sometimes there is a network issue, so we retry it again. If the retry number is great than 3,
+                //We will throw exception
+                logger.error("OCTANE_API: HTTP 400 Error - URL:" + url + " Result: " + output);
+                if (retryNumber < 3) {
+                    retryNumber += 1;
+                    logger.error("OCTANE_API: HTTP 400 Error - This is the " + retryNumber + " time to retry.");
+                    return attachLinkRequest(url, data, fileName, attachmentUrl);
+                } else {
+                    retryNumber = 0;
+                    throw new OctaneClientException("OCTANE_API", "ERROR_BAD_REQUEST");
+                }
+            }
+            retryNumber = 0;
+            return new RestResponse(responseCode, output);
+        } catch (IOException e) {
+            retryNumber = 0;
+            logger.error("error in http connectivity:", e);
+            throw new OctaneClientException("AGM_APP", "ERROR_IN_HTTP_CONNECTIVITY", new String[] {fileName, e.getMessage()});
+        }
+    }
+
     private boolean verifyResult(int expected, int result) {
         boolean isVerify = false;
         if (expected != result) {
@@ -2212,7 +2331,7 @@ public class ClientPublicAPI {
     }
 
 
-    public JSONArray addAttachment(String sharedspaceId, String workspaceId, String postData, String fileName, InputStream fileContent)
+    public JSONArray addAttachment(String sharedspaceId, String workspaceId, String postData, String fileName, String attachmentUrl)
     {
         String retrieveFields = null;
 
@@ -2227,7 +2346,7 @@ public class ClientPublicAPI {
             url = url + "&cross_workspace=true&shared=true";
         }
 
-        RestResponse response = uploadRequest(url, postData, fileName, fileContent);
+        RestResponse response = attachLinkRequest(url, postData, fileName, attachmentUrl);
         if (HttpStatus.SC_CREATED != response.getStatusCode()) {
             this.logger.error("Error occured when creating attachment in Octane. Response code = " + response.getStatusCode());
             throw new OctaneClientException("AGM_APP", "An error occurred when creating the attachment and the attachment name is " + fileName + ".", new String[] {response.getData() });
