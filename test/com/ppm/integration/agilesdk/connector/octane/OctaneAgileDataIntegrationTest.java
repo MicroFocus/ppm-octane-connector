@@ -22,8 +22,8 @@ public class OctaneAgileDataIntegrationTest {
 
     @Before public void setUp() throws Exception {
         values = CommonParameters.getDefaultValueSet();
-        wp.setId("InstanceId-1");
-        ori.setUp(values, "3001");
+        wp.setId("**");
+        ori.setUp(values, "**");
     }
 
     @Test public void testGetBacklogItems() throws Exception {
