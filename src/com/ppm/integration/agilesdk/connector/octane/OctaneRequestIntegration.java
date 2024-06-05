@@ -78,6 +78,8 @@ public class OctaneRequestIntegration extends RequestIntegration {
 
     private static final String SPLIT_CHAR = ";";
 
+    private static final String URL_ATTACHMENT_POSTFIX = ".ngalink";
+
     @Override
     public List<AgileEntityInfo> getAgileEntitiesInfo(final String agileProjectValue,
             final ValueSet instanceConfigurationParameters)
@@ -1548,7 +1550,7 @@ public class OctaneRequestIntegration extends RequestIntegration {
         List<AgileAttachment> entitiesCollection =
                 getSpecificWorkspaceAttachments(client, sharedSpaceId, workSpaceId, entityId, lastUpdateTime);
         for(AgileAttachment attach : entitiesCollection){
-            if(attach.getName().endsWith("ngalink")){
+            if(attach.getName().endsWith(URL_ATTACHMENT_POSTFIX)){
                 this.downloadAttachment(agileProjectValue, instanceConfigurationParameters, attach);
                 try {
                     attach.setAgileAttachmentUrl(getContentAfterSpecialCharacter(attach.getContent(), '='));
@@ -1614,7 +1616,7 @@ public class OctaneRequestIntegration extends RequestIntegration {
     private AgileAttachment uploadAttachment(ClientPublicAPI client, String sharedSpaceId,
                                                     String workSpaceId, String entityId, AgileAttachment attachment)
     {
-        String fileName = attachment.getName() + ".ngalink";
+        String fileName = attachment.getName() + URL_ATTACHMENT_POSTFIX;
         attachment.setName(fileName);
         JSONObject attachJson = getAttachJson(entityId, attachment);
         try {
