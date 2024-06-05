@@ -1,7 +1,10 @@
 
 package com.ppm.integration.agilesdk.connector.octane;
 
+import java.io.BufferedReader;
+import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.util.*;
 import java.util.Map.Entry;
 
@@ -1544,9 +1547,43 @@ public class OctaneRequestIntegration extends RequestIntegration {
 
         List<AgileAttachment> entitiesCollection =
                 getSpecificWorkspaceAttachments(client, sharedSpaceId, workSpaceId, entityId, lastUpdateTime);
+        for(AgileAttachment attach : entitiesCollection){
+            if(attach.getName().endsWith("ngalink")){
+                this.downloadAttachment(agileProjectValue, instanceConfigurationParameters, attach);
+                try {
+                    attach.setAgileAttachmentUrl(getContentAfterSpecialCharacter(attach.getContent(), '='));
+                } catch (IOException e) {
+                    throw new RuntimeException("An error occurred while reading the InputStream from Agile Attachment: " + e.getMessage());
+                }
+            }
+            String url = String.format("%s/api/shared_spaces/%s/workspaces/%s/attachments/%s/%s", client.getBaseURL(), sharedSpaceId,
+                    workSpaceId, attach.getId(), attach.getName());
+            attach.setAgileAttachmentUrl(url);
+        }
         entities.addAll(entitiesCollection);
         client.signOut(instanceConfigurationParameters);
         return entities;
+    }
+
+    public static String getContentAfterSpecialCharacter(InputStream inputStream, char specialChar) throws IOException {
+        BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream));
+        StringBuilder contentBuilder = new StringBuilder();
+        String line;
+
+        while ((line = reader.readLine()) != null) {
+            contentBuilder.append(line);
+            contentBuilder.append(System.lineSeparator());
+        }
+
+        String content = contentBuilder.toString();
+
+        int specialCharIndex = content.indexOf(specialChar);
+
+        if (specialCharIndex == -1) {
+            return "";
+        }
+
+        return content.substring(specialCharIndex + 1).trim();
     }
 
     private List<AgileAttachment> getSpecificWorkspaceAttachments(ClientPublicAPI client, String sharedSpaceId,
@@ -1714,6 +1751,7 @@ public class OctaneRequestIntegration extends RequestIntegration {
 
         String queryParam = "\"(owner_work_item={id=" + attachment.getId() + "})\"";
         JSONObject itemJson = client.updateAttachment(sharedSpaceId, workSpaceId, getUpdateAttachJson(attachment).toString(), queryParam, attachment.getId());
+        //TODO exception
         attachment.setClientLockStamp(itemJson.getInt("client_lock_stamp"));
         attachment.setLastUpdateTime(parserDate(itemJson.getString("last_modified")));
         client.signOut(instanceConfigurationParameters);
