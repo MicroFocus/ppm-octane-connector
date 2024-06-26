@@ -1542,7 +1542,6 @@ public class OctaneRequestIntegration extends RequestIntegration {
         List<AgileAttachment> entities = new ArrayList<>();
 
         ClientPublicAPI client = ClientPublicAPI.getClient(instanceConfigurationParameters);
-        Map<String, Object> spaceAndWorkspace = getSpaceAndWorkspace(client, agileProjectValue, null);
         JSONObject workspaceJson = parseAgileProject(agileProjectValue);
         String workSpaceId = workspaceJson.getString(OctaneConstants.WORKSPACE_ID);
         String sharedSpaceId = workspaceJson.getString(OctaneConstants.SHARED_SPACE_ID);
@@ -1550,17 +1549,17 @@ public class OctaneRequestIntegration extends RequestIntegration {
         List<AgileAttachment> entitiesCollection =
                 getSpecificWorkspaceAttachments(client, sharedSpaceId, workSpaceId, entityId, lastUpdateTime);
         for(AgileAttachment attach : entitiesCollection){
-            if(attach.getName().endsWith(URL_ATTACHMENT_POSTFIX)){
-                this.downloadAttachment(agileProjectValue, instanceConfigurationParameters, attach);
-                try {
-                    attach.setAgileAttachmentUrl(getContentAfterSpecialCharacter(attach.getContent(), '='));
-                } catch (IOException e) {
-                    throw new RuntimeException("An error occurred while reading the InputStream from Agile Attachment: " + e.getMessage());
-                }
-            }
             String url = String.format("%s/api/shared_spaces/%s/workspaces/%s/attachments/%s/%s", client.getBaseURL(), sharedSpaceId,
                     workSpaceId, attach.getId(), attach.getName());
             attach.setAgileAttachmentUrl(url);
+            if(attach.getName().endsWith(URL_ATTACHMENT_POSTFIX)){
+                try {
+                    this.downloadAttachment(agileProjectValue, attach, client);
+                    attach.setAgileAttachmentUrl(getContentAfterSpecialCharacter(attach.getContent(), '='));
+                } catch (Exception e) {
+                    attach.setErrorMessage(e.getMessage());
+                }
+            }
         }
         entities.addAll(entitiesCollection);
         client.signOut(instanceConfigurationParameters);
@@ -1760,15 +1759,13 @@ public class OctaneRequestIntegration extends RequestIntegration {
         return attachment;
     }
 
-    public AgileAttachment downloadAttachment(final String agileProjectValue, final ValueSet instanceConfigurationParameters, AgileAttachment attachment) {
-        ClientPublicAPI client = ClientPublicAPI.getClient(instanceConfigurationParameters);
+    public AgileAttachment downloadAttachment(final String agileProjectValue, AgileAttachment attachment, ClientPublicAPI client) {
         JSONObject workspaceJson = parseAgileProject(agileProjectValue);
         String workSpaceId = workspaceJson.getString(OctaneConstants.WORKSPACE_ID);
         String sharedSpaceId = workspaceJson.getString(OctaneConstants.SHARED_SPACE_ID);
 
         InputStream item = client.downloadAttachment(sharedSpaceId, workSpaceId, attachment.getId(), attachment.getName());
         attachment.setContent(item);
-        client.signOut(instanceConfigurationParameters);
         return attachment;
     }
 }
