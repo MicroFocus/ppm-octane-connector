@@ -632,7 +632,7 @@ public class ClientPublicAPI {
                     net.sf.json.JSONObject wsRole = wsroles.getJSONObject(i);
                     net.sf.json.JSONObject role = wsRole.getJSONObject("role");
                     String roleName = role.getString("logical_name");
-                    if(WORKSPACE_ADMIN_ROLE.equalsIgnoreCase(roleName)) {
+                    if(roleName != null && !wsRole.getString("workspace").equals("null")) {
                         net.sf.json.JSONObject ws = wsRole.getJSONObject("workspace");
                         String wsId = ws.getString("id");
                         if (OctaneConstants.SHARED_EPIC_DEFAULT_WORKSPACE.equalsIgnoreCase(wsId)) {
@@ -1275,7 +1275,7 @@ public class ClientPublicAPI {
         }
     	String url = String.format("%s/api/shared_spaces/%s/workspaces/%s/metadata/fields?query=%s%s%s",
                 baseURL, sharedspaceId, workspaceId, "%22entity_name%20EQ%20'", entityName,
-                "';field_type%20IN%20'string','reference','memo','float','integer'%22");
+                "';field_type%20IN%20'string','reference','memo','float','milestone','integer'%22");
         // "';visible_in_ui%20EQ%20true;editable%20EQ%20true;field_type%20IN%20'string','reference','memo'%22");
         List fieldsList = new ArrayList();
         RestResponse response = sendGet(url);
@@ -1313,6 +1313,7 @@ public class ClientPublicAPI {
                     //open phase, release
                     case OctaneConstants.KEY_FIELD_PHASE:
                     case OctaneConstants.KEY_FIELD_RELEASE:
+                    case OctaneConstants.KEY_FIELD_MILESTONE:
                         return true;
                 }
             case OctaneConstants.KEY_FIELD_REFERENCE:

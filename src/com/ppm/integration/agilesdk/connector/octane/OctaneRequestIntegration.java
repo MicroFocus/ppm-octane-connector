@@ -701,6 +701,7 @@ public class OctaneRequestIntegration extends RequestIntegration {
                             //allow PPM text to Octane phase, release, if add new field in future, just add <case> field
                             case OctaneConstants.KEY_FIELD_PHASE:
                             case OctaneConstants.KEY_FIELD_RELEASE:
+                            case OctaneConstants.KEY_FIELD_MILESTONE:
                                 //if param "", regard as user clear the field(phase will not come there)
                                 if( value.isEmpty()){
                                     entityObj.put(key, createNullJSONObject(false));
@@ -911,6 +912,8 @@ public class OctaneRequestIntegration extends RequestIntegration {
                 return OctaneConstants.KEY_FIELD_PHASE_API_NAME;
             case OctaneConstants.KEY_FIELD_RELEASE:
                 return OctaneConstants.KEY_FIELD_RELEASE_API_NAME;
+            case OctaneConstants.KEY_FIELD_MILESTONE:
+                return OctaneConstants.KEY_FIELD_MILESTONE_API_NAME;
             default:
                 return originName;
         }
