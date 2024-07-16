@@ -5,6 +5,7 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.net.URLEncoder;
 import java.util.*;
 import java.util.Map.Entry;
 
@@ -1549,8 +1550,14 @@ public class OctaneRequestIntegration extends RequestIntegration {
         List<AgileAttachment> entitiesCollection =
                 getSpecificWorkspaceAttachments(client, sharedSpaceId, workSpaceId, entityId, lastUpdateTime);
         for(AgileAttachment attach : entitiesCollection){
+            String fileName = attach.getName();
+            try {
+                fileName = URLEncoder.encode(attach.getName(), "UTF-8").replace("+", "%20");
+            } catch (Exception e) {
+                attach.setErrorMessage(e.getMessage());
+            }
             String url = String.format("%s/api/shared_spaces/%s/workspaces/%s/attachments/%s/%s", client.getBaseURL(), sharedSpaceId,
-                    workSpaceId, attach.getId(), attach.getName());
+                    workSpaceId, attach.getId(), fileName);
             attach.setAgileAttachmentUrl(url);
             if(attach.getName().endsWith(URL_ATTACHMENT_POSTFIX)){
                 try {
