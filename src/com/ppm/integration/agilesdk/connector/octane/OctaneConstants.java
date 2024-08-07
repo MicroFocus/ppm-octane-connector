@@ -158,6 +158,7 @@ public class OctaneConstants {
     public static final String KEY_FIELD_LAST_MODIFIED = "last_modified";
     public static final String KEY_FIELD_MILESTONE = "milestone";
     public static final String KEY_FIELD_MILESTONE_API_NAME = "milestones";
+    public static final String KEY_FIELD_RELEASE_LIST_UDF = "release_list_udf";
     public static final String KEY_FIELD_PARENT = "parent";
     public static final String KEY_FIELD_EPIC_API_NAME = "epics";
     public static final String KEY_FIELD_FEATURE_API_NAME = "features";

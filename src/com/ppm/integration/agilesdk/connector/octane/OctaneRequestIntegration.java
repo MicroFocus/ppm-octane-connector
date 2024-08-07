@@ -727,6 +727,34 @@ public class OctaneRequestIntegration extends RequestIntegration {
                                 }
                                 entityObj.put(key, complexObj);
                                 break;
+                            case OctaneConstants.KEY_FIELD_RELEASE_LIST_UDF:
+                                if( value.isEmpty()){
+                                    entityObj.put(key, createNullJSONObject(false));
+                                    break;
+                                }
+                                List<WorkSpace> workSpaces = client.getWorkSpaces(Integer.valueOf(sharedSpaceId), true);
+                                String workspaceName = null;
+                                for(WorkSpace wp : workSpaces){
+                                    if(wp.getId().equals(workSpaceId)){
+                                        workspaceName =  wp.getName();
+                                        break;
+                                    }
+                                }
+                                String workspaceKey = getGuidPrefixByWPName(workspaceName);
+                                List<AgileEntityFieldValue> releaseValueList = client
+                                        .getEntityFieldListNodeByFieldName(sharedSpaceId, workSpaceId, workspaceKey + "_" + OctaneConstants.KEY_FIELD_RELEASE_API_NAME);
+
+                                JSONObject complexReleaseObj = new JSONObject();
+                                complexReleaseObj.put("id", value);
+                                complexReleaseObj.put("type", OctaneConstants.SUB_TYPE_LIST_NODE);
+                                for (AgileEntityFieldValue agileFieldValue: releaseValueList) {
+                                    if(agileFieldValue.getName().equalsIgnoreCase(value)){
+                                        complexReleaseObj.put("id", agileFieldValue.getId());
+                                        break;
+                                    }
+                                }
+                                entityObj.put(key, complexReleaseObj);
+                                break;
                             case OctaneConstants.KEY_FIELD_COMMENTS:
                                 if( value.isEmpty()){
                                     //empty value will not be updated
@@ -910,6 +938,23 @@ public class OctaneRequestIntegration extends RequestIntegration {
         entityList.add(entityObj);
 
         return entityList.toString();
+    }
+
+    /**
+     *
+     * return guidPrefix(workspace key) of corresponding Product. Like PPM "workspaceName" is "Project and Portfolio Management - 17R",
+     * @return 17R
+     */
+    private String getGuidPrefixByWPName(String workspaceName) {
+        if(workspaceName == null){
+            return "";
+        }
+        int index = workspaceName.indexOf('-');
+        if (index == -1) {
+            return "";
+        }
+        return workspaceName.substring(index + 1).trim();
+
     }
 
     private String getFieldNameInAPI(String originName){
