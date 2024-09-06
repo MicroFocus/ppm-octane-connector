@@ -308,7 +308,7 @@ public class OctaneRequestIntegration extends RequestIntegration {
                     newFieldName = fieldName;
                     break;
             }
-            fields = client.getEntityFieldValueList(sharedSpaceId, workSpaceId, entityType, newFieldName);
+            fields = client.getEntityFieldValueList(sharedSpaceId, workSpaceId, entityType, newFieldName, null);
         }
         return fields;
     }
@@ -714,7 +714,7 @@ public class OctaneRequestIntegration extends RequestIntegration {
                                     break;
                                 }
                                 List<AgileEntityFieldValue> valueList = client
-                                        .getEntityFieldValueList(sharedSpaceId, workSpaceId, entityType, getFieldNameInAPI(key));
+                                        .getEntityFieldValueList(sharedSpaceId, workSpaceId, entityType, getFieldNameInAPI(key), value);
 
                                 JSONObject complexObj = new JSONObject();
                                 complexObj.put("id", value);
@@ -841,7 +841,7 @@ public class OctaneRequestIntegration extends RequestIntegration {
                                 case OctaneConstants.KEY_FIELD_PHASE:
                                 case OctaneConstants.KEY_FIELD_RELEASE:
                                     List<AgileEntityFieldValue> valueList = client.getEntityFieldValueList(
-                                            sharedSpaceId, workSpaceId, entityType, getFieldNameInAPI(key));
+                                            sharedSpaceId, workSpaceId, entityType, getFieldNameInAPI(key), null);
 
                                     for (AgileEntityFieldValue agileFieldValue : valueList) {
                                         if (agileFieldValue.getName().equalsIgnoreCase(listNodeField.get().getName())) {
