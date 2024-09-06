@@ -751,7 +751,7 @@ public class ClientPublicAPI {
                     net.sf.json.JSONObject wsRole = wsroles.getJSONObject(i);
                     net.sf.json.JSONObject role = wsRole.getJSONObject("role");
                     String roleName = role.getString("logical_name");
-                    if(roleName != null && !wsRole.getString("workspace").equals("null")) {
+                    if(WORKSPACE_ADMIN_ROLE.equalsIgnoreCase(roleName) && !wsRole.getString("workspace").equals("null")) {
                         net.sf.json.JSONObject ws = wsRole.getJSONObject("workspace");
                         String wsId = ws.getString("id");
                         if (OctaneConstants.SHARED_EPIC_DEFAULT_WORKSPACE.equalsIgnoreCase(wsId)) {
@@ -1460,12 +1460,16 @@ public class ClientPublicAPI {
     }
 
     public List<AgileEntityFieldValue> getEntityFieldValueList(final String sharedSpaceId, final String workSpaceId,
-            final String entityName, final String fieldName)
+            final String entityName, final String fieldName, String fieldValue)
     {
         String url = String.format("%s/api/shared_spaces/%s/workspaces/%s/%s?fields=id,name", baseURL, sharedSpaceId,
                 workSpaceId, fieldName);
         if(OctaneConstants.KEY_FIELD_PHASE_API_NAME.equals(fieldName)){
             url = String.format("%s&query=%s%s%s", url, "%22entity%20EQ%20'", entityName, "'%22");
+        }
+        //for milestone, we use name to query
+        if(OctaneConstants.KEY_FIELD_MILESTONE_API_NAME.equals(fieldName) && fieldValue != null){
+            url = String.format("%s&query=%s%s%s", url, "%22name%20EQ%20'", fieldValue, "'%22");
         }
         RestResponse response = sendGet(url);
         JSONObject dataObj = JSONObject.fromObject(response.getData());
