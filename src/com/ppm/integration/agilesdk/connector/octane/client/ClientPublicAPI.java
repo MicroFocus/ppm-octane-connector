@@ -1459,6 +1459,24 @@ public class ClientPublicAPI {
         return valueList;
     }
 
+    /**
+     *
+     * @param sharedSpaceId
+     * @param workSpaceId
+     * @param name
+     * @return
+     */
+    public List<AgileEntityFieldValue> getEntityFieldListNodeByFieldName(final String sharedSpaceId, final String workSpaceId,
+                                                                         final String name)
+    {
+        String url = String.format("%s/api/shared_spaces/%s/workspaces/%s/list_nodes?fields=id,name&query=%s%s%s", baseURL,
+                sharedSpaceId, workSpaceId, "%22list_root={name%20EQ%20^", name, "^}%22");
+        RestResponse response = sendGet(url);
+        JSONObject dataObj = JSONObject.fromObject(response.getData());
+        List<AgileEntityFieldValue> valueList = parseValueJson(dataObj);
+        return valueList;
+    }
+
     public List<AgileEntityFieldValue> getEntityFieldValueList(final String sharedSpaceId, final String workSpaceId,
             final String entityName, final String fieldName, String fieldValue)
     {
