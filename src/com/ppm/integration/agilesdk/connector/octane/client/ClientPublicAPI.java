@@ -2171,8 +2171,8 @@ public class ClientPublicAPI {
 
     private String generateFilterString(Map<String, Object> queryParams) {
         if (queryParams != null && !queryParams.isEmpty()) {
-            StringBuilder queryBuilder = new StringBuilder("&query=\"");
-            StringBuilder builder = new StringBuilder();
+            StringBuilder queryBuilder = new StringBuilder("&query=");
+            StringBuilder builder = new StringBuilder("\"");
             for (Map.Entry<String, Object> entry : queryParams.entrySet()) {
                 if (entry.getValue() instanceof String) {
                     if (OctaneConstants.FULL_QUERY.equalsIgnoreCase(entry.getKey())) {
@@ -2192,7 +2192,8 @@ public class ClientPublicAPI {
                 builder.append(";");
             }
             builder.deleteCharAt(builder.length() - 1);
-            return queryBuilder.append(queryEncode(builder.toString())).append("\"").toString();
+            builder.append("\"");
+            return queryBuilder.append(queryEncode(builder.toString())).toString();
         }
         return null;
     }
