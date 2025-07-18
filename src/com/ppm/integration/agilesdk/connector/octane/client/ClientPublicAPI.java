@@ -1460,24 +1460,26 @@ public class ClientPublicAPI {
     }
 
     public List<AgileEntityFieldValue> getEntityFieldValueList(final String sharedSpaceId, final String workSpaceId,
-            final String entityName, final String fieldName, String fieldValue)
+                                                               final String entityName, final String fieldName, String fieldValue)
     {
-        String url = String.format("%s/api/shared_spaces/%s/workspaces/%s/%s?fields=id,name", baseURL, sharedSpaceId,
+        String url = String.format("%s/api/shared_spaces/%s/workspaces/%s/%s?fields=id,name&query=", baseURL, sharedSpaceId,
                 workSpaceId, fieldName);
+        StringBuilder query = new StringBuilder();
         if(OctaneConstants.KEY_FIELD_PHASE_API_NAME.equals(fieldName)){
-            url = String.format("%s&query=%s%s%s", url, "%22entity%20EQ%20'", entityName, "'%22");
+            query.append("\"entity EQ '").append(entityName).append("'\"");
         }
         //for milestone, we use name to query
         if(OctaneConstants.KEY_FIELD_MILESTONE_API_NAME.equals(fieldName) && fieldValue != null){
-            url = String.format("%s&query=%s%s%s", url, "%22name%20EQ%20'", fieldValue, "'%22");
+            query.append("\"name EQ '").append(fieldValue).append("'\"");
         }
+        url = String.format("%s%s", url,queryEncode(query.toString()));
         RestResponse response = sendGet(url);
         JSONObject dataObj = JSONObject.fromObject(response.getData());
         List<AgileEntityFieldValue> valueList = parseValueJson(dataObj);
 
         return valueList;
     }
-    
+
     public JSONArray getCommentsJsonFromWorkItems(final String sharedSpaceId, final String workSpaceId,
             final List<String> workItemIds)
     {
