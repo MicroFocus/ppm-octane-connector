@@ -30,7 +30,7 @@
     <target name="compile" depends="clean">
         <mkdir dir="${CONNECTOR_DIR}/bin/classes" />
         <echo>${CONNECTOR_DIR} - Compile Java Classes</echo>
-        <javac bootclasspath="${env.JDK_LIB}" source="${env.SOURCE}" target="${env.TARGET}" destdir="${CONNECTOR_DIR}/bin/classes" debug="${debug}">
+        <javac executable="${env.JDK_LIB_DIR}/javac" bootclasspath="${env.JDK_LIB}" source="${env.SOURCE}" target="${env.TARGET}" destdir="${CONNECTOR_DIR}/bin/classes" debug="${debug}">
             <src>
                 <path location="${CONNECTOR_DIR}/src" />
             </src>
