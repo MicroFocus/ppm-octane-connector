@@ -2413,6 +2413,12 @@ public class ClientPublicAPI {
 
     public InputStream downloadAttachment(String sharedspaceId, String workspaceId, String attachmentId, String fileName)
     {
+        try {
+            //Defect#1891839 - To avoid getting 400 Bad Request from Octane, replace spaces in the filename with %20 and add it it to the url.
+            fileName = URLEncoder.encode(fileName, "UTF-8").replace("+", "%20");
+        } catch (UnsupportedEncodingException e) {
+            // ignore
+        }
 
         String url = String.format("%s/api/shared_spaces/%s/workspaces/%s/attachments/%s/%s", baseURL, sharedspaceId,
                 workspaceId, attachmentId, fileName);
