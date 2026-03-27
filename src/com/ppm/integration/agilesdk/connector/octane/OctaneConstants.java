@@ -215,6 +215,6 @@ public class OctaneConstants {
 
     public static final int USER_DELETED_STATUS_CODE = 2;
 
-    public static final int MAX_LIMIT = 10000;
+    public static final int MAX_LIMIT = 5000;
 
 }
