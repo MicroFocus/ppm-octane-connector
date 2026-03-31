@@ -1473,6 +1473,7 @@ public class ClientPublicAPI {
             query.append("\"name EQ '").append(fieldValue).append("'\"");
         }
         url = String.format("%s%s", url,queryEncode(query.toString()));
+        url = String.format("%s&limit=%d", url,OctaneConstants.MAX_LIMIT);
         RestResponse response = sendGet(url);
         JSONObject dataObj = JSONObject.fromObject(response.getData());
         List<AgileEntityFieldValue> valueList = parseValueJson(dataObj);
