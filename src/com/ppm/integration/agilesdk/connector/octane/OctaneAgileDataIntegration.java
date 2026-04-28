@@ -6,7 +6,8 @@ import com.ppm.integration.agilesdk.connector.octane.client.ClientPublicAPI;
 import com.ppm.integration.agilesdk.connector.octane.model.*;
 import net.sf.json.JSONObject;
 import net.sf.json.JSONSerializer;
-import org.apache.log4j.Logger;
+import com.kintana.core.logging.LogManager;
+import com.kintana.core.logging.Logger;
 
 import java.io.IOException;
 import java.util.*;
@@ -16,7 +17,7 @@ import java.util.*;
  */
 public class OctaneAgileDataIntegration extends AgileDataIntegration {
 
-    private final Logger logger = Logger.getLogger(this.getClass());
+    private final Logger logger = LogManager.getLogger(OctaneAgileDataIntegration.class);
 
     ClientPublicAPI client = null;
     
