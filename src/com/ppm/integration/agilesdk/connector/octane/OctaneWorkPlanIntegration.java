@@ -21,7 +21,8 @@ import com.ppm.integration.agilesdk.connector.jira.model.JIRAAgileEntity;
 import com.ppm.integration.agilesdk.connector.octane.model.*;
 import com.ppm.integration.agilesdk.connector.octane.model.workplan.*;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.log4j.Logger;
+import com.kintana.core.logging.LogManager;
+import com.kintana.core.logging.Logger;
 
 import com.hp.ppm.integration.model.WorkplanMapping;
 import com.hp.ppm.user.service.api.UserService;
@@ -60,7 +61,7 @@ import net.sf.json.JSONSerializer;
 public class OctaneWorkPlanIntegration extends WorkPlanIntegration implements FunctionIntegration {
 
 
-    private final Logger logger = Logger.getLogger(this.getClass());
+    private final Logger logger = LogManager.getLogger(OctaneWorkPlanIntegration.class);
 
     protected static final UserService userService = ((UserService) SpringContainerFactory.getBean("userAdminService"));
     

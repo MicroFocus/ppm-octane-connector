@@ -15,7 +15,8 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.log4j.Logger;
+import com.kintana.core.logging.LogManager;
+import com.kintana.core.logging.Logger;
 import org.apache.wink.client.ClientRuntimeException;
 
 import com.hp.ppm.tm.model.TimeSheet;
@@ -41,7 +42,7 @@ import com.ppm.integration.agilesdk.ui.SelectList;
 
 public class OctaneTimeSheetIntegration extends TimeSheetIntegration {
 
-    private final Logger logger = Logger.getLogger(this.getClass());
+    private final Logger logger = LogManager.getLogger(OctaneTimeSheetIntegration.class);
 
     static final String SEP = ">";
 

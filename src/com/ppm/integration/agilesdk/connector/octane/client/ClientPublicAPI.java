@@ -26,7 +26,8 @@ import com.google.gson.*;
 import com.ppm.integration.agilesdk.connector.octane.model.*;
 import org.apache.commons.lang.StringUtils;
 import org.apache.http.HttpStatus;
-import org.apache.log4j.Logger;
+import com.kintana.core.logging.LogManager;
+import com.kintana.core.logging.Logger;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -60,7 +61,7 @@ public class ClientPublicAPI {
 
     private static final String SPACE_ADMIN_ROLE = "role.shared.space.admin";
 
-    private final Logger logger = Logger.getLogger(this.getClass());
+    private final Logger logger = LogManager.getLogger(ClientPublicAPI.class);
 
     private String baseURL = "";
     

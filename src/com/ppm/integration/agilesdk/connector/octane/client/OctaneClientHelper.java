@@ -1,17 +1,16 @@
 package com.ppm.integration.agilesdk.connector.octane.client;
 
+import com.kintana.core.logging.LogManager;
 import com.ppm.integration.agilesdk.ValueSet;
 import com.ppm.integration.agilesdk.connector.octane.OctaneConstants;
 import com.ppm.integration.agilesdk.connector.octane.OctaneIntegrationConnector;
 import com.ppm.integration.agilesdk.connector.octane.OctaneWorkPlanIntegration;
-import com.ppm.integration.agilesdk.connector.octane.client.UsernamePasswordClient;
-import com.ppm.integration.agilesdk.connector.octane.client.ClientPublicAPI;
 import com.ppm.integration.agilesdk.provider.Providers;
+import org.apache.commons.lang.StringUtils;
+
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import org.apache.commons.lang.StringUtils;
-import org.apache.log4j.Logger;
 
 /**
  * Created by lutian on 2016/11/9.
@@ -28,7 +27,7 @@ public class OctaneClientHelper {
         if (values.getBoolean(OctaneConstants.KEY_USE_GLOBAL_PROXY, false)) {
             String proxyURL = Providers.getServerConfigurationProvider(OctaneIntegrationConnector.class).getServerProperty("HTTP_PROXY_URL");
             if(proxyURL == null){
-            	 Logger.getLogger(OctaneIntegrationConnector.class)
+            	 LogManager.getLogger(OctaneIntegrationConnector.class)
                  .debug(String.format("Please configure proxy in server.conf"));
             } else {
             	 Matcher m = Pattern.compile("^([^:]*)(:(\\d+))?$").matcher(proxyURL);
@@ -45,12 +44,12 @@ public class OctaneClientHelper {
         }
 
         if (!StringUtils.isEmpty(proxyHost) && !StringUtils.isEmpty(proxyPort) && StringUtils.isNumeric(proxyPort)) {
-            Logger.getLogger(OctaneIntegrationConnector.class)
+            LogManager.getLogger(OctaneIntegrationConnector.class)
                     .debug(String.format("Use HTTP Proxy HOST=%s PORT=%s", proxyHost, proxyPort));
             client.setProxy(proxyHost, (int)Long.parseLong(proxyPort));
         } else {
             if (!StringUtils.isEmpty(proxyHost) || !StringUtils.isEmpty(proxyPort)) {
-                Logger.getLogger(OctaneIntegrationConnector.class)
+                LogManager.getLogger(OctaneIntegrationConnector.class)
                         .error(String.format("Invalid HTTP Proxy HOST=%s PORT=%s", proxyHost, proxyPort));
             }
         }
@@ -76,12 +75,12 @@ public class OctaneClientHelper {
         }
 
         if (!StringUtils.isEmpty(proxyHost) && !StringUtils.isEmpty(proxyPort) && StringUtils.isNumeric(proxyPort)) {
-            Logger.getLogger(OctaneWorkPlanIntegration.class)
+            LogManager.getLogger(OctaneWorkPlanIntegration.class)
                     .debug(String.format("Use HTTP Proxy HOST=%s PORT=%s", proxyHost, proxyPort));
             client.proxy(proxyHost, (int)Long.parseLong(proxyPort));
         } else {
             if (!StringUtils.isEmpty(proxyHost) || !StringUtils.isEmpty(proxyPort)) {
-                Logger.getLogger(OctaneWorkPlanIntegration.class)
+                LogManager.getLogger(OctaneWorkPlanIntegration.class)
                         .error(String.format("Invalid HTTP Proxy HOST=%s PORT=%s", proxyHost, proxyPort));
             }
         }

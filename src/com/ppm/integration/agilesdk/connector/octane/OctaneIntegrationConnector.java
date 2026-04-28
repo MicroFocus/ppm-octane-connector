@@ -4,7 +4,8 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-import org.apache.log4j.Logger;
+import com.kintana.core.logging.LogManager;
+import com.kintana.core.logging.Logger;
 
 import com.ppm.integration.agilesdk.FunctionIntegration;
 import com.ppm.integration.agilesdk.IntegrationConnector;
@@ -24,7 +25,7 @@ import net.sf.json.JSONObject;
 
 public class OctaneIntegrationConnector extends IntegrationConnector {
 
-    private final Logger logger = Logger.getLogger(this.getClass());
+    private final Logger logger = LogManager.getLogger(OctaneIntegrationConnector.class);
 
     @Override public String getExternalApplicationName() {
         return "Octane";
