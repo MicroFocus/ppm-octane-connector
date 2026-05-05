@@ -2,34 +2,25 @@ package com.ppm.integration.agilesdk.connector.octane.client;
 
 import com.kintana.core.logging.LogManager;
 import com.kintana.core.logging.Logger;
-import com.mercury.itg.core.ContextFactory;
-import com.mercury.itg.core.model.Context;
-import com.mercury.itg.core.user.model.User;
-import com.ppm.integration.agilesdk.connector.octane.model.Release;
-import com.ppm.integration.agilesdk.connector.octane.model.Releases;
 import com.ppm.integration.agilesdk.connector.octane.model.SharedSpace;
 import com.ppm.integration.agilesdk.connector.octane.model.SharedSpaces;
 import com.ppm.integration.agilesdk.connector.octane.model.WorkSpace;
 import com.ppm.integration.agilesdk.connector.octane.model.WorkSpaces;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.net.InetSocketAddress;
+import java.net.Proxy;
 import java.net.URI;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
-import javax.ws.rs.core.Application;
-import javax.ws.rs.core.MediaType;
-import net.sf.json.JSONObject;
-import org.apache.commons.lang.StringUtils;
-import org.apache.wink.client.ClientConfig;
-import org.apache.wink.client.ClientRequest;
-import org.apache.wink.client.ClientResponse;
-import org.apache.wink.client.Resource;
-import org.apache.wink.client.RestClient;
-import org.apache.wink.client.handlers.ClientHandler;
-import org.apache.wink.client.handlers.HandlerContext;
+import java.nio.charset.StandardCharsets;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.MediaType;
+import org.springframework.http.client.ClientHttpRequest;
+import org.springframework.http.client.ClientHttpResponse;
+import org.springframework.http.client.SimpleClientHttpRequestFactory;
 
 /**
  * This Octane client will use Username + Password for authentication. You should NOT use it except if you have a good reason.<br>
@@ -46,11 +37,11 @@ public class UsernamePasswordClient {
 
     protected static final Logger logger = LogManager.getLogger(UsernamePasswordClient.class);
 
-    protected String baseURL = "";
+    protected String baseURL;
 
     private List<String> cookie = null;
 
-    private ClientConfig config;
+    private Proxy proxy;
 
     public UsernamePasswordClient(String baseURL) {
 
@@ -58,32 +49,10 @@ public class UsernamePasswordClient {
         if (this.baseURL.endsWith("/")) {
             this.baseURL = this.baseURL.substring(0, this.baseURL.length() - 1);
         }
-
-        this.config = new ClientConfig().handlers(new ClientHandler() {
-
-            @Override public ClientResponse handle(ClientRequest req, HandlerContext context) throws Exception {
-
-                req.getHeaders().add("Content-Type", "application/json");
-
-                URI origURI = req.getURI();
-                if (!isAuthURI(origURI)) {
-                    req.getHeaders().put("Cookie", cookie);
-                    req.getHeaders().add("HPECLIENTTYPE", "HPE_MQM_UI");
-                }
-
-                return context.doChain(req);
-            }
-        }).applications(new Application() {
-            @Override public Set<Class<?>> getClasses() {
-                Set<Class<?>> clazz = new HashSet<Class<?>>();
-                clazz.add(JAXBProvider.class);
-                return clazz;
-            }
-        });
     }
 
     public UsernamePasswordClient proxy(String host, int port) {
-        this.config.proxyHost(host).proxyPort(port);
+        this.proxy = new Proxy(Proxy.Type.HTTP, new InetSocketAddress(host, port));
         return this;
     }
 
@@ -93,18 +62,16 @@ public class UsernamePasswordClient {
     }
 
     public UsernamePasswordClient auth(String username, String password, boolean enable_csrf) {
+        String url = this.oneResource(AUTHORIZATION_SIGN_IN_URL);
+        String payload = enable_csrf ? CredentialJson.toJSONObject(username, password, enable_csrf).toString()
+                : CredentialJson.toJSONObject(username, password).toString();
+        HttpResponseData response = executeTextRequest(url, HttpMethod.POST, createHeaders(URI.create(url), null), payload);
 
-        JSONObject json = enable_csrf ? CredentialJson.toJSONObject(username, password, enable_csrf) : CredentialJson.toJSONObject(username, password);
-
-        ClientResponse resp;
-        Resource rsc = this.oneResource(AUTHORIZATION_SIGN_IN_URL);
-        resp = rsc.post(json.toString());
-
-        if (resp.getStatusCode() != 200) {
+        if (response.getStatusCode() != 200) {
             throw new OctaneClientException("AGM_API", "ERROR_AUTHENTICATION_FAILED");
         }
 
-        this.cookie = resp.getHeaders().get("Set-Cookie");
+        this.cookie = response.getHeaders().get(HttpHeaders.SET_COOKIE);
         return this;
     }
 
@@ -125,23 +92,21 @@ public class UsernamePasswordClient {
         return "fields";
     }
 
-    private Resource oneResource(String url, FieldQuery... queries) {
+    private String oneResource(String url, FieldQuery... queries) {
         return oneResource(url, null, queries);
     }
 
-    private Resource oneResource(String url, String[] fields, FieldQuery... queries) {
+    private String oneResource(String url, String[] fields, FieldQuery... queries) {
+        prepareSecureProtocols();
 
-        // Only allowing secure protocols to connect
-        System.setProperty("https.protocols", "TLSv1.2,SSLv3");
-
-        Resource rsc = new RestClient(this.config).resource(baseURL + url);
+        StringBuilder resourceUrl = new StringBuilder(baseURL).append(url);
 
         if (fields != null && fields.length > 0) {
-            rsc.queryParam(getURLParamNameForVisibleFields(), StringUtils.join(fields, ','));
+            appendQueryParam(resourceUrl, getURLParamNameForVisibleFields(), String.join(",", fields));
         }
 
         if (queries.length > 0) {
-            StringBuffer sb = new StringBuffer();
+            StringBuilder sb = new StringBuilder();
             sb.append("%7B");
             boolean isFirst = true;
             for (FieldQuery q : queries) {
@@ -155,10 +120,10 @@ public class UsernamePasswordClient {
             }
             sb.append("%7D");
 
-            rsc.queryParam(getURLParamNameForFieldQuery(), sb.toString());
+            appendQueryParam(resourceUrl, getURLParamNameForFieldQuery(), sb.toString());
         }
 
-        return rsc;
+        return resourceUrl.toString();
     }
 
     /**
@@ -170,22 +135,129 @@ public class UsernamePasswordClient {
     }
 
     public List<SharedSpace> getSharedSpaces() {
-
-        ClientResponse response =
-                oneResource("/api/shared_spaces").accept(MediaType.APPLICATION_JSON).get(ClientResponse.class);
+        String url = oneResource("/api/shared_spaces");
+        HttpResponseData response = executeTextRequest(url, HttpMethod.GET,
+                createHeaders(URI.create(url), MediaType.APPLICATION_JSON_VALUE), null);
         SharedSpaces tempSharedSpace = new SharedSpaces();
-        tempSharedSpace.SetCollection(response.getEntity(String.class));
+        tempSharedSpace.SetCollection(response.getBody());
 
         return tempSharedSpace.getCollection();
     }
 
     public List<WorkSpace> getWorkSpaces(String sharedSpacesId) {
-
-        ClientResponse response = oneResource(String.format("/api/shared_spaces/%s/workspaces", sharedSpacesId))
-                .accept(MediaType.APPLICATION_JSON).get(ClientResponse.class);
+        String url = oneResource(String.format("/api/shared_spaces/%s/workspaces", sharedSpacesId));
+        HttpResponseData response = executeTextRequest(url, HttpMethod.GET,
+                createHeaders(URI.create(url), MediaType.APPLICATION_JSON_VALUE), null);
         WorkSpaces tempWorkSpace = new WorkSpaces();
-        tempWorkSpace.SetCollection(response.getEntity(String.class));
+        tempWorkSpace.SetCollection(response.getBody());
         return tempWorkSpace.getCollection();
+    }
+
+    private HttpHeaders createHeaders(URI uri, String acceptType) {
+        HttpHeaders headers = new HttpHeaders();
+        headers.set(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE);
+        if (acceptType != null) {
+            headers.set(HttpHeaders.ACCEPT, acceptType);
+        }
+        if (!isAuthURI(uri)) {
+            if (cookie != null) {
+                headers.put(HttpHeaders.COOKIE, cookie);
+            }
+            headers.set("HPECLIENTTYPE", "HPE_MQM_UI");
+        }
+        return headers;
+    }
+
+    private HttpResponseData executeTextRequest(String url, HttpMethod method, HttpHeaders headers, String data) {
+        try {
+            ClientHttpResponse response = executeRequest(url, method, headers,
+                    data == null ? null : data.getBytes(StandardCharsets.UTF_8));
+            try {
+                return new HttpResponseData(response.getRawStatusCode(), response.getHeaders(), readResponseBodyAsString(response.getBody()));
+            } finally {
+                response.close();
+            }
+        } catch (IOException e) {
+            logger.error("error in http connectivity:", e);
+            throw new OctaneClientException("AGM_API", "ERROR_IN_HTTP_CONNECTIVITY", e.getMessage());
+        }
+    }
+
+    private ClientHttpResponse executeRequest(String url, HttpMethod method, HttpHeaders headers, byte[] data) throws IOException {
+        SimpleClientHttpRequestFactory requestFactory = createRequestFactory();
+        ClientHttpRequest request = requestFactory.createRequest(URI.create(url), method);
+        applyHeaders(request.getHeaders(), headers);
+        if (data != null) {
+            try (OutputStream outputStream = request.getBody()) {
+                outputStream.write(data);
+                outputStream.flush();
+            }
+        }
+        return request.execute();
+    }
+
+    private SimpleClientHttpRequestFactory createRequestFactory() {
+        prepareSecureProtocols();
+        SimpleClientHttpRequestFactory requestFactory = new SimpleClientHttpRequestFactory();
+        if (this.proxy != null) {
+            requestFactory.setProxy(this.proxy);
+        }
+        return requestFactory;
+    }
+
+    private void applyHeaders(HttpHeaders requestHeaders, HttpHeaders headers) {
+        for (String headerName : headers.keySet()) {
+            requestHeaders.put(headerName, headers.get(headerName));
+        }
+    }
+
+    private void prepareSecureProtocols() {
+        System.setProperty("https.protocols", "TLSv1.2,SSLv3");
+    }
+
+    private void appendQueryParam(StringBuilder urlBuilder, String name, String value) {
+        urlBuilder.append(urlBuilder.indexOf("?") >= 0 ? '&' : '?').append(name).append('=').append(value);
+    }
+
+    private String readResponseBodyAsString(InputStream inputStream) throws IOException {
+        return new String(readResponseBodyAsBytes(inputStream), StandardCharsets.UTF_8);
+    }
+
+    private byte[] readResponseBodyAsBytes(InputStream inputStream) throws IOException {
+        if (inputStream == null) {
+            return new byte[0];
+        }
+        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+        byte[] buffer = new byte[4096];
+        int count;
+        while ((count = inputStream.read(buffer)) != -1) {
+            outputStream.write(buffer, 0, count);
+        }
+        return outputStream.toByteArray();
+    }
+
+    private static class HttpResponseData {
+        private final int statusCode;
+        private final HttpHeaders headers;
+        private final String body;
+
+        private HttpResponseData(int statusCode, HttpHeaders headers, String body) {
+            this.statusCode = statusCode;
+            this.headers = headers;
+            this.body = body;
+        }
+
+        private int getStatusCode() {
+            return statusCode;
+        }
+
+        private HttpHeaders getHeaders() {
+            return headers;
+        }
+
+        private String getBody() {
+            return body;
+        }
     }
 
 

@@ -1,31 +1,25 @@
 package com.ppm.integration.agilesdk.connector.octane.client;
 
 
-import java.io.BufferedReader;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.DataOutputStream;
-import java.io.OutputStreamWriter;
+import java.io.OutputStream;
 import java.io.UnsupportedEncodingException;
 import java.net.HttpCookie;
-import java.net.HttpURLConnection;
 import java.net.InetSocketAddress;
 import java.net.Proxy;
-import java.net.URL;
+import java.net.URI;
 import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
 import java.text.SimpleDateFormat;
 import java.util.*;
 
-import javax.net.ssl.HttpsURLConnection;
-import javax.ws.rs.HttpMethod;
-import javax.ws.rs.core.MediaType;
-
 import com.google.gson.*;
 import com.ppm.integration.agilesdk.connector.octane.model.*;
-import org.apache.commons.lang.StringUtils;
-import org.apache.http.HttpStatus;
+import org.apache.commons.lang3.StringUtils;
 import com.kintana.core.logging.LogManager;
 import com.kintana.core.logging.Logger;
 
@@ -38,6 +32,13 @@ import com.ppm.integration.agilesdk.ValueSet;
 import com.ppm.integration.agilesdk.connector.octane.OctaneConstants;
 import com.ppm.integration.agilesdk.connector.octane.client.RestResponse;
 import com.ppm.integration.agilesdk.tm.AuthenticationInfo;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.client.ClientHttpRequest;
+import org.springframework.http.client.ClientHttpResponse;
+import org.springframework.http.client.SimpleClientHttpRequestFactory;
 
 import net.sf.json.JSONArray;
 import net.sf.json.JSONException;
@@ -120,9 +121,9 @@ public class ClientPublicAPI {
                 String.format("{\"client_id\":\"%s\",\"client_secret\":\"%s\",\"enable_csrf\": \"false\"}", clientId,
                         clientSecret);
         Map<String, String> headers = new HashMap<>();
-        headers.put("Content-Type", MediaType.APPLICATION_JSON);
+        headers.put("Content-Type", MediaType.APPLICATION_JSON_VALUE);
         RestResponse response = sendRequest(url, HttpMethod.POST, data, headers);
-        return verifyResult(HttpStatus.SC_OK, response.getStatusCode());
+        return verifyResult(HttpStatus.OK.value(), response.getStatusCode());
     }
     
     public boolean signOut(ValueSet values)
@@ -146,6 +147,14 @@ public class ClientPublicAPI {
         return sendRequest(url, HttpMethod.GET, null);
     }
 
+    private RestResponse sendRequest(String url, HttpMethod method, String jsonData) {
+        return sendRequest(url, method.name(), jsonData);
+    }
+
+    private RestResponse sendRequest(String url, HttpMethod method, String data, Map<String, String> headers) {
+        return sendRequest(url, method.name(), data, headers);
+    }
+
     private RestResponse sendRequest(String url, String method, String jsonData) {
 
         Map<String, String> headers = new HashMap<>();
@@ -157,7 +166,7 @@ public class ClientPublicAPI {
         headers.put("HPECLIENTTYPE", "HPE_MQM_UI");
 
         if (jsonData != null) {
-            headers.put("Content-Type", MediaType.APPLICATION_JSON);
+            headers.put("Content-Type", MediaType.APPLICATION_JSON_VALUE);
         }
 
         return sendRequest(url, method, jsonData, headers);
@@ -169,10 +178,14 @@ public class ClientPublicAPI {
         headers.put("ALM_OCTANE_TECH_PREVIEW", "true");
 
         if (jsonData != null) {
-            headers.put("Content-Type", MediaType.APPLICATION_JSON);
+            headers.put("Content-Type", MediaType.APPLICATION_JSON_VALUE);
         }
 
         return sendRequest(url, method, jsonData, headers);
+    }
+
+    private RestResponse sendSSORequest(String url, HttpMethod method, String jsonData) {
+        return sendSSORequest(url, method.name(), jsonData);
     }
 
     private Map<String, String> prepareHeader() {
@@ -191,64 +204,13 @@ public class ClientPublicAPI {
     private RestResponse sendRequest(String url, String method, String data, Map<String, String> headers)
     {
         try {
-            URL obj = new URL(url);
-            HttpURLConnection con = null;
-            if (this.proxy != null) {
-                con = (HttpURLConnection)obj.openConnection(this.proxy);
-            } else {
-                con = (HttpURLConnection)obj.openConnection();
+            TextHttpResponse response = executeTextRequest(url, method, headers, data);
+            int responseCode = response.getStatusCode();
+            String output = response.getBody();
+
+            if (responseCode == 200 && cookies == null) {
+                this.cookies = getCookie(response.getHeaders());
             }
-
-            // Some HTTPS servers (like Octane on AWS) do not negotiate if you start with TLS1. So let's only use TLS1.2
-            if (con instanceof HttpsURLConnection) {
-                // Only allowing secure protocols to connect
-                System.setProperty("https.protocols", "TLSv1.2,SSLv3");
-            }
-
-            con.setRequestMethod(method);
-
-            //set headers
-            if (headers != null) {
-                for (Map.Entry<String, String> entry : headers.entrySet()) {
-                    con.setRequestProperty(entry.getKey(), entry.getValue());
-                }
-            }
-
-            //set data
-
-            if (data != null) {
-                con.setDoOutput(true);
-                OutputStreamWriter wr = new OutputStreamWriter(con.getOutputStream(), "UTF-8");
-                wr.write(data);
-                wr.flush();
-                wr.close();
-            }
-
-            int responseCode = con.getResponseCode();
-            BufferedReader in;
-            if (responseCode == 200 ) {
-                in = new BufferedReader(new InputStreamReader(con.getInputStream(), "UTF-8"));
-
-                if (cookies == null) {
-                    this.cookies = getCookie(con);
-                }
-            } else {
-                InputStream inputStream = con.getErrorStream();
-                if (inputStream == null) {
-                    inputStream = con.getInputStream();
-                }
-                in = new BufferedReader(new InputStreamReader(inputStream, "UTF-8"));
-            }
-
-            String inputLine;
-            StringBuffer response = new StringBuffer();
-
-            while ((inputLine = in.readLine()) != null) {
-                response.append(inputLine);
-            }
-            in.close();
-
-            String output = response.toString();
 
             if (responseCode == 401) {
                 retryNumber = 0;
@@ -284,21 +246,6 @@ public class ClientPublicAPI {
     private RestResponse uploadRequest(String url, String data, String fileName, InputStream fileContent)
     {
         try {
-            URL obj = new URL(url);
-            HttpURLConnection con = null;
-            if (this.proxy != null) {
-                con = (HttpURLConnection)obj.openConnection(this.proxy);
-            } else {
-                con = (HttpURLConnection)obj.openConnection();
-            }
-
-            // Some HTTPS servers (like Octane on AWS) do not negotiate if you start with TLS1. So let's only use TLS1.2
-            if (con instanceof HttpsURLConnection) {
-                // Only allowing secure protocols to connect
-                System.setProperty("https.protocols", "TLSv1.2,SSLv3");
-            }
-
-            con.setRequestMethod(HttpMethod.POST);
             SecureRandom secureRandom = new SecureRandom();
             byte[] bytes = new byte[16];
             secureRandom.nextBytes(bytes);
@@ -311,69 +258,26 @@ public class ClientPublicAPI {
 
             String LineEnd = "\r\n";
 
-            //set headers
-            con.setDoOutput(true);
-            con.setDoInput(true);
             Map<String, String> headers = prepareHeader();
-            if (headers != null) {
-                for (Map.Entry<String, String> entry : headers.entrySet()) {
-                    con.setRequestProperty(entry.getKey(), entry.getValue());
+            headers.put("Connection", "Keep-Alive");
+            headers.put("Content-Type", "multipart/form-data;  boundary=----"  + Boundary );
+
+            byte[] requestBody;
+            try {
+                requestBody = buildUploadMultipartBody(data, fileName, fileContent, Boundary, SixHyphens, LineEnd);
+            } finally {
+                if (fileContent != null) {
+                    fileContent.close();
                 }
             }
 
-            con.setRequestProperty("Connection", "Keep-Alive");
-            con.setRequestProperty("Content-Type", "multipart/form-data;  boundary=----"  + Boundary );
-            DataOutputStream dos = new DataOutputStream(con.getOutputStream());
-            dos.writeBytes(SixHyphens + Boundary + LineEnd);
-            dos.writeBytes("Content-Disposition: form-data; name=\"entity\"; filename=\"blob\"" + LineEnd);
-            dos.writeBytes("Content-Type: application/json" + LineEnd);
-            dos.writeBytes(LineEnd);
-            byte[] input = data.getBytes("utf-8");
-            dos.write(input, 0, input.length);
-            dos.writeBytes(LineEnd);
-            dos.writeBytes(SixHyphens + Boundary + LineEnd);
-            dos.writeBytes("Content-Disposition: form-data; name=\"content\"; filename=\"" + fileName + "\"" + LineEnd);
-            dos.writeBytes("Content-Type: text/plain" + LineEnd);
-            byte[] buffer = new byte[4096];
-            int count = 0;
-            while ((count = fileContent.read(buffer)) != -1) {
-                dos.write(buffer, 0, count);
+            TextHttpResponse response = executeBinaryBodyTextRequest(url, HttpMethod.POST.name(), headers, requestBody);
+            int responseCode = response.getStatusCode();
+            String output = response.getBody();
+
+            if (responseCode == 200 && cookies == null) {
+                this.cookies = getCookie(response.getHeaders());
             }
-            dos.writeBytes(LineEnd);
-            fileContent.close();
-
-            dos.writeBytes(LineEnd);
-            dos.writeBytes(SixHyphens + Boundary + "--" + LineEnd);
-
-            dos.flush();
-            dos.close();
-
-            int responseCode = con.getResponseCode();
-            BufferedReader in;
-
-            if (responseCode == 200 ) {
-                in = new BufferedReader(new InputStreamReader(con.getInputStream(), "UTF-8"));
-
-                if (cookies == null) {
-                    this.cookies = getCookie(con);
-                }
-            } else {
-                InputStream inputStream = con.getErrorStream();
-                if (inputStream == null) {
-                    inputStream = con.getInputStream();
-                }
-                in = new BufferedReader(new InputStreamReader(inputStream, "UTF-8"));
-            }
-
-            String inputLine;
-            StringBuffer response = new StringBuffer();
-
-            while ((inputLine = in.readLine()) != null) {
-                response.append(inputLine);
-            }
-            in.close();
-
-            String output = response.toString();
 
             if (responseCode == 401) {
                 retryNumber = 0;
@@ -408,21 +312,6 @@ public class ClientPublicAPI {
     private RestResponse attachLinkRequest(String url, String data, String fileName, String attachmentUrl)
     {
         try {
-            URL obj = new URL(url);
-            HttpURLConnection con = null;
-            if (this.proxy != null) {
-                con = (HttpURLConnection)obj.openConnection(this.proxy);
-            } else {
-                con = (HttpURLConnection)obj.openConnection();
-            }
-
-            // Some HTTPS servers (like Octane on AWS) do not negotiate if you start with TLS1. So let's only use TLS1.2
-            if (con instanceof HttpsURLConnection) {
-                // Only allowing secure protocols to connect
-                System.setProperty("https.protocols", "TLSv1.2,SSLv3");
-            }
-
-            con.setRequestMethod(HttpMethod.POST);
             SecureRandom secureRandom = new SecureRandom();
             byte[] bytes = new byte[16];
             secureRandom.nextBytes(bytes);
@@ -435,64 +324,18 @@ public class ClientPublicAPI {
 
             String LineEnd = "\r\n";
 
-            //set headers
-            con.setDoOutput(true);
             Map<String, String> headers = prepareHeader();
-            if (headers != null) {
-                for (Map.Entry<String, String> entry : headers.entrySet()) {
-                    con.setRequestProperty(entry.getKey(), entry.getValue());
-                }
+            headers.put("Connection", "Keep-Alive");
+            headers.put("Content-Type", "multipart/form-data;  boundary=----"  + Boundary );
+
+            byte[] requestBody = buildAttachLinkMultipartBody(data, fileName, attachmentUrl, Boundary, SixHyphens, LineEnd);
+            TextHttpResponse response = executeBinaryBodyTextRequest(url, HttpMethod.POST.name(), headers, requestBody);
+            int responseCode = response.getStatusCode();
+            String output = response.getBody();
+
+            if (responseCode == 200 && cookies == null) {
+                this.cookies = getCookie(response.getHeaders());
             }
-
-            con.setRequestProperty("Connection", "Keep-Alive");
-            con.setRequestProperty("Content-Type", "multipart/form-data;  boundary=----"  + Boundary );
-            DataOutputStream dos = new DataOutputStream(con.getOutputStream());
-            dos.writeBytes(SixHyphens + Boundary + LineEnd);
-            dos.writeBytes("Content-Disposition: form-data; name=\"entity\"; filename=\"blob\"" + LineEnd);
-            dos.writeBytes("Content-Type: application/json" + LineEnd);
-            dos.writeBytes(LineEnd);
-            byte[] input = data.getBytes("utf-8");
-            dos.write(input, 0, input.length);
-            dos.writeBytes(LineEnd);
-            dos.writeBytes(SixHyphens + Boundary + LineEnd);
-            dos.writeBytes("Content-Disposition: form-data; name=\"content\"; filename=\"" + fileName + "\"" + LineEnd);
-            dos.writeBytes("Content-Type: application/octet-stream" + LineEnd);
-            dos.writeBytes(LineEnd);
-            String content = "[InternetShortcut]" + LineEnd + "URL=" + attachmentUrl;
-            byte[] inputUrl = content.getBytes("utf-8");
-            dos.write(inputUrl, 0, inputUrl.length);
-            dos.writeBytes(LineEnd);
-            dos.writeBytes(SixHyphens + Boundary + "--" + LineEnd);
-
-            dos.flush();
-            dos.close();
-
-            int responseCode = con.getResponseCode();
-            BufferedReader in;
-
-            if (responseCode == 200 ) {
-                in = new BufferedReader(new InputStreamReader(con.getInputStream(), "UTF-8"));
-
-                if (cookies == null) {
-                    this.cookies = getCookie(con);
-                }
-            } else {
-                InputStream inputStream = con.getErrorStream();
-                if (inputStream == null) {
-                    inputStream = con.getInputStream();
-                }
-                in = new BufferedReader(new InputStreamReader(inputStream, "UTF-8"));
-            }
-
-            String inputLine;
-            StringBuffer response = new StringBuffer();
-
-            while ((inputLine = in.readLine()) != null) {
-                response.append(inputLine);
-            }
-            in.close();
-
-            String output = response.toString();
 
             if (responseCode == 401) {
                 retryNumber = 0;
@@ -636,16 +479,17 @@ public class ClientPublicAPI {
         }
     }
 
-    private String getCookie(HttpURLConnection con)
+    private String getCookie(HttpHeaders responseHeaders)
     {
         String cookieVal = "";
-        String key;
-        for (int i = 1; (key = con.getHeaderFieldKey(i)) != null; i++) {
-            if (key.equalsIgnoreCase("set-cookie")) {
-                List<HttpCookie> cookie = HttpCookie.parse(con.getHeaderField(i));
-                if (cookie.size() > 0) {
-                    cookieVal = cookieVal + cookie.get(0).getName() + "=" + cookie.get(0).getValue() + ";";
-                }
+        List<String> cookieHeaders = responseHeaders.get(HttpHeaders.SET_COOKIE);
+        if (cookieHeaders == null) {
+            return cookieVal;
+        }
+        for (String cookieHeader : cookieHeaders) {
+            List<HttpCookie> cookie = HttpCookie.parse(cookieHeader);
+            if (cookie.size() > 0) {
+                cookieVal = cookieVal + cookie.get(0).getName() + "=" + cookie.get(0).getValue() + ";";
             }
 
         }
@@ -1300,7 +1144,7 @@ public class ClientPublicAPI {
         createReleasePayload.put("data", data);
 
         RestResponse response = sendRequest(url, HttpMethod.POST, createReleasePayload.toString());
-        if (HttpStatus.SC_CREATED != response.getStatusCode()) {
+        if (HttpStatus.CREATED.value() != response.getStatusCode()) {
             this.logger.error("Error occured when creating release in Octane. Response code = " + response.getStatusCode());
             throw new OctaneClientException("AGM_APP", "An error occurred when creating the release. Make sure a release with this name doesn't already exist.", new String[] { response.getData() });
         }
@@ -1338,7 +1182,7 @@ public class ClientPublicAPI {
         String url = String.format("%s/api/shared_spaces/%s/workspaces/%s/epics", baseURL, sharedspaceId, workspaceId);
 
         RestResponse response = sendRequest(url, HttpMethod.POST, this.getJsonStrFromObject(epicCreateEntity));
-        if (HttpStatus.SC_CREATED != response.getStatusCode()) {
+        if (HttpStatus.CREATED.value() != response.getStatusCode()) {
           this.logger.error("Error occurs when creating epic in Octane: Response code = " + response.getStatusCode());
           throw new OctaneClientException("AGM_APP", "ERROR_HTTP_CONNECTIVITY_ERROR", new String[] { response.getData() });
         }
@@ -1563,7 +1407,7 @@ public class ClientPublicAPI {
                     String.format("%s/api/shared_spaces/%s/workspaces/%s/comments", baseURL, sharedSpaceId, workspaceId);
 
             RestResponse response = sendRequest(url, HttpMethod.POST, commentJson.toString());
-            if (HttpStatus.SC_CREATED != response.getStatusCode() && HttpStatus.SC_OK != response.getStatusCode()) {
+            if (HttpStatus.CREATED.value() != response.getStatusCode() && HttpStatus.OK.value() != response.getStatusCode()) {
                 this.logger
                         .error("Error occurs when creating feature in Octane: Response code = " + response.getStatusCode());
                 this.logger.error(response.getData());
@@ -1785,7 +1629,7 @@ public class ClientPublicAPI {
                 entityType, entityId);
 
         RestResponse response = sendRequest(url, HttpMethod.DELETE, null);
-        if (HttpStatus.SC_OK != response.getStatusCode() && HttpStatus.SC_NOT_FOUND != response.getStatusCode()) {
+        if (HttpStatus.OK.value() != response.getStatusCode() && HttpStatus.NOT_FOUND.value() != response.getStatusCode()) {
             this.logger.error("Error occurs when saving story in Octane: Response code = " + response.getStatusCode());
             throw new OctaneClientException("AGM_APP", "ERROR_HTTP_CONNECTIVITY_ERROR",
                     new String[] {getError(response.getData())});
@@ -2024,7 +1868,7 @@ public class ClientPublicAPI {
     public String getSSOURL() {
         String url = baseURL + SHART_SSO_GRANT_TOOL_TOKEN;
         RestResponse response = sendGet(url);
-        if (HttpStatus.SC_OK == response.getStatusCode()) {
+        if (HttpStatus.OK.value() == response.getStatusCode()) {
             return response.getData();
         } else {
             throw new OctaneClientException("OCTANE_APP", "FAIL_TO_RETRIEVE_SSO_URL");
@@ -2038,14 +1882,14 @@ public class ClientPublicAPI {
         identifierObj.put("identifier", identifier);
         RestResponse response = sendSSORequest(url, HttpMethod.POST, identifierObj.toString());
         String result = null;
-        if (HttpStatus.SC_OK == response.getStatusCode()) {
+        if (HttpStatus.OK.value() == response.getStatusCode()) {
             result = response.getData();
             JSONObject obj = JSONObject.fromObject(result);
             String cookie = obj.getString("access_token");
             String cookieKey = obj.getString("cookie_name");
             this.cookies = cookieKey + "=" + cookie;
             RestResponse currentUser = sendSSORequest(baseURL + CURRENT_USER_URL, HttpMethod.GET, null);
-            if (HttpStatus.SC_OK == currentUser.getStatusCode()) {
+            if (HttpStatus.OK.value() == currentUser.getStatusCode()) {
                 JSONObject user = JSONObject.fromObject(currentUser.getData());
                 userInfo.setLoginName(user.get("name").toString());
                 userInfo.setEmail(user.get("email").toString());
@@ -2066,7 +1910,7 @@ public class ClientPublicAPI {
         identifierObj.put("identifier", identifier);
         RestResponse response = sendSSORequest(url, HttpMethod.POST, identifierObj.toString());
         String result = null;
-        if (HttpStatus.SC_OK == response.getStatusCode()) {
+        if (HttpStatus.OK.value() == response.getStatusCode()) {
             result = response.getData();
             JSONObject obj = JSONObject.fromObject(result);
             String cookie = obj.getString("access_token");
@@ -2245,7 +2089,7 @@ public class ClientPublicAPI {
                 String.format("%s/api/shared_spaces/%s/workspaces/%s/work_items", baseURL, sharedspaceId, workspaceId);
 
         RestResponse response = sendRequest(url, method, this.getJsonStrForPOSTData(entityStr));
-        if (HttpStatus.SC_CREATED != response.getStatusCode() && HttpStatus.SC_OK != response.getStatusCode()) {
+        if (HttpStatus.CREATED.value() != response.getStatusCode() && HttpStatus.OK.value() != response.getStatusCode()) {
             this.logger.error("Error occurs when saving " + entityType.name() + " in Octane: Response code = "
                     + response.getStatusCode());
             this.logger.error(response.getData());
@@ -2262,7 +2106,7 @@ public class ClientPublicAPI {
                 String.format("%s/api/shared_spaces/%s/workspaces/500/products", baseURL, sharedspaceId);
 
         RestResponse response = sendRequest(url, method, this.getJsonStrForPOSTData(entity));
-        if (HttpStatus.SC_CREATED != response.getStatusCode() && HttpStatus.SC_OK != response.getStatusCode()) {
+        if (HttpStatus.CREATED.value() != response.getStatusCode() && HttpStatus.OK.value() != response.getStatusCode()) {
             this.logger
                     .error("Error occurs when saving products in Octane: Response code = "
                     + response.getStatusCode());
@@ -2284,7 +2128,7 @@ public class ClientPublicAPI {
         String url =
                 String.format("%s/api/shared_spaces/%s/workspaces/500/products", baseURL, sharedspaceId);
         RestResponse response = sendRequest(url, HttpMethod.PUT, this.getJsonStrForPOSTData(entity));
-        if (HttpStatus.SC_OK != response.getStatusCode()) {
+        if (HttpStatus.OK.value() != response.getStatusCode()) {
             this.logger.error("Error occurs when delete products in Octane: Response code = " + response.getStatusCode());
         }
         return JSONObject.fromObject(response.getData());
@@ -2357,7 +2201,7 @@ public class ClientPublicAPI {
         }
 
         RestResponse response = attachLinkRequest(url, postData, fileName, attachmentUrl);
-        if (HttpStatus.SC_CREATED != response.getStatusCode()) {
+        if (HttpStatus.CREATED.value() != response.getStatusCode()) {
             this.logger.error("Error occured when creating attachment in Octane. Response code = " + response.getStatusCode());
             throw new OctaneClientException("AGM_APP", "An error occurred when creating the attachment and the attachment name is " + fileName + ".", new String[] {response.getData() });
         }
@@ -2439,56 +2283,17 @@ public class ClientPublicAPI {
     private InputStream downloadRequest(String url)
     {
         try {
-            URL obj = new URL(url);
-            HttpURLConnection con = null;
-            if (this.proxy != null) {
-                con = (HttpURLConnection)obj.openConnection(this.proxy);
-            } else {
-                con = (HttpURLConnection)obj.openConnection();
-            }
-
-            // Some HTTPS servers (like Octane on AWS) do not negotiate if you start with TLS1. So let's only use TLS1.2
-            if (con instanceof HttpsURLConnection) {
-                // Only allowing secure protocols to connect
-                System.setProperty("https.protocols", "TLSv1.2,SSLv3");
-            }
-
-            con.setRequestMethod(HttpMethod.GET);
-
-            //set headers
             Map<String, String> headers = prepareHeader();
-            if (headers != null) {
-                for (Map.Entry<String, String> entry : headers.entrySet()) {
-                    con.setRequestProperty(entry.getKey(), entry.getValue());
-                }
-            }
-
-            int responseCode = con.getResponseCode();
-            BufferedReader in;
-            InputStream respIn;
+            BinaryHttpResponse response = executeBinaryRequest(url, HttpMethod.GET.name(), headers);
+            int responseCode = response.getStatusCode();
             if (responseCode == 200 ) {
-                respIn = con.getInputStream();
                 if (cookies == null) {
-                    this.cookies = getCookie(con);
+                    this.cookies = getCookie(response.getHeaders());
                 }
-                return respIn;
-            } else {
-                InputStream inputStream = con.getErrorStream();
-                if (inputStream == null) {
-                    inputStream = con.getInputStream();
-                }
-                in = new BufferedReader(new InputStreamReader(inputStream, "UTF-8"));
+                retryNumber = 0;
+                return new ByteArrayInputStream(response.getBody());
             }
-
-            String inputLine;
-            StringBuffer response = new StringBuffer();
-
-            while ((inputLine = in.readLine()) != null) {
-                response.append(inputLine);
-            }
-            in.close();
-
-            String output = response.toString();
+            String output = normalizeResponseBody(new String(response.getBody(), StandardCharsets.UTF_8));
 
             if (responseCode == 401) {
                 retryNumber = 0;
@@ -2517,6 +2322,200 @@ public class ClientPublicAPI {
             retryNumber = 0;
             logger.error("error in http connectivity:", e);
             throw new OctaneClientException("AGM_APP", "ERROR_IN_HTTP_CONNECTIVITY", new String[] {e.getMessage()});
+        }
+    }
+
+    private TextHttpResponse executeTextRequest(String url, String method, Map<String, String> headers, String data) throws IOException {
+        ClientHttpResponse response = executeRequest(url, method, headers,
+                data == null ? null : data.getBytes(StandardCharsets.UTF_8));
+        try {
+            return new TextHttpResponse(response.getRawStatusCode(),
+                    normalizeResponseBody(readResponseBodyAsString(response.getBody())), response.getHeaders());
+        } finally {
+            response.close();
+        }
+    }
+
+    private TextHttpResponse executeBinaryBodyTextRequest(String url, String method, Map<String, String> headers, byte[] data) throws IOException {
+        ClientHttpResponse response = executeRequest(url, method, headers, data);
+        try {
+            return new TextHttpResponse(response.getRawStatusCode(),
+                    normalizeResponseBody(readResponseBodyAsString(response.getBody())), response.getHeaders());
+        } finally {
+            response.close();
+        }
+    }
+
+    private BinaryHttpResponse executeBinaryRequest(String url, String method, Map<String, String> headers) throws IOException {
+        ClientHttpResponse response = executeRequest(url, method, headers, null);
+        try {
+            return new BinaryHttpResponse(response.getRawStatusCode(), readResponseBodyAsBytes(response.getBody()), response.getHeaders());
+        } finally {
+            response.close();
+        }
+    }
+
+    private ClientHttpResponse executeRequest(String url, String method, Map<String, String> headers, byte[] data) throws IOException {
+        SimpleClientHttpRequestFactory requestFactory = createRequestFactory(url);
+        ClientHttpRequest request = requestFactory.createRequest(URI.create(url), resolveHttpMethod(method));
+        applyHeaders(request.getHeaders(), headers);
+        if (data != null) {
+            try (OutputStream outputStream = request.getBody()) {
+                outputStream.write(data);
+                outputStream.flush();
+            }
+        }
+        return request.execute();
+    }
+
+    private SimpleClientHttpRequestFactory createRequestFactory(String url) {
+        prepareSecureProtocols(url);
+        SimpleClientHttpRequestFactory requestFactory = new SimpleClientHttpRequestFactory();
+        if (this.proxy != null) {
+            requestFactory.setProxy(this.proxy);
+        }
+        return requestFactory;
+    }
+
+    private void prepareSecureProtocols(String url) {
+        if (url != null && url.toLowerCase(Locale.ENGLISH).startsWith("https")) {
+            System.setProperty("https.protocols", "TLSv1.2,SSLv3");
+        }
+    }
+
+    private HttpMethod resolveHttpMethod(String method) {
+        HttpMethod httpMethod = HttpMethod.resolve(method);
+        if (httpMethod == null) {
+            throw new IllegalArgumentException("Unsupported HTTP method: " + method);
+        }
+        return httpMethod;
+    }
+
+    private void applyHeaders(HttpHeaders httpHeaders, Map<String, String> headers) {
+        if (headers != null) {
+            for (Map.Entry<String, String> entry : headers.entrySet()) {
+                httpHeaders.set(entry.getKey(), entry.getValue());
+            }
+        }
+    }
+
+    private String readResponseBodyAsString(InputStream inputStream) throws IOException {
+        return new String(readResponseBodyAsBytes(inputStream), StandardCharsets.UTF_8);
+    }
+
+    private byte[] readResponseBodyAsBytes(InputStream inputStream) throws IOException {
+        if (inputStream == null) {
+            return new byte[0];
+        }
+        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+        byte[] buffer = new byte[4096];
+        int count;
+        while ((count = inputStream.read(buffer)) != -1) {
+            outputStream.write(buffer, 0, count);
+        }
+        return outputStream.toByteArray();
+    }
+
+    private String normalizeResponseBody(String body) {
+        if (body == null) {
+            return "";
+        }
+        return body.replace("\r", "").replace("\n", "");
+    }
+
+    private byte[] buildUploadMultipartBody(String data, String fileName, InputStream fileContent, String boundary, String sixHyphens,
+            String lineEnd) throws IOException {
+        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+        writeMultipartString(outputStream, sixHyphens + boundary + lineEnd);
+        writeMultipartString(outputStream, "Content-Disposition: form-data; name=\"entity\"; filename=\"blob\"" + lineEnd);
+        writeMultipartString(outputStream, "Content-Type: application/json" + lineEnd);
+        writeMultipartString(outputStream, lineEnd);
+        outputStream.write(data.getBytes(StandardCharsets.UTF_8));
+        writeMultipartString(outputStream, lineEnd);
+        writeMultipartString(outputStream, sixHyphens + boundary + lineEnd);
+        writeMultipartString(outputStream,
+                "Content-Disposition: form-data; name=\"content\"; filename=\"" + fileName + "\"" + lineEnd);
+        writeMultipartString(outputStream, "Content-Type: text/plain" + lineEnd);
+        byte[] buffer = new byte[4096];
+        int count;
+        while ((count = fileContent.read(buffer)) != -1) {
+            outputStream.write(buffer, 0, count);
+        }
+        writeMultipartString(outputStream, lineEnd);
+        writeMultipartString(outputStream, lineEnd);
+        writeMultipartString(outputStream, sixHyphens + boundary + "--" + lineEnd);
+        return outputStream.toByteArray();
+    }
+
+    private byte[] buildAttachLinkMultipartBody(String data, String fileName, String attachmentUrl, String boundary, String sixHyphens,
+            String lineEnd) throws IOException {
+        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+        writeMultipartString(outputStream, sixHyphens + boundary + lineEnd);
+        writeMultipartString(outputStream, "Content-Disposition: form-data; name=\"entity\"; filename=\"blob\"" + lineEnd);
+        writeMultipartString(outputStream, "Content-Type: application/json" + lineEnd);
+        writeMultipartString(outputStream, lineEnd);
+        outputStream.write(data.getBytes(StandardCharsets.UTF_8));
+        writeMultipartString(outputStream, lineEnd);
+        writeMultipartString(outputStream, sixHyphens + boundary + lineEnd);
+        writeMultipartString(outputStream,
+                "Content-Disposition: form-data; name=\"content\"; filename=\"" + fileName + "\"" + lineEnd);
+        writeMultipartString(outputStream, "Content-Type: application/octet-stream" + lineEnd);
+        writeMultipartString(outputStream, lineEnd);
+        outputStream.write(("[InternetShortcut]" + lineEnd + "URL=" + attachmentUrl).getBytes(StandardCharsets.UTF_8));
+        writeMultipartString(outputStream, lineEnd);
+        writeMultipartString(outputStream, sixHyphens + boundary + "--" + lineEnd);
+        return outputStream.toByteArray();
+    }
+
+    private void writeMultipartString(ByteArrayOutputStream outputStream, String value) throws IOException {
+        outputStream.write(value.getBytes(StandardCharsets.UTF_8));
+    }
+
+    private static class TextHttpResponse {
+        private final int statusCode;
+        private final String body;
+        private final HttpHeaders headers;
+
+        private TextHttpResponse(int statusCode, String body, HttpHeaders headers) {
+            this.statusCode = statusCode;
+            this.body = body;
+            this.headers = headers;
+        }
+
+        private int getStatusCode() {
+            return statusCode;
+        }
+
+        private String getBody() {
+            return body;
+        }
+
+        private HttpHeaders getHeaders() {
+            return headers;
+        }
+    }
+
+    private static class BinaryHttpResponse {
+        private final int statusCode;
+        private final byte[] body;
+        private final HttpHeaders headers;
+
+        private BinaryHttpResponse(int statusCode, byte[] body, HttpHeaders headers) {
+            this.statusCode = statusCode;
+            this.body = body;
+            this.headers = headers;
+        }
+
+        private int getStatusCode() {
+            return statusCode;
+        }
+
+        private byte[] getBody() {
+            return body;
+        }
+
+        private HttpHeaders getHeaders() {
+            return headers;
         }
     }
 

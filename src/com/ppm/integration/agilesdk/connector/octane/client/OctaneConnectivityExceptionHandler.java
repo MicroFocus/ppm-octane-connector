@@ -4,7 +4,6 @@ import com.ppm.integration.IntegrationException;
 import com.ppm.integration.agilesdk.connector.octane.OctaneIntegrationConnector;
 import com.ppm.integration.agilesdk.connector.octane.client.OctaneClientException;
 import java.lang.Thread.UncaughtExceptionHandler;
-import org.apache.wink.client.ClientRuntimeException;
 
 public class OctaneConnectivityExceptionHandler implements UncaughtExceptionHandler {
 
@@ -13,10 +12,12 @@ public class OctaneConnectivityExceptionHandler implements UncaughtExceptionHand
     }
 
     public void uncaughtException(Thread t, Throwable e, Class cls) {
-        if (e instanceof ClientRuntimeException) {
-            handleClientRuntimeException((ClientRuntimeException)e, cls);
-        } else if (e instanceof OctaneClientException) {
+        if (e instanceof OctaneClientException) {
             handleAgmClientException((OctaneClientException)e, cls);
+        } else if (isLegacyWinkClientRuntimeException(e)
+                || extractException(e, java.net.UnknownHostException.class) != null
+                || extractException(e, java.net.ConnectException.class) != null) {
+            handleConnectivityException(e, cls);
         } else {
             throw IntegrationException.build(cls).setErrorCode("PPM_INT_OCTANE_ERR_202")
                     .setMessage("ERROR_UNKNOWN_ERROR", e.getMessage());
@@ -27,7 +28,7 @@ public class OctaneConnectivityExceptionHandler implements UncaughtExceptionHand
         throw IntegrationException.build(cls).setErrorCode(e.getErrorCode()).setMessage(e.getMsgKey(), e.getParams());
     }
 
-    private void handleClientRuntimeException(ClientRuntimeException e, Class cls) {
+    private void handleConnectivityException(Throwable e, Class cls) {
         java.net.UnknownHostException unknownHost = extractException(e, java.net.UnknownHostException.class);
         if (unknownHost != null) {
             throw IntegrationException.build(cls).setErrorCode("PPM_INT_OCTANE_ERR_202")
@@ -44,7 +45,18 @@ public class OctaneConnectivityExceptionHandler implements UncaughtExceptionHand
                 .setMessage("ERROR_CONNECTIVITY_ERROR");
     }
 
-    @SuppressWarnings("unchecked") protected <T extends Throwable> T extractException(ClientRuntimeException e,
+    private boolean isLegacyWinkClientRuntimeException(Throwable e) {
+        Throwable t = e;
+        while (t != null) {
+            if ("org.apache.wink.client.ClientRuntimeException".equals(t.getClass().getName())) {
+                return true;
+            }
+            t = t.getCause();
+        }
+        return false;
+    }
+
+    @SuppressWarnings("unchecked") protected <T extends Throwable> T extractException(Throwable e,
             Class<T> clazz)
     {
 

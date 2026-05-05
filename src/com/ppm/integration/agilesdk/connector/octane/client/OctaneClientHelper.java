@@ -6,7 +6,7 @@ import com.ppm.integration.agilesdk.connector.octane.OctaneConstants;
 import com.ppm.integration.agilesdk.connector.octane.OctaneIntegrationConnector;
 import com.ppm.integration.agilesdk.connector.octane.OctaneWorkPlanIntegration;
 import com.ppm.integration.agilesdk.provider.Providers;
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 
 import java.util.List;
 import java.util.regex.Matcher;
