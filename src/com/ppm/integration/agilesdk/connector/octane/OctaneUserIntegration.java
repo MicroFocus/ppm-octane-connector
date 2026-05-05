@@ -12,7 +12,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.log4j.Logger;
+import com.kintana.core.logging.LogManager;
+import com.kintana.core.logging.Logger;
 
 
 import com.ppm.integration.agilesdk.ValueSet;
@@ -33,7 +34,7 @@ import net.sf.json.JSONSerializer;
 
 public class OctaneUserIntegration extends UserIntegration {
 
-    private final Logger logger = Logger.getLogger(this.getClass());
+    private final Logger logger = LogManager.getLogger(OctaneUserIntegration.class);
 
     private static final String DELETED = "-DELETED";
 

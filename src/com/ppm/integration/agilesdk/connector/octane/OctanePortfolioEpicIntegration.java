@@ -11,7 +11,8 @@ import com.ppm.integration.agilesdk.epic.PortfolioEpicSyncInfo;
 import net.sf.json.JSONObject;
 import net.sf.json.JSONSerializer;
 import org.apache.commons.lang.StringUtils;
-import org.apache.log4j.Logger;
+import com.kintana.core.logging.LogManager;
+import com.kintana.core.logging.Logger;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -21,7 +22,7 @@ import java.util.List;
  */
 public class OctanePortfolioEpicIntegration extends PortfolioEpicIntegration {
 
-    private final Logger logger = Logger.getLogger(this.getClass());
+    private final Logger logger = LogManager.getLogger(OctanePortfolioEpicIntegration.class);
 
     private static final String DEFAULT_OCTANE_EPIC_URL =
             "/ui/entity-navigation?p={sharedSpaceId}/{workSpaceId}&entityType=work_item&id={epicId}";
