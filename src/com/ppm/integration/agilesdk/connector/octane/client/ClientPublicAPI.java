@@ -30,7 +30,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.hp.ppm.integration.model.AgileEntityFieldValue;
 import com.ppm.integration.agilesdk.ValueSet;
 import com.ppm.integration.agilesdk.connector.octane.OctaneConstants;
-import com.ppm.integration.agilesdk.connector.octane.client.RestResponse;
 import com.ppm.integration.agilesdk.tm.AuthenticationInfo;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
@@ -204,9 +203,9 @@ public class ClientPublicAPI {
     private RestResponse sendRequest(String url, String method, String data, Map<String, String> headers)
     {
         try {
-            TextHttpResponse response = executeTextRequest(url, method, headers, data);
+            RestResponse response = executeTextRequest(url, method, headers, data);
             int responseCode = response.getStatusCode();
-            String output = response.getBody();
+            String output = response.getData();
 
             if (responseCode == 200 && cookies == null) {
                 this.cookies = getCookie(response.getHeaders());
@@ -271,9 +270,9 @@ public class ClientPublicAPI {
                 }
             }
 
-            TextHttpResponse response = executeBinaryBodyTextRequest(url, HttpMethod.POST.name(), headers, requestBody);
+            RestResponse response = executeBinaryBodyTextRequest(url, HttpMethod.POST.name(), headers, requestBody);
             int responseCode = response.getStatusCode();
-            String output = response.getBody();
+            String output = response.getData();
 
             if (responseCode == 200 && cookies == null) {
                 this.cookies = getCookie(response.getHeaders());
@@ -329,9 +328,9 @@ public class ClientPublicAPI {
             headers.put("Content-Type", "multipart/form-data;  boundary=----"  + Boundary );
 
             byte[] requestBody = buildAttachLinkMultipartBody(data, fileName, attachmentUrl, Boundary, SixHyphens, LineEnd);
-            TextHttpResponse response = executeBinaryBodyTextRequest(url, HttpMethod.POST.name(), headers, requestBody);
+            RestResponse response = executeBinaryBodyTextRequest(url, HttpMethod.POST.name(), headers, requestBody);
             int responseCode = response.getStatusCode();
-            String output = response.getBody();
+            String output = response.getData();
 
             if (responseCode == 200 && cookies == null) {
                 this.cookies = getCookie(response.getHeaders());
@@ -2284,16 +2283,16 @@ public class ClientPublicAPI {
     {
         try {
             Map<String, String> headers = prepareHeader();
-            BinaryHttpResponse response = executeBinaryRequest(url, HttpMethod.GET.name(), headers);
+            RestResponse response = executeBinaryRequest(url, HttpMethod.GET.name(), headers);
             int responseCode = response.getStatusCode();
             if (responseCode == 200 ) {
                 if (cookies == null) {
                     this.cookies = getCookie(response.getHeaders());
                 }
                 retryNumber = 0;
-                return new ByteArrayInputStream(response.getBody());
+                return new ByteArrayInputStream(response.getBinaryData());
             }
-            String output = normalizeResponseBody(new String(response.getBody(), StandardCharsets.UTF_8));
+            String output = normalizeResponseBody(new String(response.getBinaryData(), StandardCharsets.UTF_8));
 
             if (responseCode == 401) {
                 retryNumber = 0;
@@ -2325,31 +2324,31 @@ public class ClientPublicAPI {
         }
     }
 
-    private TextHttpResponse executeTextRequest(String url, String method, Map<String, String> headers, String data) throws IOException {
+    private RestResponse executeTextRequest(String url, String method, Map<String, String> headers, String data) throws IOException {
         ClientHttpResponse response = executeRequest(url, method, headers,
                 data == null ? null : data.getBytes(StandardCharsets.UTF_8));
         try {
-            return new TextHttpResponse(response.getRawStatusCode(),
+            return new RestResponse(response.getRawStatusCode(),
                     normalizeResponseBody(readResponseBodyAsString(response.getBody())), response.getHeaders());
         } finally {
             response.close();
         }
     }
 
-    private TextHttpResponse executeBinaryBodyTextRequest(String url, String method, Map<String, String> headers, byte[] data) throws IOException {
+    private RestResponse executeBinaryBodyTextRequest(String url, String method, Map<String, String> headers, byte[] data) throws IOException {
         ClientHttpResponse response = executeRequest(url, method, headers, data);
         try {
-            return new TextHttpResponse(response.getRawStatusCode(),
+            return new RestResponse(response.getRawStatusCode(),
                     normalizeResponseBody(readResponseBodyAsString(response.getBody())), response.getHeaders());
         } finally {
             response.close();
         }
     }
 
-    private BinaryHttpResponse executeBinaryRequest(String url, String method, Map<String, String> headers) throws IOException {
+    private RestResponse executeBinaryRequest(String url, String method, Map<String, String> headers) throws IOException {
         ClientHttpResponse response = executeRequest(url, method, headers, null);
         try {
-            return new BinaryHttpResponse(response.getRawStatusCode(), readResponseBodyAsBytes(response.getBody()), response.getHeaders());
+            return new RestResponse(response.getRawStatusCode(), readResponseBodyAsBytes(response.getBody()), response.getHeaders());
         } finally {
             response.close();
         }
@@ -2471,52 +2470,5 @@ public class ClientPublicAPI {
         outputStream.write(value.getBytes(StandardCharsets.UTF_8));
     }
 
-    private static class TextHttpResponse {
-        private final int statusCode;
-        private final String body;
-        private final HttpHeaders headers;
-
-        private TextHttpResponse(int statusCode, String body, HttpHeaders headers) {
-            this.statusCode = statusCode;
-            this.body = body;
-            this.headers = headers;
-        }
-
-        private int getStatusCode() {
-            return statusCode;
-        }
-
-        private String getBody() {
-            return body;
-        }
-
-        private HttpHeaders getHeaders() {
-            return headers;
-        }
-    }
-
-    private static class BinaryHttpResponse {
-        private final int statusCode;
-        private final byte[] body;
-        private final HttpHeaders headers;
-
-        private BinaryHttpResponse(int statusCode, byte[] body, HttpHeaders headers) {
-            this.statusCode = statusCode;
-            this.body = body;
-            this.headers = headers;
-        }
-
-        private int getStatusCode() {
-            return statusCode;
-        }
-
-        private byte[] getBody() {
-            return body;
-        }
-
-        private HttpHeaders getHeaders() {
-            return headers;
-        }
-    }
 
 }
