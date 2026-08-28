@@ -1353,19 +1353,55 @@ public class ClientPublicAPI {
     }
 
     public List<EpicAttr> getAllEpics() {
-        String url = String.format("%s/api/shared_spaces/%d/workspaces/%d/epics?fields=id,name",
-                baseURL, sharedSpaceId, workSpaceId);
-        RestResponse response = sendGet(url);
+        // Octane caps the number of entities returned per request to a default page size,
+        // so we must paginate with offset/limit to retrieve ALL epics (otherwise the
+        // "Selection Info" dropdown is silently truncated to the first page).
+        List<EpicAttr> results = new LinkedList<>();
+        boolean hasNext = true;
+        int offset = 0;
+        int limit = 100;
+        do {
+            String url = String.format("%s/api/shared_spaces/%d/workspaces/%d/epics?fields=id,name&offset=%d&limit=%d",
+                    baseURL, sharedSpaceId, workSpaceId, offset, limit);
+            RestResponse response = sendGet(url);
 
-        return (List<EpicAttr>)getDataContent(response.getData(), new TypeReference<List<EpicAttr>>(){});
+            List<EpicAttr> page = (List<EpicAttr>) getDataContent(response.getData(), new TypeReference<List<EpicAttr>>(){});
+            if (page != null && !page.isEmpty()) {
+                results.addAll(page);
+            }
+            if (page != null && page.size() == limit) {
+                offset += limit;
+            } else {
+                hasNext = false;
+            }
+        } while (hasNext);
+
+        return results;
     }
 
     public List<SimpleEntity> getAllFeatures() {
-        String url = String.format("%s/api/shared_spaces/%d/workspaces/%d/features?fields=id,name",
-                baseURL, sharedSpaceId, workSpaceId);
-        RestResponse response = sendGet(url);
+        // Paginate with offset/limit to retrieve ALL features (see getAllEpics()).
+        List<SimpleEntity> results = new LinkedList<>();
+        boolean hasNext = true;
+        int offset = 0;
+        int limit = 100;
+        do {
+            String url = String.format("%s/api/shared_spaces/%d/workspaces/%d/features?fields=id,name&offset=%d&limit=%d",
+                    baseURL, sharedSpaceId, workSpaceId, offset, limit);
+            RestResponse response = sendGet(url);
 
-        return (List<SimpleEntity>)getDataContent(response.getData(), new TypeReference<List<SimpleEntity>>(){});
+            List<SimpleEntity> page = (List<SimpleEntity>) getDataContent(response.getData(), new TypeReference<List<SimpleEntity>>(){});
+            if (page != null && !page.isEmpty()) {
+                results.addAll(page);
+            }
+            if (page != null && page.size() == limit) {
+                offset += limit;
+            } else {
+                hasNext = false;
+            }
+        } while (hasNext);
+
+        return results;
     }
     public List<EpicAttr> getEpicsByIds(String sharedSpaceId, String workSpaceId, List<String> epicIds) {
         String query = generateInQuery(epicIds, " id ");
