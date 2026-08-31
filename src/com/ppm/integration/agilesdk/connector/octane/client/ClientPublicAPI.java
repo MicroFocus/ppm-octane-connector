@@ -11,6 +11,7 @@ import java.net.HttpCookie;
 import java.net.InetSocketAddress;
 import java.net.Proxy;
 import java.net.URI;
+import java.net.URLDecoder;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
@@ -1019,8 +1020,10 @@ public class ClientPublicAPI {
      * @return The phase ID for work items that is considered as "DONE".
      */
     public String[] getDoneDefinitionOfUserStoryAndDefect(int sharedSpaceId, int workSpaceId) {
-        String url = String.format("%s/api/shared_spaces/%d/workspaces/%d/phases?query=\"(entity='defect'||entity='story'||"
-                + "entity='quality_story');metaphase={logical_name='metaphase.work_item.done'}\"", baseURL, sharedSpaceId, workSpaceId);
+        String doneFilter = "(entity='defect'||entity='story'||entity='quality_story');metaphase={logical_name='metaphase.work_item.done'}";
+        String encodedQuery = encodeQueryFilter(doneFilter);
+        String url = String.format("%s/api/shared_spaces/%d/workspaces/%d/phases?query=%s",
+                baseURL, sharedSpaceId, workSpaceId, encodedQuery);
         RestResponse response = sendGet(url);
 
         ArrayList<String> ids = new ArrayList();
@@ -1076,10 +1079,12 @@ public class ClientPublicAPI {
             throw new OctaneClientException("AGM_APP", "error by get doneStatusIDs empty", e.getMessage());
 
         }
+        String doneStoryPointsFilter = String.format(
+                "path='%s*';(subtype='defect'||subtype='story'||subtype='quality_story');%s", epicPath, statusStr);
+        String encodedQuery = encodeQueryFilter(doneStoryPointsFilter);
         String url = String.format(
-                "%s/api/shared_spaces/%d/workspaces/%d/work_items/groups?group_data=sum(story_points)&group_by=phase&query=\""
-                        + "path='%s*';(subtype='defect'||subtype='story'||subtype='quality_story');%s\"", baseURL,
-                sharedSpaceId, workSpaceId, epicPath, statusStr);
+                "%s/api/shared_spaces/%d/workspaces/%d/work_items/groups?group_data=sum(story_points)&group_by=phase&query=%s",
+                baseURL, sharedSpaceId, workSpaceId, encodedQuery);
 
         RestResponse response = sendGet(url);
 
@@ -1537,7 +1542,7 @@ public class ClientPublicAPI {
                 "fields=id,name,phase,estimated_hours,invested_hours,remaining_hours,subtype,release,sprint,creation_time,last_modified,owner,parent,story_points,actual_story_points"
                         , baseURL, sharedSpaceId, workSpaceId);
         if (!StringUtils.isBlank(queryFilter)) {
-            url += "&query=\""+queryFilter+"\"";
+            url += "&query=" + encodeQueryFilter(queryFilter);
         }
 
         return new JsonPaginatedOctaneGetter().get(url);
@@ -1549,7 +1554,7 @@ public class ClientPublicAPI {
                         "fields=id,name,story,estimated_hours,remaining_hours,invested_hours,owner"
                 , baseURL, sharedSpaceId, workSpaceId);
         if (!StringUtils.isBlank(queryFilter)) {
-            url += "&query=\""+queryFilter+"\"";
+            url += "&query=" + encodeQueryFilter(queryFilter);
         }
 
         return new JsonPaginatedOctaneGetter().get(url);
@@ -1958,6 +1963,17 @@ public class ClientPublicAPI {
             logger.error(" UnsupportedEncodingException when encoding url query", e);
         }
         return query;
+    }
+
+    private String encodeQueryFilter(String queryFilter) {
+        String normalizedFilter = queryFilter;
+        try {
+            // Normalize possibly pre-encoded filters (e.g. %20) before applying one consistent encode pass.
+            normalizedFilter = URLDecoder.decode(queryFilter, "UTF-8");
+        } catch (IllegalArgumentException | UnsupportedEncodingException e) {
+            logger.warn("Failed to decode query filter, falling back to raw value", e);
+        }
+        return queryEncode("\"" + normalizedFilter + "\"");
     }
 
     public JSONArray getUsersBySharedSpaceApi(String sharedSpaceId, Long limit, Long offset, String filter) {
@@ -2383,11 +2399,14 @@ public class ClientPublicAPI {
     }
 
     private HttpMethod resolveHttpMethod(String method) {
-        HttpMethod httpMethod = HttpMethod.resolve(method);
-        if (httpMethod == null) {
+        if (StringUtils.isBlank(method)) {
             throw new IllegalArgumentException("Unsupported HTTP method: " + method);
         }
-        return httpMethod;
+        try {
+            return HttpMethod.valueOf(method.trim().toUpperCase());
+        } catch (IllegalArgumentException e) {
+            throw new IllegalArgumentException("Unsupported HTTP method: " + method, e);
+        }
     }
 
     private void applyHeaders(HttpHeaders httpHeaders, Map<String, String> headers) {
