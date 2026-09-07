@@ -17,7 +17,6 @@ import java.util.Map;
 
 import com.kintana.core.logging.LogManager;
 import com.kintana.core.logging.Logger;
-import org.apache.wink.client.ClientRuntimeException;
 
 import com.hp.ppm.tm.model.TimeSheet;
 import com.ppm.integration.agilesdk.ValueSet;
@@ -187,7 +186,7 @@ public class OctaneTimeSheetIntegration extends TimeSheetIntegration {
                     }
                 }
             }
-        } catch (ClientRuntimeException | OctaneClientException e) {
+        } catch (OctaneClientException e) {
             logger.error("", e);
             new OctaneConnectivityExceptionHandler()
                     .uncaughtException(Thread.currentThread(), e, OctaneTimeSheetIntegration.class);

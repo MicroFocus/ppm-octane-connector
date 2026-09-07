@@ -17,6 +17,9 @@ public class DateUtils {
     public static final String dateFormat =  "yyyy-MM-dd'T'HH:mm:ss";
 
     public static Date convertDateTime(String dateStr) {
+        if(dateStr==null || dateStr.isEmpty()){
+            return new Date();
+        }
         try {
             synchronized (dateFormat) {
                 return new SimpleDateFormat(dateFormat).parse(dateStr);

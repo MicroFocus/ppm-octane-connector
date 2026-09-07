@@ -5,9 +5,9 @@ package com.ppm.integration.agilesdk.connector.octane;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 
-import javax.ws.rs.HttpMethod;
+import org.springframework.http.HttpMethod;
 
 import com.ppm.integration.agilesdk.ValueSet;
 import com.ppm.integration.agilesdk.agiledata.AgileDataError;
@@ -40,7 +40,7 @@ public class OctanePortfolioIntegration extends PortfolioIntegration {
      */
     @Override
     public AgileDataPortfolioList createPortfolioEntities(ValueSet valueSet, List<AgileDataPortfolio> products) {
-        return savePortfolioEntities(valueSet, products, HttpMethod.POST);
+        return savePortfolioEntities(valueSet, products, HttpMethod.POST.name());
     }
 
     /**
@@ -97,7 +97,7 @@ public class OctanePortfolioIntegration extends PortfolioIntegration {
      */
     @Override
     public AgileDataPortfolioList updatePortfolioEntities(ValueSet valueSet, List<AgileDataPortfolio> products) {
-        return savePortfolioEntities(valueSet, products, HttpMethod.PUT);
+        return savePortfolioEntities(valueSet, products, HttpMethod.PUT.name());
     }
 
     private AgileDataPortfolioList savePortfolioEntities(ValueSet valueSet, List<AgileDataPortfolio> products, String method) {

@@ -24,15 +24,15 @@ public class WorkItemEpic extends WorkItem {
     public Map<String, WorkItemFeature> featureList = new HashMap<String, WorkItemFeature>();
 
     public void ParseJsonData(JSONObject Obj) {
-        try {
-            this.id = (String)Obj.get("id");
-            this.name = (String)Obj.get("name");
-            this.subType = (String)Obj.get("subtype");
-            this.author = getSubObjectItem("author", "name", Obj);
-            this.plannedStoryPoints = Obj.getInt("story_points");
-        } catch (net.sf.json.JSONException expected) {
-            // the lable is null
+        if (Obj == null) {
+            return;
         }
+
+        this.id = getStringValue(Obj, "id");
+        this.name = getStringValue(Obj, "name");
+        this.subType = getStringValue(Obj, "subtype");
+        this.author = getSubObjectItem("author", "name", Obj);
+        this.plannedStoryPoints = getIntValue(Obj, "story_points");
     }
 
 }

@@ -1,7 +1,6 @@
 package com.ppm.integration.agilesdk.connector.octane.model;
 
 import com.ppm.integration.agilesdk.connector.octane.client.DateUtils;
-import com.ppm.integration.agilesdk.connector.octane.client.UsernamePasswordClient;
 import java.util.Date;
 
 import net.sf.json.JSONObject;

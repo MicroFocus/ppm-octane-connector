@@ -1,9 +1,7 @@
 package com.ppm.integration.agilesdk.connector.octane.model;
 
 import com.ppm.integration.agilesdk.connector.octane.client.DateUtils;
-import com.ppm.integration.agilesdk.connector.octane.client.UsernamePasswordClient;
 import java.util.Date;
-import net.sf.json.JSONException;
 import net.sf.json.JSONObject;
 
 /**
@@ -60,54 +58,57 @@ public class WorkItemStory extends WorkItem {
     public String severity;
 
     public void ParseJsonData(JSONObject Obj) {
+        if (Obj == null) {
+            return;
+        }
 
         JSONObject tempJsonObj = null;
-        try {
-            this.id = (String)Obj.get("id");
-            this.name = (String)Obj.get("name");
-            this.subType = (String)Obj.get("subtype");
-            this.creationTime = (String)Obj.get("creation_time");
-            this.creationDateTime = DateUtils.convertDateTime(creationTime);
-            this.lastModifiedTime = (String)Obj.get("last_modified");
-            this.lastModifiedDateTime = DateUtils.convertDateTime(lastModifiedTime);
-            this.investedHours = (int)Obj.get("invested_hours");
-            this.remainingHours = (int)Obj.get("remaining_hours");
-            this.estimatedHours = (int)Obj.get("estimated_hours");
+        this.id = getStringValue(Obj, "id");
+        this.name = getStringValue(Obj, "name");
+        this.subType = getStringValue(Obj, "subtype");
+        this.creationTime = getStringValue(Obj, "creation_time");
+        this.creationDateTime = DateUtils.convertDateTime(creationTime);
+        this.lastModifiedTime = getStringValue(Obj, "last_modified");
+        this.lastModifiedDateTime = DateUtils.convertDateTime(lastModifiedTime);
+        this.investedHours = getIntValue(Obj, "invested_hours");
+        this.remainingHours = getIntValue(Obj, "remaining_hours");
+        this.estimatedHours = getIntValue(Obj, "estimated_hours");
 
-            this.status = this.getSubObjectItem("phase", "name", Obj);
+        this.status = this.getSubObjectItem("phase", "name", Obj);
 
-            this.detectedInRelease = getSubObjectItem("detected_in_release", "id", Obj);
-            
-            this.defectStatus = this.status;
-            if (!"".equals(this.getSubObjectItem("team", "id", Obj))) {
-                this.teamId = this.getSubObjectItem("team", "id", Obj);
-            }
+        this.detectedInRelease = getSubObjectItem("detected_in_release", "id", Obj);
 
-            this.severity = getSubObjectItem("severity", "name", Obj);
-            this.priority = getSubObjectItem("priority", "name", Obj);
-            if (!"".equals(this.getSubObjectItem("parent", "id", Obj))) {
-                this.featureId = this.getSubObjectItem("parent", "id", Obj);
-            }
-            if (!"".equals(this.getSubObjectItem("release", "id", Obj))) {
-                this.releaseId = this.getSubObjectItem("release", "id", Obj);
-            }
-            if (!"".equals(this.getSubObjectItem("sprint", "id", Obj))) {
-                tempJsonObj = (JSONObject)Obj.get("sprint");
-                this.sprintStartDate = (String)tempJsonObj.get("start_date");
-                this.sprintEndDate = (String)tempJsonObj.get("end_date");
+        this.defectStatus = this.status;
+        if (!"".equals(this.getSubObjectItem("team", "id", Obj))) {
+            this.teamId = this.getSubObjectItem("team", "id", Obj);
+        }
+
+        this.severity = getSubObjectItem("severity", "name", Obj);
+        this.priority = getSubObjectItem("priority", "name", Obj);
+        if (!"".equals(this.getSubObjectItem("parent", "id", Obj))) {
+            this.featureId = this.getSubObjectItem("parent", "id", Obj);
+        }
+        if (!"".equals(this.getSubObjectItem("release", "id", Obj))) {
+            this.releaseId = this.getSubObjectItem("release", "id", Obj);
+        }
+        if (!"".equals(this.getSubObjectItem("sprint", "id", Obj))) {
+            tempJsonObj = getObjectValue(Obj, "sprint");
+            if (tempJsonObj != null) {
+                this.sprintStartDate = getStringValue(tempJsonObj, "start_date");
+                this.sprintEndDate = getStringValue(tempJsonObj, "end_date");
                 this.sprintStart = DateUtils.convertDateTime(sprintStartDate);
                 this.sprintEnd = DateUtils.convertDateTime(sprintEndDate);
-                this.sprintId = tempJsonObj.getString("id");
+                this.sprintId = getStringValue(tempJsonObj, "id");
             }
-            if (!"".equals(this.getSubObjectItem("owner", "id", Obj))) {
-                tempJsonObj = (JSONObject)Obj.get("owner");
-                this.ownerId = (String)tempJsonObj.get("id");
-                this.ownerName = (String)tempJsonObj.get("name");
-            }
-            this.storyPoints = Obj.getInt("story_points");
-        } catch (JSONException expected) {
-            // the release is null
         }
+        if (!"".equals(this.getSubObjectItem("owner", "id", Obj))) {
+            tempJsonObj = getObjectValue(Obj, "owner");
+            if (tempJsonObj != null) {
+                this.ownerId = getStringValue(tempJsonObj, "id");
+                this.ownerName = getStringValue(tempJsonObj, "name");
+            }
+        }
+        this.storyPoints = getIntValue(Obj, "story_points");
 
     }
 }
