@@ -14,8 +14,7 @@ public class OctaneConnectivityExceptionHandler implements UncaughtExceptionHand
     public void uncaughtException(Thread t, Throwable e, Class cls) {
         if (e instanceof OctaneClientException) {
             handleAgmClientException((OctaneClientException)e, cls);
-        } else if (isLegacyWinkClientRuntimeException(e)
-                || extractException(e, java.net.UnknownHostException.class) != null
+        } else if (extractException(e, java.net.UnknownHostException.class) != null
                 || extractException(e, java.net.ConnectException.class) != null) {
             handleConnectivityException(e, cls);
         } else {
@@ -45,16 +44,6 @@ public class OctaneConnectivityExceptionHandler implements UncaughtExceptionHand
                 .setMessage("ERROR_CONNECTIVITY_ERROR");
     }
 
-    private boolean isLegacyWinkClientRuntimeException(Throwable e) {
-        Throwable t = e;
-        while (t != null) {
-            if ("org.apache.wink.client.ClientRuntimeException".equals(t.getClass().getName())) {
-                return true;
-            }
-            t = t.getCause();
-        }
-        return false;
-    }
 
     @SuppressWarnings("unchecked") protected <T extends Throwable> T extractException(Throwable e,
             Class<T> clazz)

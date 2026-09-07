@@ -6,21 +6,16 @@ import com.ppm.integration.agilesdk.connector.octane.model.SharedSpace;
 import com.ppm.integration.agilesdk.connector.octane.model.SharedSpaces;
 import com.ppm.integration.agilesdk.connector.octane.model.WorkSpace;
 import com.ppm.integration.agilesdk.connector.octane.model.WorkSpaces;
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
 import java.net.InetSocketAddress;
 import java.net.Proxy;
 import java.net.URI;
+import java.util.LinkedHashMap;
 import java.util.List;
-import java.nio.charset.StandardCharsets;
+import java.util.Map;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
-import org.springframework.http.client.ClientHttpRequest;
-import org.springframework.http.client.ClientHttpResponse;
-import org.springframework.http.client.SimpleClientHttpRequestFactory;
 
 /**
  * This Octane client will use Username + Password for authentication. You should NOT use it except if you have a good reason.<br>
@@ -65,7 +60,7 @@ public class UsernamePasswordClient {
         String url = this.oneResource(AUTHORIZATION_SIGN_IN_URL);
         String payload = enable_csrf ? CredentialJson.toJSONObject(username, password, enable_csrf).toString()
                 : CredentialJson.toJSONObject(username, password).toString();
-        HttpResponseData response = executeTextRequest(url, HttpMethod.POST, createHeaders(URI.create(url), null), payload);
+        RestResponse response = executeTextRequest(url, HttpMethod.POST, createHeaders(URI.create(url), null), payload);
 
         if (response.getStatusCode() != 200) {
             throw new OctaneClientException("AGM_API", "ERROR_AUTHENTICATION_FAILED");
@@ -136,20 +131,20 @@ public class UsernamePasswordClient {
 
     public List<SharedSpace> getSharedSpaces() {
         String url = oneResource("/api/shared_spaces");
-        HttpResponseData response = executeTextRequest(url, HttpMethod.GET,
+        RestResponse response = executeTextRequest(url, HttpMethod.GET,
                 createHeaders(URI.create(url), MediaType.APPLICATION_JSON_VALUE), null);
         SharedSpaces tempSharedSpace = new SharedSpaces();
-        tempSharedSpace.SetCollection(response.getBody());
+        tempSharedSpace.SetCollection(response.getData());
 
         return tempSharedSpace.getCollection();
     }
 
     public List<WorkSpace> getWorkSpaces(String sharedSpacesId) {
         String url = oneResource(String.format("/api/shared_spaces/%s/workspaces", sharedSpacesId));
-        HttpResponseData response = executeTextRequest(url, HttpMethod.GET,
+        RestResponse response = executeTextRequest(url, HttpMethod.GET,
                 createHeaders(URI.create(url), MediaType.APPLICATION_JSON_VALUE), null);
         WorkSpaces tempWorkSpace = new WorkSpaces();
-        tempWorkSpace.SetCollection(response.getBody());
+        tempWorkSpace.SetCollection(response.getData());
         return tempWorkSpace.getCollection();
     }
 
@@ -168,47 +163,29 @@ public class UsernamePasswordClient {
         return headers;
     }
 
-    private HttpResponseData executeTextRequest(String url, HttpMethod method, HttpHeaders headers, String data) {
+    private RestResponse executeTextRequest(String url, HttpMethod method, HttpHeaders headers, String data) {
         try {
-            ClientHttpResponse response = executeRequest(url, method, headers,
-                    data == null ? null : data.getBytes(StandardCharsets.UTF_8));
-            try {
-                return new HttpResponseData(response.getRawStatusCode(), response.getHeaders(), readResponseBodyAsString(response.getBody()));
-            } finally {
-                response.close();
-            }
+            ClientPublicAPI clientPublicAPI = new ClientPublicAPI(this.baseURL);
+            clientPublicAPI.setProxy(this.proxy);
+            return clientPublicAPI.executeTextRequest(url, method.name(), toHeadersMap(headers), data);
         } catch (IOException e) {
             logger.error("error in http connectivity:", e);
             throw new OctaneClientException("AGM_API", "ERROR_IN_HTTP_CONNECTIVITY", e.getMessage());
         }
     }
 
-    private ClientHttpResponse executeRequest(String url, HttpMethod method, HttpHeaders headers, byte[] data) throws IOException {
-        SimpleClientHttpRequestFactory requestFactory = createRequestFactory();
-        ClientHttpRequest request = requestFactory.createRequest(URI.create(url), method);
-        applyHeaders(request.getHeaders(), headers);
-        if (data != null) {
-            try (OutputStream outputStream = request.getBody()) {
-                outputStream.write(data);
-                outputStream.flush();
-            }
-        }
-        return request.execute();
-    }
-
-    private SimpleClientHttpRequestFactory createRequestFactory() {
-        prepareSecureProtocols();
-        SimpleClientHttpRequestFactory requestFactory = new SimpleClientHttpRequestFactory();
-        if (this.proxy != null) {
-            requestFactory.setProxy(this.proxy);
-        }
-        return requestFactory;
-    }
-
-    private void applyHeaders(HttpHeaders requestHeaders, HttpHeaders headers) {
+    private Map<String, String> toHeadersMap(HttpHeaders headers) {
+        Map<String, String> requestHeaders = new LinkedHashMap<String, String>();
         for (String headerName : headers.keySet()) {
-            requestHeaders.put(headerName, headers.get(headerName));
+            List<String> values = headers.get(headerName);
+            if (values == null || values.isEmpty()) {
+                continue;
+            }
+            requestHeaders.put(headerName, HttpHeaders.COOKIE.equalsIgnoreCase(headerName)
+                    ? String.join("; ", values)
+                    : String.join(", ", values));
         }
+        return requestHeaders;
     }
 
     private void prepareSecureProtocols() {
@@ -219,46 +196,6 @@ public class UsernamePasswordClient {
         urlBuilder.append(urlBuilder.indexOf("?") >= 0 ? '&' : '?').append(name).append('=').append(value);
     }
 
-    private String readResponseBodyAsString(InputStream inputStream) throws IOException {
-        return new String(readResponseBodyAsBytes(inputStream), StandardCharsets.UTF_8);
-    }
-
-    private byte[] readResponseBodyAsBytes(InputStream inputStream) throws IOException {
-        if (inputStream == null) {
-            return new byte[0];
-        }
-        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-        byte[] buffer = new byte[4096];
-        int count;
-        while ((count = inputStream.read(buffer)) != -1) {
-            outputStream.write(buffer, 0, count);
-        }
-        return outputStream.toByteArray();
-    }
-
-    private static class HttpResponseData {
-        private final int statusCode;
-        private final HttpHeaders headers;
-        private final String body;
-
-        private HttpResponseData(int statusCode, HttpHeaders headers, String body) {
-            this.statusCode = statusCode;
-            this.headers = headers;
-            this.body = body;
-        }
-
-        private int getStatusCode() {
-            return statusCode;
-        }
-
-        private HttpHeaders getHeaders() {
-            return headers;
-        }
-
-        private String getBody() {
-            return body;
-        }
-    }
 
 
 }

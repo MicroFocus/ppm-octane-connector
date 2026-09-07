@@ -80,6 +80,8 @@ public class ClientPublicAPI {
 
     private Proxy proxy = null;
 
+    private SimpleClientHttpRequestFactory requestFactory;
+
     private int retryNumber = 0;
 
     public static final String DEFAULT_ENTITY_ITEM_URL =
@@ -140,6 +142,9 @@ public class ClientPublicAPI {
 
     public void setProxy(String host, int port) {
         this.proxy = new Proxy(Proxy.Type.HTTP, new InetSocketAddress(host, port));
+    }
+    public void setProxy(Proxy proxy) {
+        this.proxy = proxy;
     }
 
 
@@ -2340,7 +2345,7 @@ public class ClientPublicAPI {
         }
     }
 
-    private RestResponse executeTextRequest(String url, String method, Map<String, String> headers, String data) throws IOException {
+    RestResponse executeTextRequest(String url, String method, Map<String, String> headers, String data) throws IOException {
         ClientHttpResponse response = executeRequest(url, method, headers,
                 data == null ? null : data.getBytes(StandardCharsets.UTF_8));
         try {
@@ -2385,11 +2390,13 @@ public class ClientPublicAPI {
 
     private SimpleClientHttpRequestFactory createRequestFactory(String url) {
         prepareSecureProtocols(url);
-        SimpleClientHttpRequestFactory requestFactory = new SimpleClientHttpRequestFactory();
-        if (this.proxy != null) {
-            requestFactory.setProxy(this.proxy);
+        if(this.requestFactory == null){
+            this.requestFactory = new SimpleClientHttpRequestFactory();
         }
-        return requestFactory;
+        if (this.proxy != null) {
+            this.requestFactory.setProxy(this.proxy);
+        }
+        return this.requestFactory;
     }
 
     private void prepareSecureProtocols(String url) {
