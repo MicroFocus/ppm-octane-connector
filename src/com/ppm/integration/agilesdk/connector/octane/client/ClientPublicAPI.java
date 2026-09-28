@@ -1359,7 +1359,7 @@ public class ClientPublicAPI {
         List<EpicAttr> results = new LinkedList<>();
         boolean hasNext = true;
         int offset = 0;
-        int limit = 100;
+        int limit = 1000;
         do {
             String url = String.format("%s/api/shared_spaces/%d/workspaces/%d/epics?fields=id,name&offset=%d&limit=%d",
                     baseURL, sharedSpaceId, workSpaceId, offset, limit);
@@ -1384,7 +1384,7 @@ public class ClientPublicAPI {
         List<SimpleEntity> results = new LinkedList<>();
         boolean hasNext = true;
         int offset = 0;
-        int limit = 100;
+        int limit = 1000;
         do {
             String url = String.format("%s/api/shared_spaces/%d/workspaces/%d/features?fields=id,name&offset=%d&limit=%d",
                     baseURL, sharedSpaceId, workSpaceId, offset, limit);
