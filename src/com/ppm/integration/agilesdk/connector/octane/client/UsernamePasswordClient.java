@@ -176,7 +176,6 @@ public class UsernamePasswordClient {
 
     private Map<String, String> toHeadersMap(HttpHeaders headers) {
         Map<String, String> requestHeaders = new LinkedHashMap<String, String>();
-        //for (String headerName : headers.toSingleValueMap().keySet()) {
         headers.forEach((headerName, headerValues) -> {
             List<String> values = headers.get(headerName);
             if (!(values == null || values.isEmpty())) {
