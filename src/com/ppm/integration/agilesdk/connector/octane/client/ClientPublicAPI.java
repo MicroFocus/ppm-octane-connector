@@ -2385,7 +2385,7 @@ public class ClientPublicAPI {
         ClientHttpResponse response = executeRequest(url, method, headers,
                 data == null ? null : data.getBytes(StandardCharsets.UTF_8));
         try {
-            return new RestResponse(response.getRawStatusCode(),
+            return new RestResponse(response.getStatusCode().value(),
                     normalizeResponseBody(readResponseBodyAsString(response.getBody())), response.getHeaders());
         } finally {
             response.close();
@@ -2395,7 +2395,7 @@ public class ClientPublicAPI {
     private RestResponse executeBinaryBodyTextRequest(String url, String method, Map<String, String> headers, byte[] data) throws IOException {
         ClientHttpResponse response = executeRequest(url, method, headers, data);
         try {
-            return new RestResponse(response.getRawStatusCode(),
+            return new RestResponse(response.getStatusCode().value(),
                     normalizeResponseBody(readResponseBodyAsString(response.getBody())), response.getHeaders());
         } finally {
             response.close();
@@ -2405,7 +2405,7 @@ public class ClientPublicAPI {
     private RestResponse executeBinaryRequest(String url, String method, Map<String, String> headers) throws IOException {
         ClientHttpResponse response = executeRequest(url, method, headers, null);
         try {
-            return new RestResponse(response.getRawStatusCode(), readResponseBodyAsBytes(response.getBody()), response.getHeaders());
+            return new RestResponse(response.getStatusCode().value(), readResponseBodyAsBytes(response.getBody()), response.getHeaders());
         } finally {
             response.close();
         }

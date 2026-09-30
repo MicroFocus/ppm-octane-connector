@@ -176,15 +176,15 @@ public class UsernamePasswordClient {
 
     private Map<String, String> toHeadersMap(HttpHeaders headers) {
         Map<String, String> requestHeaders = new LinkedHashMap<String, String>();
-        for (String headerName : headers.keySet()) {
+        //for (String headerName : headers.toSingleValueMap().keySet()) {
+        headers.forEach((headerName, headerValues) -> {
             List<String> values = headers.get(headerName);
-            if (values == null || values.isEmpty()) {
-                continue;
+            if (!(values == null || values.isEmpty())) {
+                requestHeaders.put(headerName, HttpHeaders.COOKIE.equalsIgnoreCase(headerName)
+                        ? String.join("; ", values)
+                        : String.join(", ", values));
             }
-            requestHeaders.put(headerName, HttpHeaders.COOKIE.equalsIgnoreCase(headerName)
-                    ? String.join("; ", values)
-                    : String.join(", ", values));
-        }
+        });
         return requestHeaders;
     }
 
