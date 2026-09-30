@@ -176,8 +176,7 @@ public class UsernamePasswordClient {
 
     private Map<String, String> toHeadersMap(HttpHeaders headers) {
         Map<String, String> requestHeaders = new LinkedHashMap<String, String>();
-        headers.forEach((headerName, headerValues) -> {
-            List<String> values = headers.get(headerName);
+        headers.forEach((headerName, values) -> {
             if (!(values == null || values.isEmpty())) {
                 requestHeaders.put(headerName, HttpHeaders.COOKIE.equalsIgnoreCase(headerName)
                         ? String.join("; ", values)
