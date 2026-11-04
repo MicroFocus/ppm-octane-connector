@@ -9,7 +9,7 @@ import java.net.URLEncoder;
 import java.util.*;
 import java.util.Map.Entry;
 
-import javax.ws.rs.HttpMethod;
+import org.springframework.http.HttpMethod;
 
 import com.google.common.collect.Iterables;
 import com.hp.ppm.common.model.AgileEntityIdName;
@@ -531,9 +531,9 @@ public class OctaneRequestIntegration extends RequestIntegration {
         String sharedSpaceId = workspaceJson.getString(OctaneConstants.SHARED_SPACE_ID);
 
         List<FieldInfo> fieldInfos = client.getEntityFields(sharedSpaceId, workSpaceId, entityType);
-        String method = HttpMethod.POST;
+        String method = HttpMethod.POST.name();
         if (entity.getId() != null) {
-            method = HttpMethod.PUT;
+            method = HttpMethod.PUT.name();
         }
         // Sync request portfolio value to octane entity product field if where is an existing product according to portfolio name (PPM->OCTANE).
         // If not match, reset empty.

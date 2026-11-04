@@ -10,7 +10,7 @@ import com.ppm.integration.agilesdk.epic.PortfolioEpicIntegration;
 import com.ppm.integration.agilesdk.epic.PortfolioEpicSyncInfo;
 import net.sf.json.JSONObject;
 import net.sf.json.JSONSerializer;
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 import com.kintana.core.logging.LogManager;
 import com.kintana.core.logging.Logger;
 
