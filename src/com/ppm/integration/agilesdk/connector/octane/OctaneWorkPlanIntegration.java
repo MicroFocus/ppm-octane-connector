@@ -15,9 +15,6 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import com.google.common.collect.Lists;
-import com.ppm.integration.agilesdk.connector.jira.JIRAServiceProvider;
-import com.ppm.integration.agilesdk.connector.jira.model.JIRAAgileEntity;
 import com.ppm.integration.agilesdk.connector.octane.model.*;
 import com.ppm.integration.agilesdk.connector.octane.model.workplan.*;
 import org.apache.commons.lang3.StringUtils;
